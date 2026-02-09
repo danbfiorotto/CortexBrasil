@@ -1,0 +1,51 @@
+📄 PRD: Agente Financeiro Agêntico (Codinome: "Mentor Invisível")
+1. Visão Geral e Objetivo
+Problema
+O controle financeiro tradicional (planilhas e apps) falha por dois motivos: alto atrito de entrada (preguiça de anotar) e falta de inteligência proativa (os dados ficam parados, sem gerar insights).
+Público-alvo
+Inicialmente, um grupo de 4 usuários (2 casais) que buscam controle individual rigoroso, privacidade total e ferramentas para planejamento conjunto (viagens e metas).
+Valor de Negócio
+Validar um modelo de SaaS Agêntico onde o custo de processamento é internalizado (GPU Local) e a interface é universal (WhatsApp), criando um produto de alta retenção e custo operacional baixíssimo.
+
+2. Objetivos e Métricas (KPIs)
+
+3. Funcionalidades (MoSCoW)
+Must Have (Essencial)
+Interface WhatsApp: Registro via texto e áudio.
+Processamento Local (RTX 5080): Integração com Whisper (transcrição) e LLM (extração de dados).
+Multi-tenancy Real: Isolamento completo de dados entre usuários (RLS no banco de dados).
+Gestão de Gastos/Ganhos: Categorização automática e manual.
+Parcelamentos: Divisão automática de compras futuras no fluxo de caixa.
+Should Have (Importante)
+Controle de Assinaturas: Identificação de cobranças recorrentes.
+Metas de Economia: Barra de progresso para objetivos específicos (ex: Viagem Orlando).
+Resumos Automáticos: Relatórios diários/semanais proativos.
+Could Have (Desejável)
+Modo Viagem: Conversão de moeda em tempo real e "rachamento" de contas de grupo.
+Simulador de Amortização: Cálculos de antecipação de financiamento.
+Dashboard Web: Visualização gráfica simples via link protegido por token.
+Won't Have (Fora de Escopo)
+Open Banking: Conexão direta com contas bancárias (foco em registro manual/inteligente).
+
+4. Experiência do Usuário (UX)
+Fluxo Principal
+Input: Usuário envia: "Paguei 120 de luz" ou áudio: "Amor, gastei 50 no mercado no cartão de crédito".
+Processamento: O backend transcreve (se áudio), a LLM extrai o JSON e valida as regras.
+Feedback: O bot responde com um emoji de confirmação e o saldo atual da categoria.
+Alerta (Opcional): Se o gasto estourar uma meta, o "Mentor" intervém: "Isso te deixa R$ 100 acima do limite de Lazer. Quer ajustar algo?"
+
+5. Casos de Uso (User Stories)
+Como usuário, quero registrar um gasto por áudio enquanto dirijo, para que eu não esqueça de anotar depois.
+Como parceiro, quero ter uma carteira privada que minha esposa/marido não veja, e uma carteira compartilhada para despesas da casa.
+Como planejador, quero ver quantas parcelas de cartão ainda tenho para os próximos 6 meses para saber se posso fazer uma nova compra grande.
+
+6. Restrições e Cronograma
+Restrições Técnicas
+Stack: Python (FastAPI), PostgreSQL (Local), Docker.
+Privacidade: Os dados devem ser criptografados em repouso. Nenhuma API de terceiros (além do WhatsApp) deve ler os dados financeiros brutos.
+Hardware: Todo o processamento de IA deve ocorrer na RTX 5080 local.
+Cronograma Estimado (Sprints de 1 semana)
+Semana 1: Setup de infra (Docker, Database, Cloudflare Tunnel) e integração básica WhatsApp.
+Semana 2: Implementação do motor de IA (Whisper + LLM Local) e extração de dados.
+Semana 3: Lógica de parcelamento, recorrência e isolamento de usuários.
+Semana 4: Teste em grupo (Alpha) e refinamento do "Tom de Voz" do Mentor.

@@ -1,0 +1,119 @@
+🛠️ Instruções de Uso
+Copie e cole os prompts na ordem abaixo.
+Use o Claude 3.5 Sonnet (ou Opus) para a geração de código complexo (Backend, SQL, Lógica) e o Gemini 1.5 Pro para revisão de arquitetura ou geração de documentação, devido à janela de contexto maior.
+Regra de Ouro: Se a IA gerar código incompleto (ex: ...rest of code), peça explicitamente: "Continue exatamente de onde parou e complete o código."
+
+📂 Passo 0: O Contexto Mestre (Use sempre)
+Antes de iniciar qualquer prompt, copie e cole este bloco de contexto para que a IA "encarne" o Engenheiro Chefe do projeto.
+CONTEXTO DO PROJETO: Estamos construindo o "Mentor Invisível", um agente financeiro pessoal via WhatsApp.
+Arquitetura: Python (FastAPI), PostgreSQL (Local com RLS), Docker. - Hardware: Execução local em GPU NVIDIA RTX 5080 (16GB VRAM). - IA: LLM Qwen 2.5-7B (via vLLM) e Faster-Whisper para áudio. - Segurança: Dados isolados por Row-Level Security (RLS) e criptografia AES-256. - Objetivo: Receber áudios/textos, extrair transações financeiras (JSON), salvar no DB e gerar insights (Nudges).
++4
+Restrição: Código deve ser production-ready, tipado (Type Hints), documentado e seguir princípios SOLID.
+
+🏗️ Fase 1: Infraestrutura de Dados (A Fundação)
+O objetivo é criar o banco de dados blindado com isolamento de usuários (Multi-tenancy via RLS).
+Prompt 1: Schema SQL e Segurança (PostgreSQL)
+Plaintext
+Atue como um Arquiteto de Banco de Dados Sênior. Preciso do script SQL DDL completo (`init.sql`) para o PostgreSQL 16.
+
+Requisitos Técnicos Baseados na Especificação:
+1. Habilite as extensões: `pgcrypto` (para criptografia) e `vector` (para memória semântica)[cite: 69, 92].
+2. Crie a tabela `users` e a tabela `transactions`.
+3. Implemente Row-Level Security (RLS) mandatório:
+   - Toda tabela deve ter uma coluna `tenant_id` (UUID).
+   - Crie a política (POLICY) que força o isolamento: `USING (tenant_id = current_setting('app.current_tenant')::uuid)`[cite: 62, 63].
+4. A tabela `transactions` deve ter campos criptografados para `description` usando PGP_SYM_ENCRYPT[cite: 69].
+5. Crie índices otimizados, garantindo que `tenant_id` seja sempre a primeira coluna do índice composto para performance do RLS[cite: 344].
+
+Gere o SQL completo, comentado e pronto para rodar.
+
+🧠 Fase 2: O Motor de IA (O Cérebro)
+Aqui configuramos o cliente que fala com a GPU. Precisamos gerenciar a VRAM com cuidado.
+Prompt 2: Cliente vLLM e Engenharia de Prompt
+Plaintext
+Atue como um Engenheiro de Machine Learning. Crie um módulo Python (`ai_engine.py`) para interagir com o modelo Qwen 2.5-7B rodando no vLLM.
+
+Requisitos:
+1. Use a biblioteca `openai` (o vLLM é compatível com a API da OpenAI).
+2. Crie uma classe `FinancialExtractor`.
+3. Implemente um método `extract_transaction(text: str)` que recebe um texto informal e retorna um objeto JSON validado pelo Pydantic.
+4. O System Prompt deve ser robusto para extrair: valor, moeda, categoria, método de pagamento e recorrência[cite: 38].
+5. Implemente lógica de retry caso o JSON venha malformado (Output Parsers).
+6. Configure o cliente para usar `max_tokens` limitados e temperatura baixa (0.1) para precisão.
+
+Observação crítica: O hardware é uma RTX 5080. O código deve estar preparado para lidar com timeouts se a GPU estiver ocupada com processamento de áudio[cite: 320].
+
+Gere o código Python completo com as classes Pydantic.
+Prompt 3: Processamento de Áudio (Whisper)
+Plaintext
+Atue como um Engenheiro de Processamento de Sinais. Crie o módulo `audio_processor.py`.
+
+Requisitos:
+1. Utilize a biblioteca `faster-whisper` com o modelo 'large-v3'[cite: 257].
+2. Implemente uma função `transcribe_audio(file_path: str) -> str`.
+3. Implemente OTIMIZAÇÃO DE VRAM: A função deve carregar o modelo na GPU apenas no momento do uso e descarregá-lo (ou mover para CPU) após o uso, pois a RTX 5080 tem apenas 16GB e divide espaço com o LLM[cite: 260].
+4. Configure para usar precisão `float16` se disponível.
+5. Adicione tratamento de erro para arquivos corrompidos.
+
+Gere o código completo.
+
+🔌 Fase 3: Backend e API (O Corpo)
+Conectar o WhatsApp (Webhook) ao Cérebro (IA).
+Prompt 4: Estrutura FastAPI e Webhook Meta
+Plaintext
+Atue como um Engenheiro Backend Sênior (Python). Crie o arquivo principal `main.py` usando FastAPI.
+
+Requisitos do Endpoint `/webhook`:
+1. Validação de Segurança: Implemente a verificação da assinatura HMAC-SHA256 (X-Hub-Signature-256) da Meta para garantir que a requisição é legítima[cite: 116, 282].
+2. Idempotência: Use Redis (ou um dict em memória para este MVP) para verificar se o `wamid` (Message ID) já foi processado, evitando duplicidade de gastos[cite: 325].
+3. Processamento Assíncrono: O endpoint deve apenas receber a mensagem, colocar em uma `asyncio.Queue` (BackgroundTasks) e retornar 200 OK imediatamente para evitar timeout do WhatsApp[cite: 316].
+4. Crie um `worker` consumidor que lê a fila e chama os módulos de IA criados nos passos anteriores.
+
+Gere o código completo do FastAPI, incluindo a injeção de dependência para conexão com o Banco de Dados.
+Prompt 5: Middleware de Segurança RLS
+Plaintext
+Para garantir a privacidade absoluta descrita no projeto, preciso de um Middleware para o FastAPI (`middleware.py`) ou uma dependência de sessão (`deps.py`).
+
+Requisitos:
+1. Ao receber uma requisição, identifique o usuário (pelo número de telefone do WhatsApp).
+2. Recupere o `tenant_id` desse usuário no banco.
+3. Antes de executar qualquer query, execute o comando SQL: `SET app.current_tenant = 'UUID_DO_USUARIO'` na sessão do banco de dados[cite: 57, 63].
+4. Isso garante que o RLS do PostgreSQL funcione.
+
+Gere o código de integração entre o SQLAlchemy (ou driver asyncpg) e essa lógica de sessão.
+
+🔢 Fase 4: Lógica Financeira (A Razão)
+Prompt 6: Calculadora de Parcelamento e Amortização
+Plaintext
+Atue como um Matemático Financeiro e Desenvolvedor Python. Crie o módulo `finance_logic.py`.
+
+Requisitos:
+1. Implemente a função de projeção de parcelas. Se o input for "iPhone em 12x de 500", o sistema deve gerar 12 registros futuros no banco[cite: 77].
+2. Implemente a função de Amortização (Tabela Price) conforme a fórmula matemática: PMT = PV * i / (1 - (1+i)^-n)[cite: 79].
+3. O código deve ser capaz de calcular o desconto (valor presente) se o usuário antecipar parcelas.
+
+Gere o código Python com tipagem forte e testes unitários básicos embutidos.
+
+🐳 Fase 5: Orquestração e Deploy (A Entrega)
+Prompt 7: Docker Compose e Otimização GPU
+Plaintext
+Atue como um Engenheiro DevOps Especialista em NVIDIA. Crie o arquivo `docker-compose.yml` para subir toda a stack.
+
+Serviços necessários:
+1. `db`: PostgreSQL 16 (imagem oficial).
+2. `app`: O container da aplicação FastAPI (Dockerfile a ser gerado).
+3. `vllm`: Container oficial do vLLM para servir o modelo Qwen.
+4. `cloudflared`: Container para criar o túnel seguro para o WhatsApp[cite: 74].
+
+Requisitos Críticos de Hardware:
+- Configure o serviço `app` e `vllm` para ter acesso à GPU (runtime: nvidia).
+- Defina variáveis de ambiente para limitar o uso de memória do vLLM (`gpu-memory-utilization`) para deixar espaço para o Whisper[cite: 256].
+- Configure volumes persistentes para o Postgres e modelos de IA (para não baixar toda vez).
+
+Gere o docker-compose.yml completo e o Dockerfile para o backend.
+
+📋 Próximo Passo Sugerido para o Usuário
+Após rodar esses prompts e salvar os arquivos, você terá a base completa do código. O passo final que a IA não pode fazer fisicamente é:
+Comprar e instalar a RTX 5080.
+Configurar o Cloudflare Tunnel com seu domínio.
+Configurar a conta no Meta for Developers para pegar o Token e apontar para o URL do túnel.
