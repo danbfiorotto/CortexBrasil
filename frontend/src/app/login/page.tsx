@@ -4,9 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
-import { Card, TextInput, Button, Text, Title, Callout } from '@tremor/react';
-import { ShieldCheck, Smartphone, ArrowRight, Loader2, Sparkles, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -53,50 +51,55 @@ export default function LoginPage() {
         } catch (err: any) {
             if (err.response && (err.response.status === 400 || err.response.status === 401)) {
                 setError('Código inválido ou expirado. Verifique o SMS.');
-                console.warn("Tentativa de login falhou: Código inválido.");
             } else {
                 setError('Erro no servidor. Tente novamente.');
-                console.error(err);
             }
+            console.error(err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex w-full">
+        <div className="min-h-screen flex w-full bg-charcoal-bg text-crisp-white overflow-hidden">
             {/* Left Side - Brand / Visuals */}
-            <div className="hidden lg:flex w-1/2 bg-slate-900 relative overflow-hidden items-center justify-center p-12">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1639322537228-ad714dd474f5?q=80&w=2664&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/40 to-indigo-900/40"></div>
+            <div className="hidden lg:flex w-1/2 relative items-center justify-center p-12 overflow-hidden bg-carbon-950">
+                {/* Abstract Background Effects */}
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-royal-purple/20 via-carbon-950 to-carbon-950" />
+                <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-vibrant/10 via-carbon-950 to-carbon-950" />
 
-                <div className="relative z-10 max-w-lg text-white">
+                {/* Grid Pattern Overlay */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+
+                <div className="relative z-10 max-w-lg">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-                                <Sparkles className="w-8 h-8 text-white" />
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="p-4 bg-royal-purple/10 rounded-2xl border border-royal-purple/30 backdrop-blur-md shadow-[0_0_30px_rgba(139,92,246,0.15)]">
+                                <span className="material-symbols-outlined text-4xl text-royal-purple">auto_awesome</span>
                             </div>
                         </div>
-                        <h1 className="text-5xl font-bold mb-6 tracking-tight leading-tight">
-                            Domine suas finanças com Inteligência.
+                        <h1 className="text-5xl font-bold mb-6 tracking-tight leading-[1.1] text-crisp-white">
+                            Domine suas finanças com <span className="text-transparent bg-clip-text bg-gradient-to-r from-royal-purple to-emerald-vibrant">Inteligência</span>.
                         </h1>
-                        <p className="text-xl text-slate-300 leading-relaxed">
+                        <p className="text-lg text-slate-low leading-relaxed max-w-md">
                             O Cortex Brasil usa IA avançada para analisar, categorizar e otimizar seu patrimônio em tempo real. Sem planilhas, sem esforço.
                         </p>
 
-                        <div className="mt-12 flex gap-4">
+                        <div className="mt-12 flex gap-5 items-center">
                             <div className="flex -space-x-4">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900 bg-slate-700"></div>
+                                    <div key={i} className="w-10 h-10 rounded-full border-2 border-carbon-950 bg-graphite-600 flex items-center justify-center text-[10px] font-bold text-slate-low">
+                                        U{i}
+                                    </div>
                                 ))}
                             </div>
-                            <div className="flex flex-col justify-center">
-                                <span className="text-sm font-bold">Junte-se a 1.000+ usuários</span>
-                                <span className="text-xs text-slate-400">que controlam o futuro.</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-crisp-white">Junte-se a 1.000+ usuários</span>
+                                <span className="text-xs text-slate-low">que controlam o futuro.</span>
                             </div>
                         </div>
                     </motion.div>
@@ -104,96 +107,135 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 bg-white dark:bg-slate-950 flex items-center justify-center p-8">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-charcoal-bg relative">
+                <div className="absolute top-0 right-0 p-8">
+                    <div className="flex items-center gap-2 text-royal-purple">
+                        <span className="material-symbols-outlined text-2xl">all_inclusive</span>
+                        <span className="text-sm font-bold tracking-widest uppercase">Cortex</span>
+                    </div>
+                </div>
+
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="w-full max-w-md"
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="w-full max-w-sm"
                 >
-                    <div className="mb-10 text-center lg:text-left">
-                        <div className="lg:hidden flex justify-center mb-4">
-                            <div className="p-3 bg-blue-600 rounded-xl">
-                                <Sparkles className="w-6 h-6 text-white" />
-                            </div>
-                        </div>
-                        <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Bem-vindo de volta</h2>
-                        <p className="text-slate-500 dark:text-slate-400 mt-2">Acesse sua conta para visualizar seu dashboard.</p>
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-crisp-white mb-2">Bem-vindo de volta</h2>
+                        <p className="text-slate-low text-sm">Acesse seu dashboard financeiro premium.</p>
                     </div>
 
-                    {error && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mb-6">
-                            <Callout title="Erro de Acesso" color="red" icon={ShieldCheck}>
-                                {error}
-                            </Callout>
-                        </motion.div>
-                    )}
+                    <AnimatePresence mode="wait">
+                        {error && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="mb-6 p-4 rounded-lg bg-crimson-bright/10 border border-crimson-bright/30 flex items-start gap-3"
+                            >
+                                <span className="material-symbols-outlined text-crimson-bright text-xl">gpp_maybe</span>
+                                <p className="text-xs font-medium text-crimson-bright mt-0.5">{error}</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    <Card className="ring-0 shadow-none border-0 p-0 bg-transparent">
+                    <div className="bg-graphite-card border border-graphite-border rounded-xl p-8 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-royal-purple via-emerald-vibrant to-royal-purple" />
+
                         {step === 'phone' ? (
-                            <div className="space-y-6">
+                            <motion.div
+                                key="step-phone"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
+                            >
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">WhatsApp</label>
-                                    <TextInput
-                                        icon={Smartphone}
-                                        placeholder="5511999999999"
-                                        value={phone}
-                                        onValueChange={setPhone}
-                                        className="h-12 text-lg"
-                                    />
-                                    <p className="text-xs text-slate-400 mt-2 ml-1">Digite seu número completo com DDD.</p>
+                                    <label className="block text-xs font-bold text-slate-low uppercase tracking-widest mb-2">WhatsApp</label>
+                                    <div className="relative">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-low">smartphone</span>
+                                        <input
+                                            type="tel"
+                                            placeholder="5511999999999"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg pl-10 pr-4 py-3 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-low mt-2">Digite seu número completo com DDD (apenas números).</p>
                                 </div>
-                                <Button
-                                    size="xl"
-                                    className="w-full font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all"
+                                <button
                                     onClick={handleRequestOtp}
-                                    loading={loading}
-                                    disabled={!phone}
+                                    disabled={loading || !phone}
+                                    className="w-full bg-royal-purple hover:bg-royal-purple/90 text-crisp-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-royal-purple/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
                                 >
-                                    Receber Código de Acesso
-                                </Button>
-                            </div>
+                                    {loading ? (
+                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                    ) : (
+                                        <>
+                                            Receber Código
+                                            <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                                        </>
+                                    )}
+                                </button>
+                            </motion.div>
                         ) : (
-                            <div className="space-y-6">
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
-                                    <p className="text-sm text-blue-800 dark:text-blue-200">{instruction}</p>
+                            <motion.div
+                                key="step-otp"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-6"
+                            >
+                                <div className="bg-royal-purple/10 p-3 rounded-lg border border-royal-purple/20 text-center">
+                                    <p className="text-xs text-royal-purple font-medium">{instruction}</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Código de 6 dígitos</label>
-                                    <TextInput
-                                        icon={Lock}
-                                        placeholder="000000"
-                                        value={otp}
-                                        onValueChange={setOtp}
-                                        className="text-center text-2xl tracking-[0.5em] font-mono h-14"
-                                        maxLength={6}
-                                    />
+                                    <label className="block text-xs font-bold text-slate-low uppercase tracking-widest mb-2">Código de 6 dígitos</label>
+                                    <div className="relative">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-low">lock</span>
+                                        <input
+                                            type="text"
+                                            placeholder="000000"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value)}
+                                            maxLength={6}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg pl-10 pr-4 py-3 text-center text-xl tracking-[0.5em] font-mono text-crisp-white placeholder:text-slate-low/30 focus:ring-1 focus:ring-emerald-vibrant focus:border-emerald-vibrant outline-none transition-colors"
+                                        />
+                                    </div>
                                 </div>
 
-                                <Button
-                                    size="xl"
-                                    className="w-full font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all bg-emerald-600 hover:bg-emerald-700 border-none"
+                                <button
                                     onClick={handleVerifyOtp}
-                                    loading={loading}
-                                    disabled={otp.length !== 6}
+                                    disabled={loading || otp.length !== 6}
+                                    className="w-full bg-emerald-vibrant hover:bg-emerald-600 text-charcoal-bg font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-emerald-vibrant/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Entrar no Dashboard
-                                </Button>
+                                    {loading ? (
+                                        <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                                    ) : (
+                                        <>
+                                            Entrar no Dashboard
+                                            <span className="material-symbols-outlined text-sm">login</span>
+                                        </>
+                                    )}
+                                </button>
 
                                 <button
                                     onClick={() => setStep('phone')}
-                                    className="w-full text-sm text-slate-500 hover:text-blue-600 mt-4 flex items-center justify-center gap-2"
+                                    className="w-full text-xs font-bold text-slate-low hover:text-royal-purple mt-4 flex items-center justify-center gap-1 transition-colors"
                                 >
-                                    <ArrowRight className="w-4 h-4 rotate-180" />
+                                    <span className="material-symbols-outlined text-sm">arrow_back</span>
                                     Corrigir número
                                 </button>
-                            </div>
+                            </motion.div>
                         )}
-                    </Card>
+                    </div>
 
-                    <div className="mt-12 text-center">
-                        <p className="text-xs text-slate-400">Protegido por criptografia de ponta a ponta.</p>
+                    <div className="mt-8 text-center flex items-center justify-center gap-2 text-slate-low/60">
+                        <span className="material-symbols-outlined text-sm">lock</span>
+                        <p className="text-[10px] font-medium uppercase tracking-wider">Criptografia de ponta a ponta</p>
                     </div>
                 </motion.div>
             </div>

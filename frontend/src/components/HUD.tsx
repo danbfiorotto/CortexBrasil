@@ -1,20 +1,21 @@
 'use client';
 
-import { Card, Metric, Text, Flex, ProgressBar, BadgeDelta, Badge } from '@tremor/react';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Activity, CreditCard, Wallet } from 'lucide-react';
 
 interface HUDData {
     safe_to_spend: number;
     burn_rate: {
-        value: number; // percentage
-        status: string; // Good, Warning, Critical
+        value: number;
+        status: string;
         daily_avg: number;
     };
     invoice_projection: number;
     income: number;
 }
+
+const formatBRL = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
 export default function HUD() {
     const [data, setData] = useState<HUDData | null>(null);
@@ -36,9 +37,9 @@ export default function HUD() {
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="h-24 bg-slate-800/50 rounded-lg"></div>
+                    <div key={i} className="h-28 bg-graphite-card rounded-xl border border-graphite-border" />
                 ))}
             </div>
         );
@@ -46,75 +47,76 @@ export default function HUD() {
 
     if (!data) return null;
 
-    // Helper to format currency
-    const formatBRL = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    const burnLabel =
+        data.burn_rate.status === 'Critical' ? 'Crítica' :
+            data.burn_rate.status === 'Warning' ? 'Moderada' : 'Saudável';
 
-    // Burn Rate Color
-    const burnColor = data.burn_rate.status === 'Critical' ? 'red' :
-        data.burn_rate.status === 'Warning' ? 'amber' : 'emerald';
+    const burnPercent = Math.min(100, Math.round(data.burn_rate.value));
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* 1. Safe-to-Spend */}
-            <Card className="bg-slate-900/50 border-slate-800 ring-1 ring-slate-700/50 backdrop-blur-md">
-                <Flex justifyContent="start" className="space-x-4">
-                    <div className={`p-2 rounded-full ${data.safe_to_spend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                        <Wallet className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <Text className="text-slate-400">Safe-to-Spend</Text>
-                        <Metric className={`text-2xl ${data.safe_to_spend > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {formatBRL(data.safe_to_spend)}
-                        </Metric>
-                    </div>
-                </Flex>
-                <div className="mt-4">
-                    <Text className="text-xs text-slate-500">
-                        Livre para gastar (Renda - Fixos - Parcelas)
-                    </Text>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Safe-to-Spend */}
+            <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <span className="material-symbols-outlined text-emerald-vibrant scale-150">account_balance_wallet</span>
                 </div>
-            </Card>
-
-            {/* 2. Burn Rate */}
-            <Card className="bg-slate-900/50 border-slate-800 ring-1 ring-slate-700/50 backdrop-blur-md">
-                <Flex justifyContent="start" className="space-x-4 mb-2">
-                    <div className={`p-2 rounded-full bg-${burnColor}-500/10 text-${burnColor}-400`}>
-                        <Activity className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <Text className="text-slate-400">Burn Rate (Velocidade)</Text>
-                        <Metric className="text-2xl text-slate-200">
-                            {Math.round(data.burn_rate.value)}%
-                        </Metric>
-                    </div>
-                </Flex>
-                <ProgressBar value={data.burn_rate.value} color={burnColor} className="mt-2" />
-                <Flex className="mt-2">
-                    <Text className="text-xs text-slate-500">Média: {formatBRL(data.burn_rate.daily_avg)}/dia</Text>
-                    <Badge size="xs" color={burnColor}>{data.burn_rate.status}</Badge>
-                </Flex>
-            </Card>
-
-            {/* 3. Invoice Projection */}
-            <Card className="bg-slate-900/50 border-slate-800 ring-1 ring-slate-700/50 backdrop-blur-md">
-                <Flex justifyContent="start" className="space-x-4">
-                    <div className="p-2 rounded-full bg-violet-500/10 text-violet-400">
-                        <CreditCard className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <Text className="text-slate-400">Projeção Fatura</Text>
-                        <Metric className="text-2xl text-violet-400">
-                            {formatBRL(data.invoice_projection)}
-                        </Metric>
-                    </div>
-                </Flex>
-                <div className="mt-4">
-                    <Text className="text-xs text-slate-500">
-                        Estimativa de fechamento baseada no ritmo atual
-                    </Text>
+                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Safe-to-Spend</p>
+                <p className={`text-3xl font-bold tracking-tight subtle-glow-emerald ${data.safe_to_spend > 0 ? 'text-emerald-vibrant' : 'text-crimson-bright subtle-glow-crimson'}`}>
+                    {formatBRL(data.safe_to_spend)}
+                </p>
+                <div className="flex items-center gap-2">
+                    <span className="text-emerald-vibrant/90 text-xs font-medium">
+                        Livre para gastar
+                    </span>
+                    <span className="material-symbols-outlined text-xs text-emerald-vibrant/90">trending_up</span>
                 </div>
-            </Card>
+            </div>
+
+            {/* Burn Rate Speedometer */}
+            <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border">
+                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Burn Rate Speedometer</p>
+                <div className="flex items-end justify-between">
+                    <div>
+                        <p className="text-2xl font-bold text-crisp-white">{burnLabel}</p>
+                        <p className="text-crimson-bright/90 text-xs font-medium subtle-glow-crimson">
+                            {burnPercent}% do limite de segurança
+                        </p>
+                    </div>
+                    <div className="w-24 h-12 relative overflow-hidden">
+                        <div className="absolute inset-0 rounded-t-full border-4 border-graphite-border" />
+                        <div
+                            className="absolute inset-0 rounded-t-full border-4 border-crimson-bright/40"
+                            style={{ clipPath: `inset(0 ${100 - burnPercent}% 0 0)` }}
+                        />
+                        <div
+                            className="absolute bottom-0 left-1/2 w-0.5 h-10 bg-crisp-white origin-bottom -translate-x-1/2"
+                            style={{ transform: `translateX(-50%) rotate(${-90 + (burnPercent * 1.8)}deg)` }}
+                        />
+                    </div>
+                </div>
+                <p className="text-xs text-slate-low">
+                    Média: {formatBRL(data.burn_rate.daily_avg)}/dia
+                </p>
+            </div>
+
+            {/* Projected CC Bill */}
+            <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border">
+                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Projeção Fatura</p>
+                <p className="text-3xl font-bold tracking-tight text-crisp-white">
+                    {formatBRL(data.invoice_projection)}
+                </p>
+                <div className="flex items-center gap-2">
+                    <div className="h-1.5 flex-1 bg-graphite-border rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-crimson-bright/60"
+                            style={{ width: `${Math.min(100, data.income > 0 ? Math.round((data.invoice_projection / data.income) * 100) : 0)}%` }}
+                        />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-low uppercase">
+                        {data.income > 0 ? Math.round((data.invoice_projection / data.income) * 100) : 0}% da renda
+                    </span>
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import text
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlalchemy import text, select, func
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,7 @@ async def get_dashboard_summary(
         text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date"),
         {"phone": current_user_phone, "start_date": start_of_month}
     )
-    total_spent_month = result.scalar()
+    total_spent_month = result.scalar() or 0.0
 
     formatted_txs = []
     for tx in recent_txs:
@@ -201,7 +201,8 @@ async def get_hud_metrics(
     await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
     
     # Logic moved inside try/except block below
-    try: # Added this line
+    try:
+        logger.info("HUD STEP 1: Constants")
         # 1. Constants / Settings (Mocked for now)
         ESTIMATED_INCOME = 5000.00
         
@@ -213,6 +214,7 @@ async def get_hud_metrics(
         
         repo = TransactionRepository(db)
         
+        logger.info("HUD STEP 2: Spent MTD")
         # Total Spent MTD
         result = await db.execute(
             text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date"),
@@ -220,6 +222,7 @@ async def get_hud_metrics(
         )
         total_spent_mtd = result.scalar() or 0.0
         
+        logger.info("HUD STEP 3: Budgets")
         # 3. Safe-to-Spend Logic
         # Formula: Income - (Fixed Costs/Budgets + Committed Installments)
         # For MVP: Income - Sum(Budgets) - (Unbudgeted Installments?)
@@ -239,6 +242,7 @@ async def get_hud_metrics(
         
         safe_to_spend = ESTIMATED_INCOME - committed
         
+        logger.info("HUD STEP 4: Burn Rate")
         # 4. Burn Rate
         # Speed (R$/day)
         daily_avg = total_spent_mtd / max(1, days_passed)
@@ -249,6 +253,7 @@ async def get_hud_metrics(
         # 5. Invoice Projection (Same as projected spend for now)
         invoice_projection = projected_spend
         
+        logger.info("HUD STEP 5: Returning Data")
         return {
             "safe_to_spend": safe_to_spend,
             "burn_rate": {
@@ -259,9 +264,9 @@ async def get_hud_metrics(
             "invoice_projection": invoice_projection,
             "income": ESTIMATED_INCOME
         }
-    except Exception as e: # Added this line
-        logger.error(f"Error in HUD: {e}", exc_info=True) # Added this line
-        raise HTTPException(status_code=500, detail=str(e)) # Added this line
+    except Exception as e:
+        logger.error(f"Error in HUD: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/commitments")
 async def get_commitments(

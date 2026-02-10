@@ -4,11 +4,26 @@ import uuid
 from datetime import datetime
 from backend.db.session import Base
 
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_phone = Column(String, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # CHECKING, CREDIT, INVESTMENT, CASH
+    initial_balance = Column(Float, default=0.0)
+    current_balance = Column(Float, default=0.0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_phone = Column(String, index=True, nullable=False)
+    account_id = Column(UUID(as_uuid=True), nullable=True) # ForeignKey would be better but keeping simple for now
+    destination_account_id = Column(UUID(as_uuid=True), nullable=True) # For transfers
+    type = Column(String, default="EXPENSE") # EXPENSE, INCOME, TRANSFER
     amount = Column(Float, nullable=True)
     category = Column(String, nullable=True)
     description = Column(String, nullable=True)

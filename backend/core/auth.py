@@ -11,6 +11,9 @@ SECRET_KEY = settings.SECRET_KEY or "dev_secret_key_123"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 # 1 Hora de acesso
 
+import logging
+logger = logging.getLogger(__name__)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/verify-otp")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -31,10 +34,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        logger.info(f"Auth: Verifying token {token[:10]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         phone_number: str = payload.get("sub")
         if phone_number is None:
+            logger.error("Auth: Missing sub")
             raise credentials_exception
+        logger.info(f"Auth: Verified user {phone_number}")
         return phone_number
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
+        logger.error(f"Auth: JWT Error {e}")
         raise credentials_exception

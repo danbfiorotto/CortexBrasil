@@ -4,7 +4,7 @@ from sqlalchemy import select
 from backend.db.session import get_db
 from backend.db.models import Budget
 from backend.core.auth import get_current_user
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import uuid
 
 router = APIRouter(prefix="/api/budgets", tags=["Budgets"])
@@ -15,10 +15,12 @@ class BudgetCreate(BaseModel):
     month: str # YYYY-MM
 
 class BudgetResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     category: str
     amount: float
     month: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/", response_model=list[BudgetResponse])
 async def get_budgets(

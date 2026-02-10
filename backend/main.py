@@ -17,7 +17,7 @@ import tempfile
 
 # Shared Clients
 from backend.core import clients
-from backend.api import auth, dashboard, budgets, goals
+from backend.api import auth, dashboard, budgets, goals, accounts, analytics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,13 +50,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Cortex Brasil", version="0.1.0", lifespan=lifespan)
 
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming Request: {request.method} {request.url}")
+    logger.info(f"Headers: Origin={request.headers.get('origin')}, Host={request.headers.get('host')}")
+    response = await call_next(request)
+    return response
+
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://cortexbrasil.com.br",
     "https://www.cortexbrasil.com.br",
     "https://cortex-brasil.vercel.app",
-    "*"
 ]
 
 app.add_middleware(
@@ -65,12 +72,15 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # allow_origin_regex=".*", # Uncomment if still failing
 )
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(budgets.router)
 app.include_router(goals.router)
+app.include_router(accounts.router)
+app.include_router(analytics.router)
 
 
 @app.get("/")
@@ -108,23 +118,40 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
         
         from sqlalchemy import text
         
-        # 1. Recuperar Contexto (RAG)
+        from backend.core.ledger import LedgerService
+        
+        # 1. Recuperar Contexto (RAG + Saldos)
         context_str = ""
         from backend.db.session import AsyncSessionLocal
         async with AsyncSessionLocal() as session:
             # RLS: Set current user context
             await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
             
+            ledger = LedgerService(session)
+            
+            # Get Account Balances
+            accounts = await ledger.get_accounts(phone_number)
+            if accounts:
+                context_str += "💰 Saldos Atuais:\n"
+                for acc in accounts:
+                    context_str += f"- {acc.name}: R$ {acc.current_balance:.2f}\n"
+                context_str += "\n"
+
+            # Get Recent Transactions (using raw repo for now or add to ledger)
+            # Ideally LedgerService should handle this too, but keeping minimal changes
+            from backend.core.repository import TransactionRepository
             repo = TransactionRepository(session)
-            recent_txs = await repo.get_recent_transactions(phone_number, limit=30)
+            recent_txs = await repo.get_recent_transactions(phone_number, limit=15)
             
             if recent_txs:
-                context_str = "Histórico Recente:\n"
+                context_str += "📜 Histórico Recente:\n"
                 for tx in recent_txs:
                     date_str = tx.date.strftime("%d/%m") if tx.date else "Data desc."
-                    context_str += f"- {date_str}: R$ {tx.amount} ({tx.category}) - {tx.description}\n"
+                    # Use emoji for type if available, fallback to sign
+                    sign = "-" if tx.type == "EXPENSE" else "+"
+                    context_str += f"- {date_str}: {sign} R$ {tx.amount} ({tx.category}) - {tx.description}\n"
             else:
-                context_str = "Nenhuma transação anterior encontrada."
+                context_str += "Nenhuma transação anterior encontrada."
 
         # 2. Processa com IA (com Contexto)
         try:
@@ -144,44 +171,36 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     data = llm_data["data"]
                     # Validate data integrity - simple check
                     if data and data.get("amount"):
-                        try:
-                            # Precisamos de uma nova sessão aqui pois a sessão da request fechou? 
-                            pass 
-                        except Exception as e:
-                            logger.error(f"ErroDB setup: {e}")
+                        # Re-instantiate session for DB operations
+                         async with AsyncSessionLocal() as session:
+                            await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                            ledger = LedgerService(session)
+                            
+                            await ledger.register_transaction(
+                                user_phone=phone_number,
+                                amount=data.get("amount"),
+                                category=data.get("category"),
+                                description=data.get("description"),
+                                tx_type=data.get("type", "EXPENSE"),
+                                account_name=data.get("account_name"),
+                                destination_account_name=data.get("destination_account_name"),
+                                installments=data.get("installments")
+                            )
+                            await session.commit()
+                            logger.info(f"✅ Transação salva no Ledger para {phone_number}")
 
             except json.JSONDecodeError:
                 # Fallback se o LLM não retornar JSON válido
                 logger.warning("IA não retornou JSON válido. Usando texto bruto.")
                 reply_text = llm_response_str
                 llm_data = {} # Handle unstructured response
+            except Exception as e:
+                logger.error(f"Erro de persistência: {e}") 
+                reply_text = "Tive um erro ao salvar os dados."
 
         except Exception as e:
             logger.error(f"Erro no processamento da IA: {e}")
             reply_text = "Estou com uma breve enxaqueca digital. Tente novamente em instantes."
-
-        # Re-instantiate session for DB operations to be safe in background task
-        # Importing here to avoid circular dependency issues if any, though not expected
-        from backend.db.session import AsyncSessionLocal
-        
-        if 'llm_data' in locals() and llm_data.get("action") == "log_transaction":
-             async with AsyncSessionLocal() as session:
-                # RLS: Set current user context (Again for this new session)
-                await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
-                
-                try:
-                    repo = TransactionRepository(session)
-                    await repo.create_transaction(
-                        user_phone=phone_number,
-                        amount=llm_data["data"].get("amount"),
-                        category=llm_data["data"].get("category"),
-                        description=llm_data["data"].get("description"),
-                        raw_message=message_body,
-                        installments=llm_data["data"].get("installments")
-                    )
-                    logger.info(f"✅ Transação salva no banco para {phone_number}")
-                except Exception as db_e:
-                    logger.error(f"Erro ao salvar no banco: {db_e}")
 
         # Envia resposta
         if settings.APP_ENV == "development": 

@@ -4,7 +4,8 @@ from sqlalchemy import select
 from backend.db.session import get_db
 from backend.db.models import Goal
 from backend.core.auth import get_current_user
-from pydantic import BaseModel
+
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 import uuid
@@ -18,11 +19,13 @@ class GoalCreate(BaseModel):
     deadline: Optional[datetime] = None
 
 class GoalResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     name: str
     target_amount: float
     current_amount: float
     deadline: Optional[datetime]
+    
+    model_config = ConfigDict(from_attributes=True)
 
 @router.get("/", response_model=list[GoalResponse])
 async def get_goals(

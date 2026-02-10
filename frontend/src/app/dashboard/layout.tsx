@@ -3,9 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { LayoutDashboard, Wallet, LogOut, Menu, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
+
+const NAV_ITEMS = [
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Transações', href: '/dashboard/transactions' },
+    { name: 'Contas', href: '/dashboard/accounts' },
+    { name: 'Investimentos', href: '/dashboard/investments' },
+];
 
 export default function DashboardLayout({
     children,
@@ -31,105 +36,139 @@ export default function DashboardLayout({
         router.push('/login');
     };
 
-    const navItems = [
-        { name: 'Visão Geral', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Transações', href: '/dashboard/transactions', icon: Wallet },
-    ];
-
     if (!authorized) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+            <div className="min-h-screen flex items-center justify-center bg-charcoal-bg">
                 <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1 }}
-                    className="w-8 h-8 border-t-2 border-blue-500 rounded-full"
+                    className="w-8 h-8 border-t-2 border-royal-purple rounded-full"
                 />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-500">
-            {/* Sidebar for Desktop */}
-            <motion.aside
-                initial={{ x: -250 }}
-                animate={{ x: 0 }}
-                className="hidden md:flex flex-col w-72 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 h-screen sticky top-0 shadow-lg z-20"
-            >
-                <div className="p-8 flex items-center gap-3">
-                    <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl p-2 shadow-lg shadow-blue-500/30">
-                        <LayoutDashboard className="text-white w-6 h-6" />
+        <div className="h-screen flex flex-col overflow-hidden bg-charcoal-bg text-crisp-white">
+            {/* Top Header Bar */}
+            <header className="flex items-center justify-between border-b border-graphite-border px-8 py-3 bg-graphite-card shrink-0">
+                {/* Left: Logo + Nav */}
+                <div className="flex items-center gap-4">
+                    <div className="size-8 text-royal-purple">
+                        <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z"
+                                fill="currentColor"
+                            />
+                        </svg>
                     </div>
-                    <div>
-                        <h1 className="font-bold text-xl tracking-tight">Cortex</h1>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Brasil</p>
-                    </div>
+                    <h1 className="text-lg font-bold leading-tight tracking-[0.2em] uppercase text-crisp-white">
+                        Cortex Brasil
+                    </h1>
                 </div>
 
-                <nav className="flex-1 px-4 space-y-2 py-6">
-                    {navItems.map((item) => {
+                {/* Center: Nav Links (Desktop) */}
+                <nav className="hidden md:flex items-center gap-10">
+                    {NAV_ITEMS.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                             <a
                                 key={item.name}
                                 href={item.href}
-                                className={clsx(
-                                    "flex items-center justify-between px-4 py-3.5 rounded-xl font-medium transition-all duration-200 group relative overflow-hidden",
+                                className={
                                     isActive
-                                        ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-                                )}
+                                        ? 'text-sm font-semibold text-royal-purple border-b-2 border-royal-purple pb-1'
+                                        : 'text-sm font-medium text-slate-low hover:text-crisp-white transition-colors'
+                                }
                             >
-                                <div className="flex items-center gap-3 relative z-10">
-                                    <item.icon className={clsx("w-5 h-5", isActive ? "text-white" : "text-slate-400 group-hover:text-blue-500")} />
-                                    {item.name}
-                                </div>
-                                {isActive && <ChevronRight className="w-4 h-4 text-white/50" />}
+                                {item.name}
                             </a>
                         );
                     })}
                 </nav>
 
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                {/* Right: Actions + User */}
+                <div className="flex items-center gap-4">
+                    <button className="p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">notifications</span>
+                    </button>
+                    <button className="p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors">
+                        <span className="material-symbols-outlined text-[20px]">settings</span>
+                    </button>
+                    <div className="h-8 w-[1px] bg-graphite-border" />
+
+                    <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex flex-col items-end">
+                            <span className="text-xs font-bold text-crisp-white">Usuário</span>
+                            <span className="text-[10px] text-royal-purple font-bold tracking-widest">PREMIUM</span>
+                        </div>
+                        <div className="bg-royal-purple/20 border border-royal-purple/50 rounded-full size-9 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-royal-purple text-[20px]">person</span>
+                        </div>
+                    </div>
+
+                    {/* Mobile Menu Toggle */}
                     <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl font-medium w-full transition-colors"
+                        className="md:hidden p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
-                        <LogOut className="w-5 h-5" />
-                        Sair
+                        <span className="material-symbols-outlined text-[20px]">
+                            {mobileMenuOpen ? 'close' : 'menu'}
+                        </span>
                     </button>
                 </div>
-            </motion.aside>
+            </header>
 
-            {/* Mobile Header */}
-            <div className="md:hidden fixed top-0 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 p-4 flex justify-between items-center z-50">
-                <div className="flex items-center gap-2">
-                    <div className="bg-blue-600 rounded-lg p-1.5">
-                        <LayoutDashboard className="text-white w-5 h-5" />
-                    </div>
-                    <span className="font-bold text-lg">Cortex</span>
-                </div>
-                <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                    {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                </button>
-            </div>
+            {/* Mobile Nav Dropdown */}
+            <AnimatePresence>
+                {mobileMenuOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="md:hidden bg-graphite-card border-b border-graphite-border overflow-hidden"
+                    >
+                        <nav className="flex flex-col gap-1 p-4">
+                            {NAV_ITEMS.map((item) => {
+                                const isActive = pathname === item.href;
+                                return (
+                                    <a
+                                        key={item.name}
+                                        href={item.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                                            ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/20'
+                                            : 'text-slate-low hover:text-crisp-white hover:bg-graphite-border/20'
+                                            }`}
+                                    >
+                                        {item.name}
+                                    </a>
+                                );
+                            })}
+                            <button
+                                onClick={handleLogout}
+                                className="px-4 py-3 rounded-lg text-sm font-medium text-crimson-bright hover:bg-crimson-bright/10 text-left transition-colors mt-2"
+                            >
+                                Sair
+                            </button>
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8 pt-20 md:pt-8 overflow-y-auto w-full relative">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none"></div>
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <AnimatePresence mode='wait'>
-                        <motion.div
-                            key={pathname}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {children}
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
+            <main className="flex-1 overflow-y-auto custom-scrollbar">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={pathname}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.25 }}
+                    >
+                        {children}
+                    </motion.div>
+                </AnimatePresence>
             </main>
         </div>
     );

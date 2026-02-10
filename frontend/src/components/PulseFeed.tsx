@@ -1,25 +1,30 @@
 'use client';
 
-import { Card, Title, Text, Button, Callout } from '@tremor/react';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface InsightResponse {
     insights: string[];
 }
 
+const INSIGHT_ICONS = ['savings', 'warning', 'bolt', 'lightbulb', 'trending_up'];
+const INSIGHT_COLORS = [
+    'text-royal-purple',
+    'text-crimson-bright',
+    'text-emerald-vibrant',
+    'text-royal-purple',
+    'text-emerald-vibrant',
+];
+
 export default function PulseFeed() {
     const [insights, setInsights] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [generated, setGenerated] = useState(false);
 
     const generateInsights = async () => {
         setLoading(true);
         try {
             const res = await api.post('/api/dashboard/insights');
             setInsights(res.data.insights || []);
-            setGenerated(true);
         } catch (error) {
             console.error("Failed to generate insights", error);
         } finally {
@@ -27,74 +32,75 @@ export default function PulseFeed() {
         }
     };
 
-    // Auto-generate on first load if not present? 
-    // Maybe better to let user trigger it to save tokens/time, or trigger once per session.
-    // User spec says "feed de texto gerado por IA". Implies it's there.
-    // I will trigger it automatically on mount.
     useEffect(() => {
         generateInsights();
     }, []);
 
     return (
-        <Card className="h-full bg-slate-900/50 border-slate-800 ring-1 ring-slate-700/50 backdrop-blur-md">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                    <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
-                    <Title className="text-slate-200">Cortex Intelligence</Title>
-                </div>
-                <Button
-                    size="xs"
-                    variant="light"
-                    color="purple"
+        <div>
+            <div className="flex items-center gap-2 mb-4 px-2">
+                <span className="material-symbols-outlined text-royal-purple text-[20px] subtle-glow-purple">auto_awesome</span>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-royal-purple subtle-glow-purple">
+                    IA Insights Feed
+                </h3>
+                <button
                     onClick={generateInsights}
-                    loading={loading}
                     disabled={loading}
+                    className="ml-auto text-[9px] font-bold uppercase tracking-widest text-slate-low hover:text-royal-purple transition-colors disabled:opacity-50"
                 >
-                    Atualizar Análise
-                </Button>
+                    {loading ? 'Analisando...' : 'Atualizar'}
+                </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
                 {loading ? (
-                    <div className="space-y-3 animate-pulse">
-                        <div className="h-16 bg-slate-800/50 rounded-lg w-full"></div>
-                        <div className="h-16 bg-slate-800/50 rounded-lg w-full"></div>
+                    <div className="space-y-4 animate-pulse">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-24 bg-graphite-card rounded-xl border border-graphite-border" />
+                        ))}
                     </div>
                 ) : insights.length > 0 ? (
-                    <div className="space-y-3">
-                        {insights.map((insight, idx) => (
+                    insights.map((insight, idx) => {
+                        const isFirst = idx === 0;
+                        const icon = INSIGHT_ICONS[idx % INSIGHT_ICONS.length];
+                        const iconColor = INSIGHT_COLORS[idx % INSIGHT_COLORS.length];
+
+                        return (
                             <div
                                 key={idx}
-                                className="p-4 rounded-lg bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-all cursor-default group"
+                                className={`p-4 rounded-xl flex flex-col gap-3 relative shadow-sm ${isFirst
+                                        ? 'bg-royal-purple/5 border border-royal-purple/20'
+                                        : 'bg-graphite-card border border-graphite-border'
+                                    }`}
                             >
-                                <div className="flex items-start gap-3">
-                                    <div className="mt-1 min-w-[4px] h-4 rounded-full bg-purple-500/50 group-hover:bg-purple-400 transition-colors" />
-                                    <div className="flex-1">
-                                        <Text className="text-slate-300 font-medium leading-relaxed">
-                                            {insight}
-                                        </Text>
+                                {isFirst && (
+                                    <div className="absolute top-3 right-3 text-[9px] font-black text-royal-purple tracking-widest uppercase">
+                                        Agora
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ArrowRight className="w-4 h-4 text-slate-500" />
+                                )}
+                                <div className="flex items-start gap-3">
+                                    <span className={`material-symbols-outlined ${iconColor} text-xl`}>{icon}</span>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-slate-low leading-relaxed">{insight}</p>
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })
                 ) : (
                     <div className="text-center py-8">
-                        <Text className="text-slate-500">Nenhum insight disponível no momento.</Text>
+                        <p className="text-slate-low text-xs">Nenhum insight disponível no momento.</p>
                     </div>
                 )}
             </div>
 
             {!loading && insights.length > 0 && (
-                <div className="mt-6 pt-4 border-t border-slate-800/50">
-                    <Text className="text-xs text-slate-500 text-center">
-                        Baseado nas suas últimas 50 transações.
-                    </Text>
+                <div className="mt-4 pt-3 border-t border-graphite-border">
+                    <p className="text-[10px] text-slate-low text-center tracking-wider">
+                        Baseado nas suas últimas 50 transações
+                    </p>
                 </div>
             )}
-        </Card>
+        </div>
     );
 }

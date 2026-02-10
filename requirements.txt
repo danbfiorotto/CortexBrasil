@@ -17,3 +17,7 @@ faster-whisper==0.10.0
 # Utilities
 requests==2.31.0
 pyjwt==2.8.0
+python-dateutil==2.8.2
+# Charts & Market Data
+matplotlib==3.8.3
+yfinance==0.2.36
