@@ -92,7 +92,11 @@ export default function DashboardLayout({
                     <button className="p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors">
                         <span className="material-symbols-outlined text-[20px]">notifications</span>
                     </button>
-                    <button className="p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors">
+                    <button
+                        onClick={() => router.push('/dashboard/settings')}
+                        className={`p-2 rounded-lg bg-graphite-border/30 transition-colors ${pathname === '/dashboard/settings' ? 'text-royal-purple' : 'text-slate-low hover:text-crisp-white'}`}
+                        title="Configurações"
+                    >
                         <span className="material-symbols-outlined text-[20px]">settings</span>
                     </button>
                     <div className="h-8 w-[1px] bg-graphite-border" />
@@ -156,6 +160,16 @@ export default function DashboardLayout({
                                     </a>
                                 );
                             })}
+                            <a
+                                href="/dashboard/settings"
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${pathname === '/dashboard/settings'
+                                    ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/20'
+                                    : 'text-slate-low hover:text-crisp-white hover:bg-graphite-border/20'
+                                    }`}
+                            >
+                                Configurações
+                            </a>
                             <button
                                 onClick={handleLogout}
                                 className="px-4 py-3 rounded-lg text-sm font-medium text-crimson-bright hover:bg-crimson-bright/10 text-left transition-colors mt-2"

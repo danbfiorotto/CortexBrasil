@@ -17,7 +17,7 @@ import tempfile
 
 # Shared Clients
 from backend.core import clients
-from backend.api import auth, dashboard, budgets, goals, accounts, analytics
+from backend.api import auth, dashboard, budgets, goals, accounts, analytics, settings as settings_api
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -80,6 +80,7 @@ app.include_router(budgets.router)
 app.include_router(goals.router)
 app.include_router(accounts.router)
 app.include_router(analytics.router)
+app.include_router(settings_api.router)
 
 
 @app.get("/")
