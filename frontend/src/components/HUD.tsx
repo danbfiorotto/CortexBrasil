@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import OnboardingModal from './OnboardingModal';
 
 interface HUDData {
     safe_to_spend: number;
@@ -12,6 +13,7 @@ interface HUDData {
     };
     invoice_projection: number;
     income: number;
+    needs_onboarding: boolean;
 }
 
 const formatBRL = (val: number) =>
@@ -20,20 +22,31 @@ const formatBRL = (val: number) =>
 export default function HUD() {
     const [data, setData] = useState<HUDData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+
+    const fetchData = async () => {
+        try {
+            const res = await api.get('/api/dashboard/hud');
+            setData(res.data);
+            if (res.data.needs_onboarding) {
+                setShowOnboarding(true);
+            }
+        } catch (error) {
+            console.error("Failed to fetch HUD data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const res = await api.get('/api/dashboard/hud');
-                setData(res.data);
-            } catch (error) {
-                console.error("Failed to fetch HUD data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, []);
+
+    const handleOnboardingComplete = () => {
+        setShowOnboarding(false);
+        setLoading(true);
+        fetchData();
+    };
 
     if (loading) {
         return (
@@ -55,6 +68,10 @@ export default function HUD() {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <OnboardingModal
+                isOpen={showOnboarding}
+                onComplete={handleOnboardingComplete}
+            />
             {/* Safe-to-Spend */}
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border relative overflow-hidden group">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">

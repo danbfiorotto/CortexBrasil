@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import text, select, func
+from sqlalchemy import text, select, func, insert, update
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -194,7 +193,7 @@ async def get_hud_metrics(
     2. Burn Rate
     3. Invoice Projection
     """
-    from backend.db.models import Budget
+    from backend.db.models import Budget, UserProfile
     from sqlalchemy import func
     
     # RLS
@@ -202,9 +201,14 @@ async def get_hud_metrics(
     
     # Logic moved inside try/except block below
     try:
-        logger.info("HUD STEP 1: Constants")
-        # 1. Constants / Settings (Mocked for now)
-        ESTIMATED_INCOME = 5000.00
+        logger.info("HUD STEP 1: Fetching User Profile")
+        # 1. Fetch User Profile
+        profile_stmt = select(UserProfile).where(UserProfile.user_phone == current_user_phone)
+        profile_result = await db.execute(profile_stmt)
+        profile = profile_result.scalar_one_or_none()
+        
+        income = profile.monthly_income if profile else 0.0
+        needs_onboarding = (income <= 0)
         
         # 2. Get Current Month Data
         now = datetime.now()
@@ -223,12 +227,6 @@ async def get_hud_metrics(
         total_spent_mtd = result.scalar() or 0.0
         
         logger.info("HUD STEP 3: Budgets")
-        # 3. Safe-to-Spend Logic
-        # Formula: Income - (Fixed Costs/Budgets + Committed Installments)
-        # For MVP: Income - Sum(Budgets) - (Unbudgeted Installments?)
-        # Let's simplify: Safe = Income - Total Budgets.
-        # If user hasn't set budgets, Safe = Income - Spent.
-        
         # Get Total Budgets
         budget_stmt = select(func.sum(Budget.amount)).where(
             Budget.user_phone == current_user_phone,
@@ -237,21 +235,15 @@ async def get_hud_metrics(
         total_budget_result = await db.execute(budget_stmt)
         total_budget = total_budget_result.scalar() or 0.0
         
-        # If no budgets, assume 50% of income is committed? Or just 0?
-        committed = total_budget if total_budget > 0 else 2000.00 
-        
-        safe_to_spend = ESTIMATED_INCOME - committed
+        # Safe-to-Spend: Income - Budgets
+        safe_to_spend = income - total_budget if not needs_onboarding else 0.0
         
         logger.info("HUD STEP 4: Burn Rate")
-        # 4. Burn Rate
-        # Speed (R$/day)
+        # Burn Rate Speed (R$/day)
         daily_avg = total_spent_mtd / max(1, days_passed)
         projected_spend = daily_avg * days_in_month
         
-        burn_rate_pct = (projected_spend / ESTIMATED_INCOME) * 100 if ESTIMATED_INCOME > 0 else 0
-        
-        # 5. Invoice Projection (Same as projected spend for now)
-        invoice_projection = projected_spend
+        burn_rate_pct = (projected_spend / income) * 100 if income > 0 else 0
         
         logger.info("HUD STEP 5: Returning Data")
         return {
@@ -261,12 +253,49 @@ async def get_hud_metrics(
                 "status": "Critical" if burn_rate_pct > 100 else "Warning" if burn_rate_pct > 80 else "Good",
                 "daily_avg": daily_avg
             },
-            "invoice_projection": invoice_projection,
-            "income": ESTIMATED_INCOME
+            "invoice_projection": projected_spend,
+            "income": income,
+            "needs_onboarding": needs_onboarding
         }
     except Exception as e:
         logger.error(f"Error in HUD: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/profile")
+async def update_user_profile(
+    payload: dict,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Updates or creates the user profile.
+    Expected payload: {"monthly_income": 5000.0}
+    """
+    from backend.db.models import UserProfile
+    
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    income = payload.get("monthly_income", 0.0)
+    
+    # Check if exists
+    stmt = select(UserProfile).where(UserProfile.user_phone == current_user_phone)
+    res = await db.execute(stmt)
+    profile = res.scalar_one_or_none()
+    
+    if profile:
+        profile.monthly_income = income
+        profile.onboarding_completed = 1
+    else:
+        new_profile = UserProfile(
+            user_phone=current_user_phone,
+            monthly_income=income,
+            onboarding_completed=1
+        )
+        db.add(new_profile)
+        
+    await db.commit()
+    return {"status": "success", "monthly_income": income}
 
 @router.get("/commitments")
 async def get_commitments(
