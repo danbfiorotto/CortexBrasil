@@ -20,6 +20,7 @@ export default function GoalsCard() {
     const [isOpen, setIsOpen] = useState(false);
     const [goals, setGoals] = useState<Goal[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
     const [name, setName] = useState('');
     const [target, setTarget] = useState<number>(0);
@@ -30,7 +31,7 @@ export default function GoalsCard() {
             const response = await api.get('/api/goals/');
             const data = response.data.map((g: Goal) => ({
                 ...g,
-                percentage: Math.min(100, Math.round((g.current_amount / g.target_amount) * 100)),
+                percentage: Math.min(100, Math.round((g.current_amount / (g.target_amount || 1)) * 100)),
             }));
             setGoals(data);
         } catch (error) {
@@ -44,27 +45,58 @@ export default function GoalsCard() {
         fetchGoals();
     }, []);
 
+    const openCreateModal = () => {
+        setEditingGoal(null);
+        setName('');
+        setTarget(0);
+        setCurrent(0);
+        setIsOpen(true);
+    };
+
+    const openEditModal = (goal: Goal) => {
+        setEditingGoal(goal);
+        setName(goal.name);
+        setTarget(goal.target_amount);
+        setCurrent(goal.current_amount);
+        setIsOpen(true);
+    };
+
     const handleSave = async () => {
         try {
             const safeTarget = isNaN(Number(target)) ? 0 : Number(target);
             const safeCurrent = isNaN(Number(current)) ? 0 : Number(current);
 
-            await api.post('/api/goals/', {
+            const payload = {
                 name,
                 target_amount: safeTarget,
                 current_amount: safeCurrent,
                 deadline: null,
-            });
+            };
+
+            if (editingGoal) {
+                await api.put(`/api/goals/${editingGoal.id}`, payload);
+            } else {
+                await api.post('/api/goals/', payload);
+            }
 
             setIsOpen(false);
             fetchGoals();
-            setName('');
-            setTarget(0);
-            setCurrent(0);
         } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : 'Erro desconhecido';
             console.error(e);
             alert(`Erro ao salvar meta: ${errorMessage}`);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir esta meta?')) return;
+
+        try {
+            await api.delete(`/api/goals/${id}`);
+            fetchGoals();
+        } catch (e: unknown) {
+            console.error("Failed to delete goal", e);
+            alert("Erro ao excluir meta.");
         }
     };
 
@@ -78,7 +110,7 @@ export default function GoalsCard() {
                     </h3>
                 </div>
                 <button
-                    onClick={() => setIsOpen(true)}
+                    onClick={openCreateModal}
                     className="text-[10px] font-bold uppercase tracking-widest text-royal-purple hover:text-royal-purple/80 transition-colors"
                 >
                     + Criar Meta
@@ -95,9 +127,25 @@ export default function GoalsCard() {
                     <p className="text-slate-low text-xs italic">Nenhuma meta definida.</p>
                 ) : (
                     goals.map((goal) => (
-                        <div key={goal.id} className="space-y-3">
+                        <div key={goal.id} className="group space-y-3 relative">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold text-crisp-white">{goal.name}</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold text-crisp-white">{goal.name}</span>
+                                    <div className="hidden group-hover:flex items-center gap-2">
+                                        <button
+                                            onClick={() => openEditModal(goal)}
+                                            className="text-slate-low hover:text-royal-purple transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(goal.id)}
+                                            className="text-slate-low hover:text-crimson-red transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
                                 <span className="text-royal-purple font-bold subtle-glow-purple">
                                     {goal.percentage}%
                                 </span>
@@ -116,7 +164,7 @@ export default function GoalsCard() {
                 )}
             </div>
 
-            {/* Create Goal Dialog */}
+            {/* Create/Edit Goal Dialog */}
             <Transition appear show={isOpen} as={Fragment}>
                 <Dialog as="div" className="relative z-50" onClose={() => setIsOpen(false)}>
                     <Transition.Child
@@ -144,7 +192,7 @@ export default function GoalsCard() {
                             >
                                 <Dialog.Panel className="w-full max-w-md bg-graphite-card border border-graphite-border rounded-xl p-6 shadow-2xl">
                                     <Dialog.Title className="text-lg font-bold text-crisp-white mb-6">
-                                        Nova Meta
+                                        {editingGoal ? 'Editar Meta' : 'Nova Meta'}
                                     </Dialog.Title>
 
                                     <div className="space-y-4">
@@ -201,7 +249,7 @@ export default function GoalsCard() {
                                                 onClick={handleSave}
                                                 className="px-4 py-2 text-sm font-bold text-crisp-white bg-royal-purple hover:bg-royal-purple/90 rounded-lg transition-colors shadow-lg shadow-royal-purple/20"
                                             >
-                                                Salvar
+                                                {editingGoal ? 'Atualizar' : 'Salvar'}
                                             </button>
                                         </div>
                                     </div>
