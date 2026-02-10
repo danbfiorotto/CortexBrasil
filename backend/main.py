@@ -58,17 +58,17 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# origins = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-#     "https://cortexbrasil.com.br",
-#     "https://www.cortexbrasil.com.br",
-#     "https://cortex-brasil.vercel.app",
-# ]
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://cortexbrasil.com.br",
+    "https://www.cortexbrasil.com.br",
+    "https://cortex-brasil.vercel.app",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Temporarily broad for debugging production
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
