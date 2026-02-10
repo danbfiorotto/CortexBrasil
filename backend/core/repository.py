@@ -192,3 +192,16 @@ class TransactionRepository:
         )
         result = await self.session.execute(stmt)
         return result.all()
+
+    async def delete_transactions(self, user_phone: str, tx_ids: list[str]):
+        """
+        Securely deletes one or more transactions.
+        Balance sync is handled by the DB trigger.
+        """
+        from sqlalchemy import delete
+        stmt = delete(Transaction).where(
+            Transaction.user_phone == user_phone,
+            Transaction.id.in_(tx_ids)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()

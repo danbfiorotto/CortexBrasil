@@ -76,6 +76,35 @@ export default function TransactionsPage() {
         });
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Deseja realmente apagar esta transação? Seu saldo será ajustado automaticamente.')) return;
+
+        try {
+            await api.delete(`/api/dashboard/transactions/${id}`);
+            // Success: refresh data
+            fetchTransactions();
+        } catch (error) {
+            console.error("Failed to delete transaction", error);
+            alert("Erro ao deletar transação.");
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const count = selectedIds.size;
+        if (!confirm(`Deseja apagar as ${count} transações selecionadas? Esta ação é irreversível.`)) return;
+
+        try {
+            await api.post('/api/dashboard/transactions/bulk-delete', {
+                ids: Array.from(selectedIds)
+            });
+            setSelectedIds(new Set());
+            fetchTransactions();
+        } catch (error) {
+            console.error("Failed to bulk delete transactions", error);
+            alert("Erro ao deletar transações.");
+        }
+    };
+
     const toggleSelectAll = () => {
         if (selectedIds.size === data.length) {
             setSelectedIds(new Set());
@@ -171,6 +200,7 @@ export default function TransactionsPage() {
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Categoria</th>
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-right">Valor</th>
                                         <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Status</th>
+                                        <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-center w-16">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-graphite-border">
@@ -207,10 +237,10 @@ export default function TransactionsPage() {
                                                 </td>
                                                 <td className="py-4 px-4 border-b border-graphite-border">
                                                     <span className={`px-2 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest ${isIncome
-                                                            ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/30'
-                                                            : tx.is_installment
-                                                                ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/30'
-                                                                : 'bg-crimson-bright/10 text-crimson-bright border border-crimson-bright/30'
+                                                        ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/30'
+                                                        : tx.is_installment
+                                                            ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/30'
+                                                            : 'bg-crimson-bright/10 text-crimson-bright border border-crimson-bright/30'
                                                         }`}>
                                                         {tx.category}
                                                     </span>
@@ -222,12 +252,23 @@ export default function TransactionsPage() {
                                                 <td className="py-4 px-6 border-b border-graphite-border">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`size-1.5 rounded-full ${isIncome
-                                                                ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                                                                : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                            ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                            : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
                                                             }`} />
                                                         <span className="text-[9px] font-black text-emerald-vibrant uppercase tracking-widest">
                                                             {tx.is_installment ? tx.installment_info || 'Parcelado' : 'Cleared'}
                                                         </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6 border-b border-graphite-border">
+                                                    <div className="flex justify-center">
+                                                        <button
+                                                            onClick={() => handleDelete(tx.id)}
+                                                            className="size-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                                            title="Apagar transação"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -286,6 +327,13 @@ export default function TransactionsPage() {
                             <button className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest">
                                 <span className="material-symbols-outlined text-base">export_notes</span>
                                 Exportar
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                className="flex items-center gap-2 text-crimson-bright hover:bg-crimson-bright/10 px-2 py-1 rounded transition-colors text-[10px] font-black uppercase tracking-widest"
+                            >
+                                <span className="material-symbols-outlined text-base">delete</span>
+                                Deletar
                             </button>
                         </div>
                         <button

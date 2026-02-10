@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from sqlalchemy import text, select, func, insert, update
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
@@ -334,3 +334,41 @@ async def get_commitments(
         })
         
     return formatted
+
+@router.delete("/transactions/{transaction_id}")
+async def delete_transaction(
+    transaction_id: str,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Deletes a single transaction.
+    """
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    repo = TransactionRepository(db)
+    await repo.delete_transactions(current_user_phone, [transaction_id])
+    
+    return {"status": "success", "message": "Transaction deleted"}
+
+@router.post("/transactions/bulk-delete")
+async def bulk_delete_transactions(
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Deletes multiple transactions.
+    """
+    tx_ids = payload.get("ids", [])
+    if not tx_ids:
+        raise HTTPException(status_code=400, detail="No transaction IDs provided")
+        
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    repo = TransactionRepository(db)
+    await repo.delete_transactions(current_user_phone, tx_ids)
+    
+    return {"status": "success", "message": f"{len(tx_ids)} transactions deleted"}
