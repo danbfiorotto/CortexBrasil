@@ -107,6 +107,17 @@ export default function DashboardLayout({
                         </div>
                     </div>
 
+                    <div className="h-8 w-[1px] bg-graphite-border hidden md:block" />
+
+                    <button
+                        onClick={handleLogout}
+                        className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-crimson-bright/10 text-crimson-bright hover:bg-crimson-bright/20 transition-all"
+                        title="Sair"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">logout</span>
+                        <span className="text-xs font-bold uppercase tracking-wider">Sair</span>
+                    </button>
+
                     {/* Mobile Menu Toggle */}
                     <button
                         className="md:hidden p-2 rounded-lg bg-graphite-border/30 text-slate-low hover:text-crisp-white transition-colors"
