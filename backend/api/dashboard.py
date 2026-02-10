@@ -219,16 +219,26 @@ async def get_hud_metrics(
         
         repo = TransactionRepository(db)
         
-        logger.info("HUD STEP 2: Spent MTD")
+        logger.info("HUD STEP 2: Spent and Realized Income MTD")
         # Total Spent MTD
-        result = await db.execute(
-            text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date"),
+        spent_result = await db.execute(
+            text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date AND type = 'EXPENSE'"),
             {"phone": current_user_phone, "start_date": start_of_month}
         )
-        total_spent_mtd = result.scalar() or 0.0
+        total_spent_mtd = spent_result.scalar() or 0.0
+        
+        # Total Realized Income MTD
+        income_result = await db.execute(
+            text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date AND type = 'INCOME'"),
+            {"phone": current_user_phone, "start_date": start_of_month}
+        )
+        realized_income_mtd = income_result.scalar() or 0.0
+        
+        # Hybrid Income Logic: Max of expected and realized
+        effective_income = max(income, realized_income_mtd)
         
         logger.info("HUD STEP 3: Budgets")
-        # Get Total Budgets
+        # Total Budgets
         budget_stmt = select(func.sum(Budget.amount)).where(
             Budget.user_phone == current_user_phone,
             Budget.month == now.strftime("%Y-%m")
@@ -236,15 +246,15 @@ async def get_hud_metrics(
         total_budget_result = await db.execute(budget_stmt)
         total_budget = total_budget_result.scalar() or 0.0
         
-        # Safe-to-Spend: Income - Budgets
-        safe_to_spend = income - total_budget if not needs_onboarding else 0.0
+        # Safe-to-Spend: Effective Income - Budgets
+        safe_to_spend = effective_income - total_budget if not needs_onboarding else 0.0
         
         logger.info("HUD STEP 4: Burn Rate")
         # Burn Rate Speed (R$/day)
         daily_avg = total_spent_mtd / max(1, days_passed)
         projected_spend = daily_avg * days_in_month
         
-        burn_rate_pct = (projected_spend / income) * 100 if income > 0 else 0
+        burn_rate_pct = (projected_spend / effective_income) * 100 if effective_income > 0 else 0
         
         logger.info("HUD STEP 5: Returning Data")
         return {
@@ -255,7 +265,9 @@ async def get_hud_metrics(
                 "daily_avg": daily_avg
             },
             "invoice_projection": projected_spend,
-            "income": income,
+            "income": effective_income,
+            "expected_income": income,
+            "realized_income": realized_income_mtd,
             "needs_onboarding": needs_onboarding
         }
     except Exception as e:

@@ -6,48 +6,50 @@ Este documento detalha a lógica de negócio e os cálculos técnicos por trás 
 
 ## 1. Safe-to-Spend (Livre para Gastar)
 
-Indica quanto do orçamento mensal ainda está disponível para gastos após considerar os compromissos financeiros.
+Indica quanto do orçamento mensal ainda está disponível para gastos após considerar os compromissos financeiros e a renda disponível.
 
-### Lógica de Negócio
-O sistema calcula a diferença entre o que você espera ganhar e o que você já comprometeu através de orçamentos (budgets).
+### Lógica de Negócio: Renda Híbrida
+Para lidar com rendas variáveis ou que chegam em partes, o sistema utiliza uma lógica híbrida:
+1. **Renda Esperada (Meta)**: O valor definido pelo usuário no onboarding.
+2. **Renda Realizada**: A soma de todas as transações do tipo `INCOME` no mês atual.
+3. **Renda Efetiva**: O maior valor entre a *Meta* e o *Realizado* (`Max(Expected, Realized)`).
+
+Isso garante que:
+- No início do mês (sem rendas), o planejamento baseia-se na sua expectativa.
+- Se você ganhar mais que o esperado, o sistema reconhece o bônus e aumenta seu "Safe-to-Spend".
 
 ### Cálculo Técnico
-- **Fórmula**: `Safe-to-Spend = Renda_Estimada - Total_Budgets`
+- **Fórmula**: `Safe-to-Spend = Renda_Efetiva - Total_Budgets`
 - **Variáveis**:
-  - `Renda_Estimada`: Obtida dinamicamente da tabela `user_profiles`. Se o usuário ainda não definiu sua renda, o sistema aciona o fluxo de **Onboarding**.
+  - `Renda_Efetiva`: Calculada dinamicamente via `Max(UserProfile.monthly_income, sum(INCOME transactions))`.
   - `Total_Budgets`: Soma de todos os registros na tabela `budgets` para o mês atual.
 
 ---
 
 ## 2. Burn Rate Speedometer (Velocidade de Gastos)
 
-Um indicador visual do ritmo de consumo do seu dinheiro em relação ao tempo decorrido no mês.
+Um indicador visual do ritmo de consumo em relação à sua **Renda Efetiva**.
 
 ### Lógica de Negócio
-Avalia se a sua média de gastos diários levaria você a ultrapassar sua renda total ao final do mês.
+Avalia se a sua média de gastos diários é sustentável perante sua renda total disponível.
 
 ### Cálculo Técnico
 1. **Média Diária**: `Gasto_MTD / Dias_Passados`
-   - `Gasto_MTD`: Soma total das transações do dia 1 até hoje.
-   - `Dias_Passados`: Dia atual do mês.
+   - `Gasto_MTD`: Soma total das transações de gasto (`EXPENSE`) até o momento.
 2. **Projeção de Consumo**: `Média_Diária * Dias_Totais_do_Mês`
-3. **Percentual do Limite**: `(Projeção_de_Consumo / Renda_Estimada) * 100`
+3. **Percentual do Limite**: `(Projeção_de_Consumo / Renda_Efetiva) * 100`
 
 ---
 
 ## 3. Onboarding e Persistência
 
-O sistema agora detecta automaticamente se o usuário possui os dados necessários para uma análise precisa.
-
-### Fluxo de Onboarding
-- **Detecção**: O backend retorna `needs_onboarding: true` se a renda mensal não estiver configurada.
-- **Interface**: Um modal premium é exibido no dashboard solicitando a renda mensal.
-- **Persistência**: Os dados são salvos na tabela `user_profiles` e os indicadores são recalculados instantaneamente.
+- **Onboarding**: Coleta a meta de renda mensal inicial.
+- **Detecção**: O sistema monitora transações de `INCOME` em tempo real para atualizar o dashboard sem necessidade de intervenção manual.
+- **Visualização**: O dashboard exibe explicitamente quanto foi **Realizado** vs a **Meta** para total transparência.
 
 ---
 
 ## Referências de Código
 - **Backend (Cálculos e Profile)**: `backend/api/dashboard.py`
 - **Frontend (Interface HUD)**: `frontend/src/components/HUD.tsx`
-- **Componente de Onboarding**: `frontend/src/components/OnboardingModal.tsx`
 - **Modelos de Dados**: `backend/db/models.py`

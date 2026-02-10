@@ -13,6 +13,8 @@ interface HUDData {
     };
     invoice_projection: number;
     income: number;
+    expected_income: number;
+    realized_income: number;
     needs_onboarding: boolean;
 }
 
@@ -132,6 +134,14 @@ export default function HUD() {
                     <span className="text-[10px] font-bold text-slate-low uppercase">
                         {data.income > 0 ? Math.round((data.invoice_projection / data.income) * 100) : 0}% da renda
                     </span>
+                </div>
+                <div className="flex justify-between items-center mt-auto pt-2">
+                    <p className="text-[9px] text-slate-low uppercase tracking-wider">
+                        Realizado: <span className="text-emerald-vibrant/80 font-bold">{formatBRL(data.realized_income)}</span>
+                    </p>
+                    <p className="text-[9px] text-slate-low uppercase tracking-wider">
+                        Meta: <span className="text-royal-purple/80 font-bold">{formatBRL(data.expected_income)}</span>
+                    </p>
                 </div>
             </div>
         </div>
