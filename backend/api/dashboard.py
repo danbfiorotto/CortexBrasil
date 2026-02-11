@@ -114,6 +114,38 @@ async def get_transactions(
         }
     }
 
+@router.post("/transactions")
+async def create_transaction(
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Creates a new transaction (Income or Expense).
+    """
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    from backend.core.ledger import LedgerService
+    ledger = LedgerService(db)
+    
+    try:
+        tx = await ledger.register_transaction(
+            user_phone=current_user_phone,
+            amount=float(payload.get("amount", 0)),
+            category=payload.get("category", "Outros"),
+            description=payload.get("description", ""),
+            tx_type=payload.get("type", "EXPENSE"),
+            installments=payload.get("installments"),
+            date=datetime.fromisoformat(payload["date"]) if payload.get("date") else None
+        )
+        await db.commit()
+        return {"status": "success", "transaction_id": str(tx.id)}
+    except Exception as e:
+        logger.error(f"Error creating transaction: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.post("/insights")
 async def generate_insights(
     current_user_phone: str = Depends(get_current_user),
