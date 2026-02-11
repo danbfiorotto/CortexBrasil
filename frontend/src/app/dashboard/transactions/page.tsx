@@ -26,7 +26,7 @@ interface Account {
 
 const CATEGORIES = [
     "Alimentação", "Transporte", "Moradia", "Lazer", "Saúde",
-    "Educação", "Compras", "Serviços", "Outros"
+    "Educação", "Compras", "Serviços", "Receita", "Outros"
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -223,6 +223,7 @@ export default function TransactionsPage() {
         try {
             await api.post('/api/dashboard/transactions', {
                 ...addForm,
+                category: addType === 'INCOME' ? 'Receita' : addForm.category,
                 amount: parseFloat(addForm.amount),
                 type: addType,
                 installments: addType === 'EXPENSE' ? addForm.installments : 1
@@ -639,18 +640,20 @@ export default function TransactionsPage() {
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                                    <select
-                                        value={editForm.category}
-                                        onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
-                                    >
-                                        {CATEGORIES.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {editingTx?.type !== 'INCOME' && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
+                                        <select
+                                            value={editForm.category}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                        >
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
@@ -752,18 +755,20 @@ export default function TransactionsPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                                    <select
-                                        value={addForm.category}
-                                        onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
-                                    >
-                                        {CATEGORIES.map(cat => (
-                                            <option key={cat} value={cat}>{cat}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {addType !== 'INCOME' && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
+                                        <select
+                                            value={addForm.category}
+                                            onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                        >
+                                            {CATEGORIES.map(cat => (
+                                                <option key={cat} value={cat}>{cat}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
