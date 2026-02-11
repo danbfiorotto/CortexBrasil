@@ -76,6 +76,8 @@ class UserProfile(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_phone = Column(String, index=True, unique=True, nullable=False)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=True)
     monthly_income = Column(Float, default=0.0)
     onboarding_completed = Column(Integer, default=0) # 0: No, 1: Yes
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -34,12 +34,8 @@ class TransactionRepository:
         if not base_date:
             import pytz
             tz = pytz.timezone('America/Sao_Paulo')
-            base_date = datetime.now(tz).replace(tzinfo=None) # Make naive for DB if needed, or keep aware?
-            # SQLAlchemy DateTime can be naive. Let's keep it naive roughly matching local time for simplicity in this MVP
-            # or better, store UTC and handle in frontend. 
-            # User specifically asked for "date to be in the timezone of the origin". 
-            # This often means they want "23:00" to be stored as "23:00".
             base_date = datetime.now(tz).replace(tzinfo=None)
+            logger.info(f"📅 User provided no date, using Brazil Time: {base_date}")
 
         # Handle Installments
         import uuid

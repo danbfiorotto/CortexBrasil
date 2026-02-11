@@ -20,8 +20,16 @@ from backend.core import clients
 from backend.api import auth, dashboard, budgets, goals, accounts, analytics, settings as settings_api
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("app_logs.txt", encoding='utf-8')
+    ]
+)
 logger = logging.getLogger(__name__)
+logger.info("🚀 Cortex Backend Starting Up...")
 
 
 @asynccontextmanager
@@ -203,12 +211,16 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
             reply_text = "Estou com uma breve enxaqueca digital. Tente novamente em instantes."
 
         # Envia resposta
+        logger.info(f"📤 Preparando para enviar resposta de {phone_number}. APP_ENV={settings.APP_ENV}")
         if settings.APP_ENV == "development": 
+            logger.info(f"🚀 Enviando resposta via WhatsApp para {phone_number}")
             await clients.whatsapp_client.send_text_message(
                 to=phone_number, 
                 body=reply_text,
                 reply_to_message_id=message_id
             )
+        else:
+            logger.warning(f"⚠️ Resposta não enviada porque APP_ENV={settings.APP_ENV} (não é 'development')")
 
     except Exception as e:
          logger.error(f"FATAL Background Error: {e}")
@@ -266,9 +278,13 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     try:
         payload = await request.json()
-        # logger.info(f"Payload recebido: {payload}")
+        logger.info(f"📦 Webhook Payload Recebido: {json.dumps(payload)}")
 
         # Navega no JSON complexo do WhatsApp para achar a mensagem
+        if not payload.get("entry"):
+            logger.warning("⚠️ Payload recebido sem 'entry'")
+            return Response(status_code=200)
+
         entry = payload.get("entry", [])[0]
         changes = entry.get("changes", [])[0]
         value = changes.get("value", {})

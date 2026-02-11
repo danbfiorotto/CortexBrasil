@@ -13,8 +13,12 @@ async def verify_signature(request: Request):
     """
     signature = request.headers.get("X-Hub-Signature-256")
     
+    # If in development, we allow skipping signature validation for testing
+    if settings.APP_ENV == "development" and not signature:
+        logger.warning("⚠️ Skipping signature verification in development mode (No signature provided).")
+        return True
+
     # If no secret is configured, we might skip validation (Development only)
-    # But for security phase, we should enforce it if set.
     if not settings.WHATSAPP_API_SECRET:
         logger.warning("WHATSAPP_API_SECRET not set. Skipping signature verification.")
         return True

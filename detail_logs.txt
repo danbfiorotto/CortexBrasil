@@ -1,0 +1,153 @@
+﻿
+app_logs.txt:233:INFO:     172.18.0.1:56772 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:248:INFO:     172.18.0.1:37490 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:250:INFO:     172.18.0.1:37474 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:265:INFO:     172.18.0.1:39096 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:267:INFO:     172.18.0.1:39090 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:284:INFO:     172.18.0.1:51732 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:286:INFO:     172.18.0.1:51786 - 
+"GET /budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:287:INFO:     172.18.0.1:51748 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:289:INFO:     172.18.0.1:51736 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:294:INFO:     172.18.0.1:43472 - 
+"POST /goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:300:INFO:     172.18.0.1:42160 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:302:INFO:     172.18.0.1:42204 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:304:INFO:     172.18.0.1:42192 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:305:INFO:     172.18.0.1:42172 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:306:INFO:     172.18.0.1:42218 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:307:INFO:     172.18.0.1:42188 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:312:INFO:     172.18.0.1:46636 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:335:INFO:     172.18.0.1:42744 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:336:INFO:     172.18.0.1:42768 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:337:INFO:     172.18.0.1:42726 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:338:INFO:     172.18.0.1:42758 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:340:INFO:     172.18.0.1:42778 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:341:INFO:     172.18.0.1:42734 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:346:INFO:     172.18.0.1:38822 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:361:INFO:     172.18.0.1:59192 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:362:INFO:     172.18.0.1:59194 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:363:INFO:     172.18.0.1:59206 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:365:INFO:     172.18.0.1:59222 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:366:INFO:     172.18.0.1:59232 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:367:INFO:     172.18.0.1:59242 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:372:INFO:     172.18.0.1:37792 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:387:INFO:     172.18.0.2:36130 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:388:INFO:     172.18.0.2:36132 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:389:INFO:     172.18.0.2:36144 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:392:INFO:     172.18.0.2:52696 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:408:INFO:     172.18.0.2:57680 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:409:INFO:     172.18.0.2:57700 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:410:INFO:     172.18.0.2:57706 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:414:INFO:     172.18.0.2:59576 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:415:INFO:     172.18.0.2:59554 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:416:INFO:     172.18.0.2:59568 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:420:INFO:     172.18.0.2:36300 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:421:INFO:     172.18.0.2:36344 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:422:INFO:     172.18.0.2:36310 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:430:INFO:     172.18.0.2:46974 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:431:INFO:     172.18.0.2:46964 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:433:INFO:     172.18.0.2:46958 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:442:INFO:     172.18.0.2:48850 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:443:INFO:     172.18.0.2:48852 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:444:INFO:     172.18.0.2:48866 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+
+

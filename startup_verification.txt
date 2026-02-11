@@ -1,0 +1,20 @@
+﻿INFO:     172.18.0.2:46958 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46974 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46964 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46966 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46976 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48852 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48850 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48852 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48866 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+〲㘲〭ⴲㄱㄠ㨹㐰〺ⰶ㠷‹‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鿰肚䌠牯整⁸慂正湥⁤瑓牡楴杮唠⹰⸮㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㘰㠬㐰ⴠ戠捡敫摮洮楡⁮‭义但ⴠ뎏䰠慯楤杮圠楨灳牥䴠摯汥⸮ਮ〲㘲〭ⴲㄱㄠ㨹㐰〺ⰷ㠱‱‭慢正湥⹤潣敲愮摵潩ⴠ䤠䙎⁏‭桗獩数⁲潭敤⁬琧湩❹氠慯敤⁤畳捣獥晳汵祬ਮ〲㘲〭ⴲㄱㄠ㨹㐰〺ⰷ㠱′‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鳢₅桗獩数⁲潍敤⁬潌摡摥ਮ

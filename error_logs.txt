@@ -1,0 +1,63 @@
+﻿
+app_logs.txt:372:INFO:     172.18.0.1:37792 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:387:INFO:     172.18.0.2:36130 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:388:INFO:     172.18.0.2:36132 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:389:INFO:     172.18.0.2:36144 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:392:INFO:     172.18.0.2:52696 - 
+"POST /api/goals/ HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:408:INFO:     172.18.0.2:57680 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:409:INFO:     172.18.0.2:57700 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:410:INFO:     172.18.0.2:57706 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:414:INFO:     172.18.0.2:59576 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:415:INFO:     172.18.0.2:59554 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:416:INFO:     172.18.0.2:59568 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:420:INFO:     172.18.0.2:36300 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:421:INFO:     172.18.0.2:36344 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:422:INFO:     172.18.0.2:36310 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:430:INFO:     172.18.0.2:46974 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+app_logs.txt:431:INFO:     172.18.0.2:46964 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:433:INFO:     172.18.0.2:46958 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:442:INFO:     172.18.0.2:48850 - 
+"GET /api/dashboard/hud HTTP/1.1" 500 Internal 
+Server Error
+app_logs.txt:443:INFO:     172.18.0.2:48852 - 
+"GET /api/goals/ HTTP/1.1" 500 Internal Server 
+Error
+app_logs.txt:444:INFO:     172.18.0.2:48866 - 
+"GET /api/budgets/?month=2026-02 HTTP/1.1" 500 
+Internal Server Error
+
+

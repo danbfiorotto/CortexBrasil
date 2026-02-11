@@ -1,0 +1,20 @@
+﻿INFO:     172.18.0.2:33016 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46974 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46964 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46966 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46976 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48852 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48850 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48852 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48866 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "POST /api/dashboard/insights HTTP/1.1" 200 OK

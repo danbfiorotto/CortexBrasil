@@ -1,0 +1,447 @@
+﻿INFO:     172.18.0.2:42924 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:42924 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:42924 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46112 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46112 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46112 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:41200 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:41200 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:41200 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:34856 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:34856 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:34856 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:44528 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:44528 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:44528 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45780 - "POST /auth/request-otp HTTP/1.1" 422 Unprocessable Entity
+INFO:     172.18.0.1:48018 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:35070 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:35070 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:39462 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:40650 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:40650 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51408 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51408 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:54714 - "OPTIONS /auth/request-otp HTTP/1.1" 405 Method Not Allowed
+INFO:     172.18.0.1:43530 - "OPTIONS /auth/request-otp HTTP/1.1" 405 Method Not Allowed
+INFO:     172.18.0.1:43530 - "OPTIONS /auth/request-otp HTTP/1.1" 405 Method Not Allowed
+INFO:     172.18.0.1:43530 - "OPTIONS /auth/request-otp HTTP/1.1" 405 Method Not Allowed
+INFO:     172.18.0.1:39270 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:39270 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:44054 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:44054 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45852 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45852 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45852 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45860 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45852 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45860 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35130 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35140 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:49246 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:49252 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53432 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53438 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48420 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48426 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48426 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48420 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:58684 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:58696 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56724 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56734 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56724 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56734 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56734 - "OPTIONS /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56724 - "OPTIONS /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56724 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:56734 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:56748 - "OPTIONS /api/dashboard/transactions?page=1&limit=10&category=Alimenta%C3%A7%C3%A3o HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56748 - "GET /api/dashboard/transactions?page=1&limit=10&category=Alimenta%C3%A7%C3%A3o HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:37340 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37342 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37342 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37342 - "POST /api/dashboard/insights HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:60308 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:60316 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:41986 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:41994 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38722 - "OPTIONS /api/dashboard/transactions?page=1&limit=10&category=Lazer HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38722 - "GET /api/dashboard/transactions?page=1&limit=10&category=Lazer HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38722 - "GET /api/dashboard/transactions?page=1&limit=10&category=Alimenta%C3%A7%C3%A3o HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38722 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38724 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37518 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.local HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.staging HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.production HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.development HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.aws/credentials HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /app/.env HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /config.json HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.local?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.staging?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.production?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.env.development?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /.aws/credentials?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /app/.env?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37518 - "GET /config.json?import&raw?? HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:38576 - "GET / HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38724 - "GET / HTTP/1.1" 200 OK
+INFO:     172.18.0.1:44974 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:50002 - "GET /?format=json HTTP/1.1" 200 OK
+INFO:     172.18.0.1:50494 - "GET / HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35716 - "GET /.env.development HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:35718 - "GET /.git/config HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:35732 - "GET /config.json HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:35742 - "GET /.aws/credentials HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:35708 - "GET /actuator/env HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:35706 - "GET /wp-config.php HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:44284 - "GET /.env.local HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:44288 - "GET /.env.production HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:44300 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:45900 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:45900 - "POST /api/dashboard/insights HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.2:35060 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:35060 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:35060 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:52436 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:52436 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:40894 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:40894 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35196 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35196 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35196 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35198 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35196 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35198 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35198 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:47076 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:47092 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:47092 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:57492 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:57494 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:57494 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:57492 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:54952 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:54964 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:54966 - "GET /goals/ HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:54974 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:54966 - "GET /goals/ HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:54974 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:32882 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:60994 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:44712 - "OPTIONS /budgets/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:44728 - "POST /budgets/ HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:40586 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40594 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40594 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40586 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40602 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:40602 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:40586 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40594 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40594 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40586 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56760 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56762 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56778 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:56778 - "GET /budgets/?month=2026-02 HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:56762 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56760 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:46846 - "POST /budgets/ HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:59602 - "OPTIONS /budgets/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59602 - "POST /budgets/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:53780 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53782 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53782 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53780 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53780 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:53782 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:53798 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:53802 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:57468 - "POST /budgets/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:34036 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:50992 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51002 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:50992 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51002 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51008 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51014 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51014 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51002 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51002 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51014 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51002 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51028 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51028 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51042 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51042 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51028 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51028 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51042 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51028 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51056 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:41582 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:40528 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38570 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:54144 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35912 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35928 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:35928 - "GET /api/dashboard/summary HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:35928 - "GET /api/dashboard/summary HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.2:38950 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:37112 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:37112 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:49118 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:49118 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:49118 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:41976 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:41976 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46854 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46854 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55580 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55580 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55580 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55596 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55606 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55564 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55606 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:55580 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:55606 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:33390 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56730 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56730 - "OPTIONS /dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56730 - "OPTIONS /dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56734 - "OPTIONS /dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56734 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56742 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56756 - "OPTIONS /dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56772 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56782 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56734 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:56756 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56772 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56742 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:56730 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:56772 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:37468 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37474 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37474 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37468 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37468 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37474 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37476 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37490 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37474 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37500 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37468 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37502 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37476 - "OPTIONS /budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37490 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37490 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:37476 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37474 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:37502 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37502 - "OPTIONS /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37476 - "OPTIONS /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37476 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37502 - "GET /api/dashboard/transactions?page=1&limit=10 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37502 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37476 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37476 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37502 - "POST /dashboard/insights HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:39076 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:39078 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37502 - "GET /dashboard/hud HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:37476 - "GET /dashboard/commitments HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:39090 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:39096 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:37476 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:39090 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42456 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42456 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52576 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52576 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:33136 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:33136 - "POST /auth/verify-otp HTTP/1.1" 400 Bad Request
+INFO:     172.18.0.1:51732 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51732 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51736 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51736 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51732 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51748 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51756 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51760 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51770 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51736 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51732 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51736 - "GET /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51786 - "GET /budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51748 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51770 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51736 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:51796 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51756 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:51760 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:43472 - "OPTIONS /goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:43472 - "POST /goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42158 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42160 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42172 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42172 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42192 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42160 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42172 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42204 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42188 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42192 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42172 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42218 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42188 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42224 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42198 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42158 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:46636 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:46636 - "POST /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:55362 - "GET /api/goals/ HTTP/1.1" 401 Unauthorized
+INFO:     172.18.0.1:41774 - "GET /goals/ HTTP/1.1" 404 Not Found
+INFO:     172.18.0.1:48104 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:48104 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:60964 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:60964 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42726 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42726 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42726 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42734 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42726 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42744 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42746 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42734 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42726 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42758 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42744 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42768 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42726 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42758 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42734 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42778 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42734 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:42784 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42746 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:42724 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38822 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:38822 - "POST /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59192 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59194 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59194 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59192 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59192 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59194 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59192 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59194 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59198 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59206 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59192 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59214 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59194 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59218 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59192 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59194 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59206 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59218 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59222 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59232 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59242 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.1:59218 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59198 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:59214 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37792 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.1:37792 - "POST /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:57652 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57652 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57656 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57656 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36122 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36130 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36110 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36130 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36132 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36144 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36122 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52696 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52696 - "POST /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36882 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:41752 - "GET /health HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52756 - "OPTIONS /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52756 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52760 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:52760 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "OPTIONS /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57680 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57680 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57680 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:57700 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:57706 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:57692 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:57664 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:59538 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:59576 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:59554 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:59568 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:59552 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:59538 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36300 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36300 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36344 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36310 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:36328 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:36312 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:33008 - "POST /auth/request-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:33016 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:33016 - "POST /webhook HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "POST /auth/verify-otp HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46974 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46964 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46966 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:46958 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:46976 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/insights HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48842 - "OPTIONS /api/dashboard/hud HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48852 - "OPTIONS /api/goals/ HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "OPTIONS /api/budgets/?month=2026-02 HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48850 - "GET /api/dashboard/hud HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48852 - "GET /api/goals/ HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48866 - "GET /api/budgets/?month=2026-02 HTTP/1.1" 500 Internal Server Error
+INFO:     172.18.0.2:48842 - "GET /api/dashboard/commitments HTTP/1.1" 200 OK
+INFO:     172.18.0.2:48862 - "POST /api/dashboard/insights HTTP/1.1" 200 OK
+〲㘲〭ⴲㄱㄠ㨹㐰〺ⰶ㠷‹‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鿰肚䌠牯整⁸慂正湥⁤瑓牡楴杮唠⹰⸮㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㘰㠬㐰ⴠ戠捡敫摮洮楡⁮‭义但ⴠ뎏䰠慯楤杮圠楨灳牥䴠摯汥⸮ਮ〲㘲〭ⴲㄱㄠ㨹㐰〺ⰷ㠱‱‭慢正湥⹤潣敲愮摵潩ⴠ䤠䙎⁏‭桗獩数⁲潭敤⁬琧湩❹氠慯敤⁤畳捣獥晳汵祬ਮ〲㘲〭ⴲㄱㄠ㨹㐰〺ⰷ㠱′‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鳢₅桗獩数⁲潍敤⁬潌摡摥ਮ〲㘲〭ⴲㄱㄠ㨹㐰㌺ⰴ㘸‶‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭湉潣業杮删煥敵瑳›佐呓栠瑴㩰⼯潬慣桬獯㩴〸〰眯扥潨歯㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㐳㠬㜶ⴠ戠捡敫摮洮楡⁮‭义但ⴠ䠠慥敤獲›牏杩湩丽湯ⱥ䠠獯㵴潬慣桬獯㩴〸〰㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㐳㠬㜶ⴠ戠捡敫摮挮牯⹥敳畣楲祴ⴠ圠剁䥎䝎ⴠꂚ룯₏歓灩楰杮猠杩慮畴敲瘠牥晩捩瑡潩⁮湩搠癥汥灯敭瑮洠摯⁥丨⁯楳湧瑡牵⁥牰癯摩摥⸩㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㐳㠬㠶ⴠ戠捡敫摮洮楡⁮‭义但ⴠ鎟₦敗桢潯⁫慐汹慯⁤敒散楢潤›≻湥牴≹›筛挢慨杮獥㨢嬠≻慶畬≥›≻敭獳条獥㨢嬠≻牦浯㨢∠㔵ㄱ㤹㤹㤹㤹∹‬椢≤›猢浩瑟獥彴㜷∷‬琢灹≥›琢硥≴‬琢硥≴›≻潢祤㨢∠潃灭敲⁩慣敦ㄠ‰敲楡≳絽絝嵽嵽੽〲㘲〭ⴲㄱㄠ㨹㐰㌺ⰴ㘸‹‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鿰ꦓ䴠久䅓䕇⁍䕒䕃䥂䅄⠠敔瑸⥯›潃灭敲⁩慣敦ㄠ‰敲楡ੳ〲㘲〭ⴲㄱㄠ㨹㐰㌺ⰴ㜸‰‭慢正湥⹤慭湩ⴠ䤠䙎⁏‭鿰蒔倠潲散獳湡潤洠湥慳敧⁭浥戠捡杫潲湵㩤䌠浯牰楥挠晡⁥〱爠慥獩㈊㈰ⴶ㈰ㄭ‱㤱〺㨴㐳㠬㔷ⴠ戠捡敫摮洮楡⁮‭剅佒⁒‭䅆䅔⁌慂正牧畯摮䔠牲牯›猨汱污档浥⹹楤污捥獴瀮獯杴敲煳⹬獡湹灣⹧牐杯慲浭湩䕧牲牯 挼慬獳✠獡湹灣⹧硥散瑰潩獮售摮晥湩摥潃畬湭牅潲❲㨾挠汯浵⁮捡潣湵獴挮敲楤彴楬業⁴潤獥渠瑯攠楸瑳嬊兓㩌匠䱅䍅⁔捡潣湵獴椮Ɽ愠捣畯瑮⹳獵牥灟潨敮‬捡潣湵獴渮浡ⱥ愠捣畯瑮⹳祴数‬捡潣湵獴椮楮楴污扟污湡散‬捡潣湵獴挮牵敲瑮扟污湡散‬捡潣湵獴挮敲楤彴楬業ⱴ愠捣畯瑮⹳畤彥慤ⱹ愠捣畯瑮⹳汣獯湩彧慤ⱹ愠捣畯瑮⹳牣慥整彤瑡‬捡潣湵獴甮摰瑡摥慟⁴䘊佒⁍捡潣湵獴ਠ䡗剅⁅捡潣湵獴甮敳彲桰湯⁥‽ㄤ㨺䅖䍒䅈嵒嬊慰慲敭整獲›✨㔵ㄱ㤹㤹㤹㤹✹⤬੝䈨捡杫潲湵⁤湯琠楨⁳牥潲⁲瑡›瑨灴㩳⼯煳慬捬敨洮⽥⽥〲是〴⤵

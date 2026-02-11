@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -233,12 +234,21 @@ export default function LoginPage() {
                         )}
                     </div>
 
+                    <div className="mt-6 text-center">
+                        <p className="text-slate-low text-xs">
+                            Não tem conta?{' '}
+                            <a href="/register" className="text-royal-purple hover:text-royal-purple/80 font-bold transition-colors">
+                                Crie agora
+                            </a>
+                        </p>
+                    </div>
+
                     <div className="mt-8 text-center flex items-center justify-center gap-2 text-slate-low/60">
                         <span className="material-symbols-outlined text-sm">lock</span>
                         <p className="text-[10px] font-medium uppercase tracking-wider">Criptografia de ponta a ponta</p>
                     </div>
                 </motion.div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
