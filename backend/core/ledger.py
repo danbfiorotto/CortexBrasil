@@ -101,8 +101,31 @@ class LedgerService:
                     resolved_dest_account_id = dest_account.id
 
         # 3. Create Transaction
-        # Note: Triggers in DB will update the account balance automatically!
         
+        # --- BALANCE UPDATE LOGIC ---
+        # Update account balance based on transaction type
+        if account:
+            if tx_type == "EXPENSE":
+                account.current_balance -= amount
+            elif tx_type == "INCOME":
+                account.current_balance += amount
+            elif tx_type == "TRANSFER":
+                account.current_balance -= amount
+                # Handle destination for transfer
+                if resolved_dest_account_id:
+                     # We need to fetch the destination account object to update it
+                     # Optimization: valid to fetch it if we have the ID but not the object
+                     if not 'dest_account' in locals():
+                          result = await self.session.execute(select(Account).where(Account.id == resolved_dest_account_id))
+                          dest_account = result.scalar_one_or_none()
+                     
+                     if dest_account:
+                         dest_account.current_balance += amount
+                         self.session.add(dest_account)
+
+            self.session.add(account)
+        # ---------------------------
+
         # Handle installments (Basic Logic for MVP - Recurrence is complex)
         # For now, we log the full value or the first installment? 
         # Requirement says: "Divisão automática de compras futuras". 
