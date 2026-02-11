@@ -15,6 +15,9 @@ class AccountCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     type: str = Field(..., pattern="^(CHECKING|CREDIT|INVESTMENT|CASH)$")
     initial_balance: float = Field(default=0.0)
+    credit_limit: float = Field(default=None)
+    due_day: int = Field(default=None, ge=1, le=31)
+    closing_day: int = Field(default=None, ge=1, le=31)
 
 
 class AccountResponse(BaseModel):
@@ -23,6 +26,9 @@ class AccountResponse(BaseModel):
     type: str
     initial_balance: float
     current_balance: float
+    credit_limit: float = None
+    due_day: int = None
+    closing_day: int = None
 
 
 @router.get("/")
@@ -49,6 +55,9 @@ async def list_accounts(
                 "type": acc.type,
                 "initial_balance": acc.initial_balance,
                 "current_balance": acc.current_balance,
+                "credit_limit": acc.credit_limit,
+                "due_day": acc.due_day,
+                "closing_day": acc.closing_day,
             }
             for acc in accounts
         ],
@@ -79,7 +88,10 @@ async def create_account(
         user_phone=current_user_phone,
         name=payload.name,
         acc_type=payload.type,
-        initial_balance=payload.initial_balance
+        initial_balance=payload.initial_balance,
+        credit_limit=payload.credit_limit,
+        due_day=payload.due_day,
+        closing_day=payload.closing_day
     )
     await db.commit()
 
@@ -91,4 +103,7 @@ async def create_account(
         "type": account.type,
         "initial_balance": account.initial_balance,
         "current_balance": account.current_balance,
+        "credit_limit": account.credit_limit,
+        "due_day": account.due_day,
+        "closing_day": account.closing_day,
     }

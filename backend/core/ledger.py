@@ -11,17 +11,26 @@ class LedgerService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_account(self, user_phone: str, name: str, acc_type: str, initial_balance: float = 0.0) -> Account:
+    async def create_account(self, 
+                             user_phone: str, 
+                             name: str, 
+                             acc_type: str, 
+                             initial_balance: float = 0.0,
+                             credit_limit: float = None,
+                             due_day: int = None,
+                             closing_day: int = None) -> Account:
         """
         Creates a new financial account (Wallet, Bank, etc.)
         """
-        # RLS check is handled by DB policy mostly, but good to ensure user_phone matches context
         account = Account(
             user_phone=user_phone,
             name=name,
             type=acc_type.upper(), # CHECKING, CREDIT, CASH
             initial_balance=initial_balance,
-            current_balance=initial_balance # Start with initial
+            current_balance=initial_balance,
+            credit_limit=credit_limit,
+            due_day=due_day,
+            closing_day=closing_day
         )
         self.session.add(account)
         await self.session.flush()

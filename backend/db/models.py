@@ -13,6 +13,12 @@ class Account(Base):
     type = Column(String, nullable=False)  # CHECKING, CREDIT, INVESTMENT, CASH
     initial_balance = Column(Float, default=0.0)
     current_balance = Column(Float, default=0.0)
+    
+    # Credit Card Specifics
+    credit_limit = Column(Float, nullable=True)
+    due_day = Column(Integer, nullable=True) # Day of the month (1-31)
+    closing_day = Column(Integer, nullable=True) # Day of the month (1-31)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -608,27 +608,66 @@ export default function TransactionsPage() {
                             </h3>
 
                             <div className="space-y-5">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Conta</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {accounts.map(acc => (
-                                            <button
-                                                key={acc.id}
-                                                onClick={() => setEditForm(prev => ({ ...prev, account_id: acc.id }))}
-                                                className={`p-3 rounded-xl border text-left transition-all ${editForm.account_id === acc.id
-                                                    ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
-                                                    : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
-                                                    }`}
-                                            >
-                                                <p className={`text-[10px] font-black uppercase tracking-wider ${editForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
-                                                    {acc.name}
-                                                </p>
-                                                <p className="text-xs font-bold text-crisp-white mt-1">
-                                                    {formatBRL(acc.current_balance)}
-                                                </p>
-                                            </button>
-                                        ))}
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-[9px] font-black text-slate-low uppercase tracking-[0.2em] pl-1">Contas e Dinheiro</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {accounts.filter(a => a.type !== 'CREDIT').map(acc => (
+                                                <button
+                                                    key={acc.id}
+                                                    type="button"
+                                                    onClick={() => setEditForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                    className={`p-3 rounded-xl border text-left transition-all ${editForm.account_id === acc.id
+                                                        ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                        : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                        }`}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <p className={`text-[10px] font-black uppercase tracking-wider ${editForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                            {acc.name}
+                                                        </p>
+                                                        {editForm.account_id === acc.id && (
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-royal-purple shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs font-bold text-crisp-white mt-1">
+                                                        {formatBRL(acc.current_balance)}
+                                                    </p>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
+
+                                    {accounts.some(a => a.type === 'CREDIT') && (
+                                        <div className="space-y-2 pt-1">
+                                            <p className="text-[9px] font-black text-slate-low uppercase tracking-[0.2em] pl-1">Cartões de Crédito</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {accounts.filter(a => a.type === 'CREDIT').map(acc => (
+                                                    <button
+                                                        key={acc.id}
+                                                        type="button"
+                                                        onClick={() => setEditForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                        className={`p-3 rounded-xl border text-left transition-all ${editForm.account_id === acc.id
+                                                            ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                            : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                            }`}
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <p className={`text-[10px] font-black uppercase tracking-wider ${editForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                                {acc.name}
+                                                            </p>
+                                                            {editForm.account_id === acc.id && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-royal-purple shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs font-bold text-crisp-white mt-1">
+                                                            {formatBRL(Math.abs(acc.current_balance))}
+                                                        </p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -732,26 +771,73 @@ export default function TransactionsPage() {
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Conta</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {accounts.map(acc => (
-                                            <button
-                                                key={acc.id}
-                                                onClick={() => setAddForm(prev => ({ ...prev, account_id: acc.id }))}
-                                                className={`p-3 rounded-xl border text-left transition-all ${addForm.account_id === acc.id
-                                                    ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
-                                                    : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
-                                                    }`}
-                                            >
-                                                <p className={`text-[10px] font-black uppercase tracking-wider ${addForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
-                                                    {acc.name}
-                                                </p>
-                                                <p className="text-xs font-bold text-crisp-white mt-1">
-                                                    {formatBRL(acc.current_balance)}
-                                                </p>
-                                            </button>
-                                        ))}
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">
+                                            {addType === 'INCOME' ? 'Depositar em' : 'Pagar com'}
+                                        </label>
+
+                                        {/* Bank Accounts */}
+                                        <div className="space-y-2">
+                                            <p className="text-[9px] font-black text-slate-low uppercase tracking-[0.2em] pl-1">Contas e Dinheiro</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {accounts.filter(a => a.type !== 'CREDIT').map(acc => (
+                                                    <button
+                                                        key={acc.id}
+                                                        type="button"
+                                                        onClick={() => setAddForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                        className={`p-3 rounded-xl border text-left transition-all ${addForm.account_id === acc.id
+                                                            ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                            : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                            }`}
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <p className={`text-[10px] font-black uppercase tracking-wider ${addForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                                {acc.name}
+                                                            </p>
+                                                            {addForm.account_id === acc.id && (
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-royal-purple shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs font-bold text-crisp-white mt-1">
+                                                            {formatBRL(acc.current_balance)}
+                                                        </p>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Credit Cards (Only for Expenses) */}
+                                        {addType === 'EXPENSE' && accounts.some(a => a.type === 'CREDIT') && (
+                                            <div className="space-y-2 pt-1">
+                                                <p className="text-[9px] font-black text-slate-low uppercase tracking-[0.2em] pl-1">Cartões de Crédito</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {accounts.filter(a => a.type === 'CREDIT').map(acc => (
+                                                        <button
+                                                            key={acc.id}
+                                                            type="button"
+                                                            onClick={() => setAddForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                            className={`p-3 rounded-xl border text-left transition-all ${addForm.account_id === acc.id
+                                                                ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                                : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                                }`}
+                                                        >
+                                                            <div className="flex justify-between items-start">
+                                                                <p className={`text-[10px] font-black uppercase tracking-wider ${addForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                                    {acc.name}
+                                                                </p>
+                                                                {addForm.account_id === acc.id && (
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-royal-purple shadow-[0_0_8px_rgba(139,92,246,0.6)]" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs font-bold text-crisp-white mt-1">
+                                                                {formatBRL(Math.abs(acc.current_balance))}
+                                                            </p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
