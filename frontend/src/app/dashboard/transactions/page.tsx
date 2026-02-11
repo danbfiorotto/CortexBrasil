@@ -328,405 +328,404 @@ export default function TransactionsPage() {
                     </button>
                 </div>
             </div>
-        </div>
 
-            {/* Table */ }
-    <div className="flex-1 overflow-auto px-8 py-6">
-        {loading ? (
-            <div className="flex items-center justify-center py-20">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-4 border-royal-purple border-t-transparent rounded-full animate-spin" />
-                    <p className="text-slate-low text-xs">Carregando transações...</p>
-                </div>
-            </div>
-        ) : (
-            <>
-                <div className="min-w-[700px] bg-graphite-card border border-graphite-border rounded-xl overflow-hidden shadow-2xl">
-                    <table className="w-full border-separate border-spacing-0">
-                        <thead className="sticky top-0 z-20">
-                            <tr className="text-left bg-carbon-800">
-                                <th className="py-4 px-6 border-b border-graphite-700 w-10">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedIds.size === data.length && data.length > 0}
-                                        onChange={toggleSelectAll}
-                                        className="rounded-sm bg-charcoal-bg border-graphite-600 text-royal-purple focus:ring-royal-purple cursor-pointer"
-                                    />
-                                </th>
-                                <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Data</th>
-                                <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Descrição</th>
-                                <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Categoria</th>
-                                <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-right">Valor</th>
-                                <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Status</th>
-                                <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-center w-16">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-graphite-border">
-                            {data.map((tx) => {
-                                const isIncome = tx.amount > 0;
-                                const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
-                                const isSelected = selectedIds.has(tx.id);
-
-                                return (
-                                    <tr
-                                        key={tx.id}
-                                        className={`group hover:bg-royal-purple/5 transition-colors ${isSelected ? 'bg-royal-purple/5' : ''}`}
-                                    >
-                                        <td className="py-4 px-6 border-b border-graphite-border">
+            {/* Table */}
+            <div className="flex-1 overflow-auto px-8 py-6">
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-8 h-8 border-4 border-royal-purple border-t-transparent rounded-full animate-spin" />
+                            <p className="text-slate-low text-xs">Carregando transações...</p>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="min-w-[700px] bg-graphite-card border border-graphite-border rounded-xl overflow-hidden shadow-2xl">
+                            <table className="w-full border-separate border-spacing-0">
+                                <thead className="sticky top-0 z-20">
+                                    <tr className="text-left bg-carbon-800">
+                                        <th className="py-4 px-6 border-b border-graphite-700 w-10">
                                             <input
                                                 type="checkbox"
-                                                checked={isSelected}
-                                                onChange={() => toggleSelect(tx.id)}
+                                                checked={selectedIds.size === data.length && data.length > 0}
+                                                onChange={toggleSelectAll}
                                                 className="rounded-sm bg-charcoal-bg border-graphite-600 text-royal-purple focus:ring-royal-purple cursor-pointer"
                                             />
-                                        </td>
-                                        <td className="py-4 px-4 border-b border-graphite-border text-[11px] font-bold text-slate-low tracking-tight">
-                                            {new Date(tx.date).toLocaleDateString('pt-BR').toUpperCase()}
-                                        </td>
-                                        <td className="py-4 px-4 border-b border-graphite-border">
-                                            <div className="flex items-center gap-3">
-                                                <div className="size-8 rounded bg-charcoal-bg flex items-center justify-center border border-graphite-700 text-slate-low group-hover:text-royal-purple transition-colors">
-                                                    <span className="material-symbols-outlined text-lg">{iconName}</span>
-                                                </div>
-                                                <span className="text-xs font-bold text-crisp-white tracking-tight uppercase">
-                                                    {tx.description}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-4 border-b border-graphite-border">
-                                            <span className={`px-2 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest ${isIncome
-                                                ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/30'
-                                                : tx.is_installment
-                                                    ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/30'
-                                                    : 'bg-crimson-bright/10 text-crimson-bright border border-crimson-bright/30'
-                                                }`}>
-                                                {tx.category}
-                                            </span>
-                                        </td>
-                                        <td className={`py-4 px-4 border-b border-graphite-border text-xs font-black text-right ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'
-                                            }`}>
-                                            {isIncome ? '+ ' : '- '}{formatBRL(Math.abs(tx.amount))}
-                                        </td>
-                                        <td className="py-4 px-6 border-b border-graphite-border">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`size-1.5 rounded-full ${tx.is_cleared
-                                                    ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                                                    : 'bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.4)]'
-                                                    }`} />
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-vibrant' : 'text-slate-500'}`}>
-                                                    {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Cleared' : 'Pending'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="py-4 px-6 border-b border-graphite-border">
-                                            <div className="flex justify-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(tx)}
-                                                    className="size-8 rounded-lg bg-royal-purple/10 text-royal-purple hover:bg-royal-purple hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-                                                    title="Editar transação"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(tx.id)}
-                                                    className="size-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
-                                                    title="Apagar transação"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
+                                        </th>
+                                        <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Data</th>
+                                        <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Descrição</th>
+                                        <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Categoria</th>
+                                        <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-right">Valor</th>
+                                        <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Status</th>
+                                        <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-center w-16">Ações</th>
                                     </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                </thead>
+                                <tbody className="divide-y divide-graphite-border">
+                                    {data.map((tx) => {
+                                        const isIncome = tx.amount > 0;
+                                        const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
+                                        const isSelected = selectedIds.has(tx.id);
 
-                {/* Pagination */}
-                <div className="mt-8 flex justify-between items-center text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] pb-8">
-                    <span>Página {page} de {totalPages}</span>
-                    <div className="flex gap-4">
-                        <button
-                            disabled={page === 1}
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            className="hover:text-royal-purple transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                            Anterior
-                        </button>
-                        <button
-                            disabled={page === totalPages}
-                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                            className="hover:text-royal-purple transition-colors text-crisp-white disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
-                            Próxima
-                        </button>
-                    </div>
-                </div>
-            </>
-        )}
-    </div>
-
-    {/* Floating Action Bar */ }
-    {
-        selectedIds.size > 0 && (
-            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-                <div className="glass-panel rounded-lg shadow-2xl px-6 py-3.5 flex items-center gap-8 min-w-[480px]">
-                    <div className="flex items-center gap-4">
-                        <div className="bg-royal-purple size-5 rounded-sm flex items-center justify-center text-[10px] font-black text-crisp-white">
-                            {String(selectedIds.size).padStart(2, '0')}
+                                        return (
+                                            <tr
+                                                key={tx.id}
+                                                className={`group hover:bg-royal-purple/5 transition-colors ${isSelected ? 'bg-royal-purple/5' : ''}`}
+                                            >
+                                                <td className="py-4 px-6 border-b border-graphite-border">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleSelect(tx.id)}
+                                                        className="rounded-sm bg-charcoal-bg border-graphite-600 text-royal-purple focus:ring-royal-purple cursor-pointer"
+                                                    />
+                                                </td>
+                                                <td className="py-4 px-4 border-b border-graphite-border text-[11px] font-bold text-slate-low tracking-tight">
+                                                    {new Date(tx.date).toLocaleDateString('pt-BR').toUpperCase()}
+                                                </td>
+                                                <td className="py-4 px-4 border-b border-graphite-border">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="size-8 rounded bg-charcoal-bg flex items-center justify-center border border-graphite-700 text-slate-low group-hover:text-royal-purple transition-colors">
+                                                            <span className="material-symbols-outlined text-lg">{iconName}</span>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-crisp-white tracking-tight uppercase">
+                                                            {tx.description}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 border-b border-graphite-border">
+                                                    <span className={`px-2 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest ${isIncome
+                                                        ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/30'
+                                                        : tx.is_installment
+                                                            ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/30'
+                                                            : 'bg-crimson-bright/10 text-crimson-bright border border-crimson-bright/30'
+                                                        }`}>
+                                                        {tx.category}
+                                                    </span>
+                                                </td>
+                                                <td className={`py-4 px-4 border-b border-graphite-border text-xs font-black text-right ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'
+                                                    }`}>
+                                                    {isIncome ? '+ ' : '- '}{formatBRL(Math.abs(tx.amount))}
+                                                </td>
+                                                <td className="py-4 px-6 border-b border-graphite-border">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`size-1.5 rounded-full ${tx.is_cleared
+                                                            ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                            : 'bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.4)]'
+                                                            }`} />
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-vibrant' : 'text-slate-500'}`}>
+                                                            {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Cleared' : 'Pending'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6 border-b border-graphite-border">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button
+                                                            onClick={() => handleEdit(tx)}
+                                                            className="size-8 rounded-lg bg-royal-purple/10 text-royal-purple hover:bg-royal-purple hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                                            title="Editar transação"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(tx.id)}
+                                                            className="size-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                                            title="Apagar transação"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
-                        <span className="text-xs font-black text-crisp-white uppercase tracking-wider">
-                            Selecionadas
-                        </span>
-                    </div>
-                    <div className="h-6 w-px bg-graphite-700" />
-                    <div className="flex items-center gap-5">
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowBulkCategoryMenu(!showBulkCategoryMenu)}
-                                className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
-                            >
-                                <span className="material-symbols-outlined text-base">edit</span>
-                                Categorizar
-                            </button>
-                            {showBulkCategoryMenu && (
-                                <div className="absolute bottom-full mb-2 left-0 bg-graphite-card border border-graphite-border rounded shadow-2xl py-2 min-w-[140px] z-[60]">
-                                    {CATEGORIES.map(cat => (
-                                        <button
-                                            key={cat}
-                                            onClick={() => handleBulkCategorize(cat)}
-                                            className="w-full text-left px-4 py-2 text-[10px] font-bold text-slate-low hover:text-crisp-white hover:bg-royal-purple/20 transition-colors uppercase"
-                                        >
-                                            {cat}
-                                        </button>
-                                    ))}
+
+                        {/* Pagination */}
+                        <div className="mt-8 flex justify-between items-center text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] pb-8">
+                            <span>Página {page} de {totalPages}</span>
+                            <div className="flex gap-4">
+                                <button
+                                    disabled={page === 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    className="hover:text-royal-purple transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    Anterior
+                                </button>
+                                <button
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    className="hover:text-royal-purple transition-colors text-crisp-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    Próxima
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* Floating Action Bar */}
+            {
+                selectedIds.size > 0 && (
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+                        <div className="glass-panel rounded-lg shadow-2xl px-6 py-3.5 flex items-center gap-8 min-w-[480px]">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-royal-purple size-5 rounded-sm flex items-center justify-center text-[10px] font-black text-crisp-white">
+                                    {String(selectedIds.size).padStart(2, '0')}
                                 </div>
-                            )}
-                        </div>
-                        <button
-                            onClick={handleBulkToggleMark}
-                            className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
-                        >
-                            <span className="material-symbols-outlined text-base">flag</span>
-                            Marcar
-                        </button>
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
-                        >
-                            <span className="material-symbols-outlined text-base">export_notes</span>
-                            Exportar
-                        </button>
-                        <button
-                            onClick={handleBulkDelete}
-                            className="flex items-center gap-2 text-crimson-bright hover:bg-crimson-bright/10 px-2 py-1 rounded transition-colors text-[10px] font-black uppercase tracking-widest"
-                        >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                            Deletar
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => setSelectedIds(new Set())}
-                        className="ml-auto text-slate-600 hover:text-crisp-white transition-colors"
-                    >
-                        <span className="material-symbols-outlined text-base">close</span>
-                    </button>
-                </div>
-            </div>
-        )
-    }
-
-    {/* Edit Modal */ }
-    <AnimatePresence>
-        {editingTx && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setEditingTx(null)}
-                    className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
-                />
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl"
-                >
-                    <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-royal-purple">edit_note</span>
-                        Editar Transação
-                    </h3>
-
-                    <div className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
-                            <input
-                                type="text"
-                                value={editForm.description}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                            <select
-                                value={editForm.category}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                <span className="text-xs font-black text-crisp-white uppercase tracking-wider">
+                                    Selecionadas
+                                </span>
+                            </div>
+                            <div className="h-6 w-px bg-graphite-700" />
+                            <div className="flex items-center gap-5">
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowBulkCategoryMenu(!showBulkCategoryMenu)}
+                                        className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-base">edit</span>
+                                        Categorizar
+                                    </button>
+                                    {showBulkCategoryMenu && (
+                                        <div className="absolute bottom-full mb-2 left-0 bg-graphite-card border border-graphite-border rounded shadow-2xl py-2 min-w-[140px] z-[60]">
+                                            {CATEGORIES.map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => handleBulkCategorize(cat)}
+                                                    className="w-full text-left px-4 py-2 text-[10px] font-bold text-slate-low hover:text-crisp-white hover:bg-royal-purple/20 transition-colors uppercase"
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={handleBulkToggleMark}
+                                    className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    <span className="material-symbols-outlined text-base">flag</span>
+                                    Marcar
+                                </button>
+                                <button
+                                    onClick={handleExport}
+                                    className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    <span className="material-symbols-outlined text-base">export_notes</span>
+                                    Exportar
+                                </button>
+                                <button
+                                    onClick={handleBulkDelete}
+                                    className="flex items-center gap-2 text-crimson-bright hover:bg-crimson-bright/10 px-2 py-1 rounded transition-colors text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    <span className="material-symbols-outlined text-base">delete</span>
+                                    Deletar
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => setSelectedIds(new Set())}
+                                className="ml-auto text-slate-600 hover:text-crisp-white transition-colors"
                             >
-                                {CATEGORIES.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={editForm.amount}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Data</label>
-                                <input
-                                    type="date"
-                                    value={editForm.date}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
+                                <span className="material-symbols-outlined text-base">close</span>
+                            </button>
                         </div>
                     </div>
+                )
+            }
 
-                    <div className="flex gap-4 mt-8">
-                        <button
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editingTx && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             onClick={() => setEditingTx(null)}
-                            className="flex-1 px-6 py-3 rounded-xl border border-graphite-border text-xs font-black uppercase tracking-widest text-slate-low hover:text-crisp-white hover:bg-graphite-border/30 transition-all"
+                            className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl"
                         >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={submitEdit}
-                            className="flex-1 px-6 py-3 rounded-xl bg-royal-purple text-crisp-white text-xs font-black uppercase tracking-widest hover:bg-royal-purple/90 transition-all shadow-lg shadow-royal-purple/20"
-                        >
-                            Salvar Alteração
-                        </button>
+                            <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
+                                <span className="material-symbols-outlined text-royal-purple">edit_note</span>
+                                Editar Transação
+                            </h3>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
+                                    <select
+                                        value={editForm.category}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                    >
+                                        {CATEGORIES.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.amount}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Data</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.date}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    onClick={() => setEditingTx(null)}
+                                    className="flex-1 px-6 py-3 rounded-xl border border-graphite-border text-xs font-black uppercase tracking-widest text-slate-low hover:text-crisp-white hover:bg-graphite-border/30 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={submitEdit}
+                                    className="flex-1 px-6 py-3 rounded-xl bg-royal-purple text-crisp-white text-xs font-black uppercase tracking-widest hover:bg-royal-purple/90 transition-all shadow-lg shadow-royal-purple/20"
+                                >
+                                    Salvar Alteração
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
-                </motion.div>
-            </div>
-        )}
-    </AnimatePresence>
+                )}
+            </AnimatePresence>
 
-    {/* Add Modal */ }
-    <AnimatePresence>
-        {isAddModalOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
-                />
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                    className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl"
-                >
-                    <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
-                        <span className={`material-symbols-outlined ${addType === 'INCOME' ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
-                            {addType === 'INCOME' ? 'add_circle' : 'remove_circle'}
-                        </span>
-                        {addType === 'INCOME' ? 'Nova Receita' : 'Nova Despesa'}
-                    </h3>
-
-                    <div className="space-y-5">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
-                            <input
-                                type="text"
-                                placeholder="Ex: Almoço, Salário..."
-                                value={addForm.description}
-                                onChange={(e) => setAddForm(prev => ({ ...prev, description: e.target.value }))}
-                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                            <select
-                                value={addForm.category}
-                                onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
-                            >
-                                {CATEGORIES.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0,00"
-                                    value={addForm.amount}
-                                    onChange={(e) => setAddForm(prev => ({ ...prev, amount: e.target.value }))}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Data</label>
-                                <input
-                                    type="date"
-                                    value={addForm.date}
-                                    onChange={(e) => setAddForm(prev => ({ ...prev, date: e.target.value }))}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        {addType === 'EXPENSE' && (
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Parcelas</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={addForm.installments}
-                                    onChange={(e) => setAddForm(prev => ({ ...prev, installments: parseInt(e.target.value) || 1 }))}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex gap-4 mt-8">
-                        <button
+            {/* Add Modal */}
+            <AnimatePresence>
+                {isAddModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             onClick={() => setIsAddModalOpen(false)}
-                            className="flex-1 px-6 py-3 rounded-xl border border-graphite-border text-xs font-black uppercase tracking-widest text-slate-low hover:text-crisp-white hover:bg-graphite-border/30 transition-all"
+                            className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl"
                         >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={submitAdd}
-                            className={`flex-1 px-6 py-3 rounded-xl text-crisp-white text-xs font-black uppercase tracking-widest transition-all shadow-lg ${addType === 'INCOME' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20' : 'bg-crimson-bright hover:bg-crimson-bright/90 shadow-crimson-bright/20'}`}
-                        >
-                            Criar {addType === 'INCOME' ? 'Receita' : 'Despesa'}
-                        </button>
+                            <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
+                                <span className={`material-symbols-outlined ${addType === 'INCOME' ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
+                                    {addType === 'INCOME' ? 'add_circle' : 'remove_circle'}
+                                </span>
+                                {addType === 'INCOME' ? 'Nova Receita' : 'Nova Despesa'}
+                            </h3>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Almoço, Salário..."
+                                        value={addForm.description}
+                                        onChange={(e) => setAddForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
+                                    <select
+                                        value={addForm.category}
+                                        onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                    >
+                                        {CATEGORIES.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0,00"
+                                            value={addForm.amount}
+                                            onChange={(e) => setAddForm(prev => ({ ...prev, amount: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Data</label>
+                                        <input
+                                            type="date"
+                                            value={addForm.date}
+                                            onChange={(e) => setAddForm(prev => ({ ...prev, date: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                {addType === 'EXPENSE' && (
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Parcelas</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={addForm.installments}
+                                            onChange={(e) => setAddForm(prev => ({ ...prev, installments: parseInt(e.target.value) || 1 }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="flex-1 px-6 py-3 rounded-xl border border-graphite-border text-xs font-black uppercase tracking-widest text-slate-low hover:text-crisp-white hover:bg-graphite-border/30 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={submitAdd}
+                                    className={`flex-1 px-6 py-3 rounded-xl text-crisp-white text-xs font-black uppercase tracking-widest transition-all shadow-lg ${addType === 'INCOME' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20' : 'bg-crimson-bright hover:bg-crimson-bright/90 shadow-crimson-bright/20'}`}
+                                >
+                                    Criar {addType === 'INCOME' ? 'Receita' : 'Despesa'}
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
-                </motion.div>
-            </div>
-        )}
-    </AnimatePresence>
+                )}
+            </AnimatePresence>
         </motion.div >
     );
 }
