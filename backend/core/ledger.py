@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
 from backend.db.models import Transaction, Account
 from uuid import UUID
+import uuid
 from datetime import datetime
 import logging
 

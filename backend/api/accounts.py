@@ -84,18 +84,22 @@ async def create_account(
     if existing:
         raise HTTPException(status_code=409, detail=f"Conta '{payload.name}' já existe.")
 
-    account = await ledger.create_account(
-        user_phone=current_user_phone,
-        name=payload.name,
-        acc_type=payload.type,
-        initial_balance=payload.initial_balance,
-        credit_limit=payload.credit_limit,
-        due_day=payload.due_day,
-        closing_day=payload.closing_day
-    )
-    await db.commit()
-
-    logger.info(f"Account '{payload.name}' created for {current_user_phone}")
+    try:
+        account = await ledger.create_account(
+            user_phone=current_user_phone,
+            name=payload.name,
+            acc_type=payload.type,
+            initial_balance=payload.initial_balance,
+            credit_limit=payload.credit_limit,
+            due_day=payload.due_day,
+            closing_day=payload.closing_day
+        )
+        await db.commit()
+        logger.info(f"Account '{payload.name}' created for {current_user_phone}")
+    except Exception as e:
+        logger.error(f"Error creating account: {str(e)}", exc_info=True)
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error during account creation.")
 
     return {
         "id": str(account.id),

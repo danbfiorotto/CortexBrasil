@@ -139,10 +139,12 @@ export default function AccountsPage() {
                         <h3 className="text-lg font-semibold">Criar Nova Conta</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Nome da Instituição</label>
+                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">
+                                    {formData.type === 'CREDIT' ? 'Nome do Cartão' : 'Nome da Instituição'}
+                                </label>
                                 <input
                                     type="text"
-                                    placeholder="Ex: Nubank, Itaú"
+                                    placeholder={formData.type === 'CREDIT' ? 'Ex: Nubank Ultravioleta, Itaú Black' : 'Ex: Nubank, Itaú'}
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
@@ -176,7 +178,7 @@ export default function AccountsPage() {
                             {formData.type === 'CREDIT' && (
                                 <>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Limite Total</label>
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Limite do Cartão</label>
                                         <input
                                             type="number"
                                             step="0.01"
