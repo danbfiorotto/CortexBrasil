@@ -56,6 +56,8 @@ class LedgerService:
                                    tx_type: str = "EXPENSE",
                                    account_name: str = None,
                                    destination_account_name: str = None,
+                                   account_id: UUID = None,
+                                   destination_account_id: UUID = None,
                                    installments: int = None,
                                    date: datetime = None) -> Transaction:
         """
@@ -63,7 +65,11 @@ class LedgerService:
         """
         # 1. Resolve Account
         account = None
-        if account_name:
+        if account_id:
+            # Use provided ID
+            result = await self.session.execute(select(Account).where(Account.id == account_id))
+            account = result.scalar_one_or_none()
+        elif account_name:
             account = await self.get_account_by_name(user_phone, account_name)
         
         # If no account found/specified, try to find a default "Carteira" or create one
@@ -72,14 +78,17 @@ class LedgerService:
             if not account:
                  account = await self.create_account(user_phone, "Carteira", "CASH")
 
-        account_id = account.id
+        resolved_account_id = account.id
 
         # 2. Resolve Destination Account (if Transfer)
-        dest_account_id = None
-        if tx_type == "TRANSFER" and destination_account_name:
-             dest_account = await self.get_account_by_name(user_phone, destination_account_name)
-             if dest_account:
-                 dest_account_id = dest_account.id
+        resolved_dest_account_id = None
+        if tx_type == "TRANSFER":
+            if destination_account_id:
+                resolved_dest_account_id = destination_account_id
+            elif destination_account_name:
+                dest_account = await self.get_account_by_name(user_phone, destination_account_name)
+                if dest_account:
+                    resolved_dest_account_id = dest_account.id
 
         # 3. Create Transaction
         # Note: Triggers in DB will update the account balance automatically!
@@ -97,7 +106,7 @@ class LedgerService:
              # Create first one now
              first_tx = Transaction(
                 user_phone=user_phone,
-                account_id=account_id,
+                account_id=resolved_account_id,
                 type=tx_type,
                 amount=installment_amount,
                 category=category,
@@ -118,7 +127,7 @@ class LedgerService:
                  current_date += relativedelta(months=1)
                  future_tx = Transaction(
                     user_phone=user_phone,
-                    account_id=account_id,
+                    account_id=resolved_account_id,
                     type=tx_type,
                     amount=installment_amount,
                     category=category,
@@ -135,8 +144,8 @@ class LedgerService:
             # Single Transaction
             tx = Transaction(
                 user_phone=user_phone,
-                account_id=account_id,
-                destination_account_id=dest_account_id,
+                account_id=resolved_account_id,
+                destination_account_id=resolved_dest_account_id,
                 type=tx_type,
                 amount=amount,
                 category=category,

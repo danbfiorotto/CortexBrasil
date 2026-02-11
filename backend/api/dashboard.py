@@ -94,10 +94,12 @@ async def get_transactions(
                 date_iso = tx.date.isoformat()
                 
         data.append({
-            "id": tx.id,
+            "id": str(tx.id),
             "amount": tx.amount,
             "category": tx.category,
             "description": tx.description,
+            "type": tx.type,
+            "account_id": str(tx.account_id) if tx.account_id else None,
             "date": date_iso,
             "is_installment": bool(tx.installment_number),
             "installment_info": f"{tx.installment_number}/{tx.installments_count}" if tx.installments_count and tx.installments_count > 1 else None,
@@ -136,6 +138,7 @@ async def create_transaction(
             category=payload.get("category", "Outros"),
             description=payload.get("description", ""),
             tx_type=payload.get("type", "EXPENSE"),
+            account_id=payload.get("account_id"), # Pass account_id if available
             installments=payload.get("installments"),
             date=datetime.fromisoformat(payload["date"]) if payload.get("date") else None
         )
@@ -572,8 +575,10 @@ async def search_transactions(
     for tx in txs:
         date_iso = tx.date.isoformat() if tx.date else ""
         data.append({
-            "id": tx.id,
+            "id": str(tx.id),
             "amount": tx.amount,
+            "type": tx.type,
+            "account_id": str(tx.account_id) if tx.account_id else None,
             "category": tx.category,
             "description": tx.description,
             "date": date_iso,

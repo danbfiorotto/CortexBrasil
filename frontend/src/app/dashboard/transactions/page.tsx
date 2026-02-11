@@ -9,10 +9,19 @@ interface Transaction {
     amount: number;
     category: string;
     description: string;
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    account_id: string | null;
     date: string;
     is_installment: boolean;
     installment_info: string | null;
     is_cleared: boolean;
+}
+
+interface Account {
+    id: string;
+    name: string;
+    type: string;
+    current_balance: number;
 }
 
 const CATEGORIES = [
@@ -40,23 +49,44 @@ const formatBRL = (val: number) =>
 export default function TransactionsPage() {
     const [data, setData] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [category, setCategory] = useState<string>('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-    const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '' });
+    const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '', account_id: '' });
     const [showBulkCategoryMenu, setShowBulkCategoryMenu] = useState(false);
     const [aiQuery, setAiQuery] = useState('');
     const [isAiActive, setIsAiActive] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addType, setAddType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
-    const [addForm, setAddForm] = useState({ description: '', category: 'Outros', amount: '', date: new RegExp(/^\d{4}-\d{2}-\d{2}$/).test(new Date().toISOString().split('T')[0]) ? new Date().toISOString().split('T')[0] : '', installments: 1 });
+    const [addForm, setAddForm] = useState({
+        description: '',
+        category: 'Outros',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        installments: 1,
+        account_id: ''
+    });
 
     useEffect(() => {
         fetchTransactions();
+        fetchAccounts();
     }, [page, category]);
+
+    const fetchAccounts = async () => {
+        try {
+            const res = await api.get('/api/accounts/');
+            setAccounts(res.data.accounts);
+            if (res.data.accounts.length > 0 && !addForm.account_id) {
+                setAddForm(prev => ({ ...prev, account_id: res.data.accounts[0].id }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch accounts", error);
+        }
+    };
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -171,7 +201,8 @@ export default function TransactionsPage() {
             description: tx.description,
             category: tx.category,
             amount: Math.abs(tx.amount),
-            date: tx.date.split('T')[0]
+            date: tx.date.split('T')[0],
+            account_id: tx.account_id || ''
         });
     };
 
@@ -181,6 +212,7 @@ export default function TransactionsPage() {
             await api.patch(`/api/dashboard/transactions/${editingTx.id}`, editForm);
             setEditingTx(null);
             fetchTransactions();
+            fetchAccounts(); // Refresh balances in case account was changed
         } catch (error) {
             console.error("Failed to update transaction", error);
             alert("Erro ao atualizar transação.");
@@ -196,8 +228,16 @@ export default function TransactionsPage() {
                 installments: addType === 'EXPENSE' ? addForm.installments : 1
             });
             setIsAddModalOpen(false);
-            setAddForm({ description: '', category: 'Outros', amount: '', date: new Date().toISOString().split('T')[0], installments: 1 });
+            setAddForm(prev => ({
+                ...prev,
+                description: '',
+                category: 'Outros',
+                amount: '',
+                date: new Date().toISOString().split('T')[0],
+                installments: 1
+            }));
             fetchTransactions();
+            fetchAccounts(); // Refresh balances
         } catch (error: any) {
             console.error("Failed to add transaction", error);
             alert("Erro ao adicionar transação: " + (error.response?.data?.detail || error.message));
@@ -354,6 +394,7 @@ export default function TransactionsPage() {
                                         </th>
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Data</th>
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Descrição</th>
+                                        <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Conta</th>
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Categoria</th>
                                         <th className="py-4 px-4 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em] text-right">Valor</th>
                                         <th className="py-4 px-6 border-b border-graphite-700 text-[10px] font-black text-slate-low uppercase tracking-[0.15em]">Status</th>
@@ -393,7 +434,14 @@ export default function TransactionsPage() {
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-4 border-b border-graphite-border">
-                                                    <span className={`px-2 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest ${isIncome
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-bold text-slate-low uppercase tracking-wider">
+                                                            {accounts.find(a => a.id === tx.account_id)?.name || 'Carteira'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-4 border-b border-graphite-border">
+                                                    <span className={`px-2 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest ${tx.type === 'INCOME'
                                                         ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/30'
                                                         : tx.is_installment
                                                             ? 'bg-royal-purple/10 text-royal-purple border border-royal-purple/30'
@@ -402,9 +450,9 @@ export default function TransactionsPage() {
                                                         {tx.category}
                                                     </span>
                                                 </td>
-                                                <td className={`py-4 px-4 border-b border-graphite-border text-xs font-black text-right ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'
+                                                <td className={`py-4 px-4 border-b border-graphite-border text-xs font-black text-right ${tx.type === 'INCOME' ? 'text-emerald-vibrant font-black' : 'text-crimson-bright'
                                                     }`}>
-                                                    {isIncome ? '+ ' : '- '}{formatBRL(Math.abs(tx.amount))}
+                                                    {tx.type === 'INCOME' ? '+ ' : '- '}{formatBRL(Math.abs(tx.amount))}
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
                                                     <div className="flex items-center gap-2">
@@ -560,6 +608,29 @@ export default function TransactionsPage() {
 
                             <div className="space-y-5">
                                 <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Conta</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {accounts.map(acc => (
+                                            <button
+                                                key={acc.id}
+                                                onClick={() => setEditForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                className={`p-3 rounded-xl border text-left transition-all ${editForm.account_id === acc.id
+                                                    ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                    : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                    }`}
+                                            >
+                                                <p className={`text-[10px] font-black uppercase tracking-wider ${editForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                    {acc.name}
+                                                </p>
+                                                <p className="text-xs font-bold text-crisp-white mt-1">
+                                                    {formatBRL(acc.current_balance)}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
                                     <input
                                         type="text"
@@ -658,6 +729,29 @@ export default function TransactionsPage() {
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                     />
                                 </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Conta</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {accounts.map(acc => (
+                                            <button
+                                                key={acc.id}
+                                                onClick={() => setAddForm(prev => ({ ...prev, account_id: acc.id }))}
+                                                className={`p-3 rounded-xl border text-left transition-all ${addForm.account_id === acc.id
+                                                    ? 'bg-royal-purple/10 border-royal-purple shadow-lg shadow-royal-purple/10'
+                                                    : 'bg-charcoal-bg border-graphite-border hover:border-graphite-600'
+                                                    }`}
+                                            >
+                                                <p className={`text-[10px] font-black uppercase tracking-wider ${addForm.account_id === acc.id ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                                    {acc.name}
+                                                </p>
+                                                <p className="text-xs font-bold text-crisp-white mt-1">
+                                                    {formatBRL(acc.current_balance)}
+                                                </p>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
                                     <select
