@@ -135,7 +135,11 @@ class TransactionRepository:
         limit: int = 10, 
         start_date: datetime = None, 
         end_date: datetime = None, 
-        category: str = None
+        category: str = None,
+        description: str = None,
+        min_amount: float = None,
+        max_amount: float = None,
+        tx_type: str = None
     ):
         """
         Fetch filtered transactions with pagination.
@@ -153,6 +157,14 @@ class TransactionRepository:
             query = query.where(Transaction.date <= end_date)
         if category:
             query = query.where(Transaction.category == category)
+        if description:
+            query = query.where(Transaction.description.ilike(f"%{description}%"))
+        if min_amount is not None:
+            query = query.where(Transaction.amount >= min_amount)
+        if max_amount is not None:
+            query = query.where(Transaction.amount <= max_amount)
+        if tx_type:
+            query = query.where(Transaction.type == tx_type)
             
         # Count Query (before pagination)
         count_query = select(func.count()).select_from(query.subquery())
@@ -205,3 +217,51 @@ class TransactionRepository:
         )
         await self.session.execute(stmt)
         await self.session.commit()
+
+    async def update_transaction(self, user_phone: str, tx_id: str, category: str = None, description: str = None, amount: float = None, date: datetime = None, is_cleared: bool = None):
+        """
+        Updates category, description, amount, date and/or cleared status of a transaction.
+        """
+        from sqlalchemy import update
+        
+        values = {}
+        if category: values["category"] = category
+        if description: values["description"] = description
+        if amount is not None: values["amount"] = amount
+        if date: values["date"] = date
+        if is_cleared is not None: values["is_cleared"] = is_cleared
+            
+        if not values:
+            return None
+            
+        stmt = (
+            update(Transaction)
+            .where(Transaction.user_phone == user_phone, Transaction.id == tx_id)
+            .values(**values)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+        return True
+
+    async def bulk_update_transactions(self, user_phone: str, tx_ids: list[str], category: str = None, description: str = None, is_cleared: bool = None):
+        """
+        Updates multiple transactions at once.
+        """
+        from sqlalchemy import update
+        
+        values = {}
+        if category: values["category"] = category
+        if description: values["description"] = description
+        if is_cleared is not None: values["is_cleared"] = is_cleared
+        
+        if not values:
+            return 0
+            
+        stmt = (
+            update(Transaction)
+            .where(Transaction.user_phone == user_phone, Transaction.id.in_(tx_ids))
+            .values(**values)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount

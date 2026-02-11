@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, Integer
+from sqlalchemy import Column, String, Float, DateTime, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -34,6 +34,7 @@ class Transaction(Base):
     installments_count = Column(Integer, nullable=True) # Total parcelas (e.g. 10)
     installment_number = Column(Integer, nullable=True) # Atual (e.g. 1)
     group_id = Column(UUID(as_uuid=True), nullable=True) # ID comum para todas as parcelas
+    is_cleared = Column(Boolean, default=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
 

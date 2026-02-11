@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Transaction {
     id: string;
@@ -12,6 +12,7 @@ interface Transaction {
     date: string;
     is_installment: boolean;
     installment_info: string | null;
+    is_cleared: boolean;
 }
 
 const CATEGORIES = [
@@ -43,6 +44,12 @@ export default function TransactionsPage() {
     const [totalPages, setTotalPages] = useState(1);
     const [category, setCategory] = useState<string>('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+    const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '' });
+    const [showBulkCategoryMenu, setShowBulkCategoryMenu] = useState(false);
+    const [aiQuery, setAiQuery] = useState('');
+    const [isAiActive, setIsAiActive] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
 
     useEffect(() => {
         fetchTransactions();
@@ -105,6 +112,100 @@ export default function TransactionsPage() {
         }
     };
 
+    const handleBulkCategorize = async (cat: string) => {
+        try {
+            await api.post('/api/dashboard/transactions/bulk-update', {
+                ids: Array.from(selectedIds),
+                category: cat
+            });
+            setSelectedIds(new Set());
+            setShowBulkCategoryMenu(false);
+            fetchTransactions();
+        } catch (error) {
+            console.error("Bulk categorize failed", error);
+        }
+    };
+
+    const handleBulkToggleMark = async () => {
+        try {
+            // Logic: if any selected is NOT cleared, mark all as cleared. 
+            // Otherwise, mark all as NOT cleared.
+            const selectedTxs = data.filter(tx => selectedIds.has(tx.id));
+            const allCleared = selectedTxs.every(tx => tx.is_cleared);
+
+            await api.post('/api/dashboard/transactions/bulk-update', {
+                ids: Array.from(selectedIds),
+                is_cleared: !allCleared
+            });
+            setSelectedIds(new Set());
+            fetchTransactions();
+        } catch (error) {
+            console.error("Bulk mark failed", error);
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const res = await api.get('/api/dashboard/transactions/export', {
+                params: { category: category && category !== 'Todas' ? category : undefined },
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'transacoes.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Export failed", error);
+        }
+    };
+
+    const handleEdit = (tx: Transaction) => {
+        setEditingTx(tx);
+        setEditForm({
+            description: tx.description,
+            category: tx.category,
+            amount: Math.abs(tx.amount),
+            date: tx.date.split('T')[0]
+        });
+    };
+
+    const submitEdit = async () => {
+        if (!editingTx) return;
+        try {
+            await api.patch(`/api/dashboard/transactions/${editingTx.id}`, editForm);
+            setEditingTx(null);
+            fetchTransactions();
+        } catch (error) {
+            console.error("Failed to update transaction", error);
+            alert("Erro ao atualizar transação.");
+        }
+    };
+
+    const handleAiSearch = async () => {
+        if (!aiQuery.trim()) return;
+        setAiLoading(true);
+        try {
+            const res = await api.post('/api/dashboard/transactions/search', { query: aiQuery });
+            setData(res.data.data);
+            setTotalPages(1);
+            setIsAiActive(true);
+        } catch (error) {
+            console.error("AI Search failed", error);
+            alert("Erro na busca com IA. Tente novamente.");
+        } finally {
+            setAiLoading(false);
+        }
+    };
+
+    const clearAiSearch = () => {
+        setIsAiActive(false);
+        setAiQuery('');
+        fetchTransactions();
+    };
+
     const toggleSelectAll = () => {
         if (selectedIds.size === data.length) {
             setSelectedIds(new Set());
@@ -127,23 +228,45 @@ export default function TransactionsPage() {
                         <div className="relative flex items-center bg-graphite-card border border-graphite-border rounded-lg px-5 h-14 search-glow">
                             <span className="material-symbols-outlined text-royal-purple mr-4 text-xl">auto_awesome</span>
                             <input
-                                className="bg-transparent border-none focus:ring-0 focus:outline-none text-crisp-white placeholder-slate-low/50 w-full text-base font-medium tracking-tight"
-                                placeholder="Buscar transações com IA..."
+                                className="flex-1 bg-transparent border-none outline-none text-xs text-crisp-white placeholder:text-slate-low py-2.5 font-bold tracking-tight"
+                                placeholder={aiLoading ? "Cortex está pensando..." : "Buscar transações com IA..."}
                                 type="text"
+                                value={aiQuery}
+                                onChange={(e) => setAiQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                                disabled={aiLoading}
                             />
                             <div className="flex items-center gap-3">
                                 <div className="hidden md:flex items-center gap-1">
-                                    <kbd className="px-1.5 py-0.5 rounded border border-graphite-600 bg-charcoal-bg text-[10px] font-bold text-slate-low uppercase">CMD</kbd>
-                                    <kbd className="px-1.5 py-0.5 rounded border border-graphite-600 bg-charcoal-bg text-[10px] font-bold text-slate-low uppercase">K</kbd>
+                                    <kbd className="px-1.5 py-0.5 rounded border border-graphite-600 bg-charcoal-bg text-[10px] font-bold text-slate-low uppercase">ENTER</kbd>
                                 </div>
-                                <button className="bg-royal-purple hover:bg-royal-purple/90 text-crisp-white rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-royal-purple/20">
-                                    Query
+                                <button
+                                    onClick={handleAiSearch}
+                                    disabled={aiLoading}
+                                    className="bg-royal-purple hover:bg-royal-purple/90 text-crisp-white disabled:bg-slate-700 rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-royal-purple/20"
+                                >
+                                    {aiLoading ? 'Processando...' : 'Query'}
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {isAiActive && (
+                <div className="px-8 py-2 bg-royal-purple/10 border-b border-royal-purple/20 flex items-center justify-between">
+                    <p className="text-[10px] font-bold text-royal-purple uppercase tracking-widest flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                        Modo Inteligente Ativo: "{aiQuery}"
+                    </p>
+                    <button
+                        onClick={clearAiSearch}
+                        className="text-[10px] font-black text-crisp-white uppercase tracking-widest hover:text-royal-purple transition-colors"
+                    >
+                        Limpar Busca
+                    </button>
+                </div>
+            )}
 
             {/* Filter Bar */}
             <div className="px-8 py-3.5 flex flex-wrap items-center justify-between border-b border-graphite-border bg-carbon-800">
@@ -251,17 +374,24 @@ export default function TransactionsPage() {
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
                                                     <div className="flex items-center gap-2">
-                                                        <div className={`size-1.5 rounded-full ${isIncome
+                                                        <div className={`size-1.5 rounded-full ${tx.is_cleared
                                                             ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                                                            : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                                                            : 'bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.4)]'
                                                             }`} />
-                                                        <span className="text-[9px] font-black text-emerald-vibrant uppercase tracking-widest">
-                                                            {tx.is_installment ? tx.installment_info || 'Parcelado' : 'Cleared'}
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-vibrant' : 'text-slate-500'}`}>
+                                                            {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Cleared' : 'Pending'}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
-                                                    <div className="flex justify-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button
+                                                            onClick={() => handleEdit(tx)}
+                                                            className="size-8 rounded-lg bg-royal-purple/10 text-royal-purple hover:bg-royal-purple hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                                            title="Editar transação"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                        </button>
                                                         <button
                                                             onClick={() => handleDelete(tx.id)}
                                                             className="size-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
@@ -316,15 +446,39 @@ export default function TransactionsPage() {
                         </div>
                         <div className="h-6 w-px bg-graphite-700" />
                         <div className="flex items-center gap-5">
-                            <button className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest">
-                                <span className="material-symbols-outlined text-base">edit</span>
-                                Categorizar
-                            </button>
-                            <button className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowBulkCategoryMenu(!showBulkCategoryMenu)}
+                                    className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    <span className="material-symbols-outlined text-base">edit</span>
+                                    Categorizar
+                                </button>
+                                {showBulkCategoryMenu && (
+                                    <div className="absolute bottom-full mb-2 left-0 bg-graphite-card border border-graphite-border rounded shadow-2xl py-2 min-w-[140px] z-[60]">
+                                        {CATEGORIES.map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => handleBulkCategorize(cat)}
+                                                className="w-full text-left px-4 py-2 text-[10px] font-bold text-slate-low hover:text-crisp-white hover:bg-royal-purple/20 transition-colors uppercase"
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleBulkToggleMark}
+                                className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                            >
                                 <span className="material-symbols-outlined text-base">flag</span>
                                 Marcar
                             </button>
-                            <button className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest">
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center gap-2 text-slate-low hover:text-crisp-white transition-colors text-[10px] font-black uppercase tracking-widest"
+                            >
                                 <span className="material-symbols-outlined text-base">export_notes</span>
                                 Exportar
                             </button>
@@ -345,6 +499,93 @@ export default function TransactionsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editingTx && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setEditingTx(null)}
+                            className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl"
+                        >
+                            <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
+                                <span className="material-symbols-outlined text-royal-purple">edit_note</span>
+                                Editar Transação
+                            </h3>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Descrição</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
+                                    <select
+                                        value={editForm.category}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
+                                    >
+                                        {CATEGORIES.map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.amount}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Data</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.date}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    onClick={() => setEditingTx(null)}
+                                    className="flex-1 px-6 py-3 rounded-xl border border-graphite-border text-xs font-black uppercase tracking-widest text-slate-low hover:text-crisp-white hover:bg-graphite-border/30 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={submitEdit}
+                                    className="flex-1 px-6 py-3 rounded-xl bg-royal-purple text-crisp-white text-xs font-black uppercase tracking-widest hover:bg-royal-purple/90 transition-all shadow-lg shadow-royal-purple/20"
+                                >
+                                    Salvar Alteração
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

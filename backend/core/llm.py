@@ -1,6 +1,7 @@
 import httpx
 import logging
 import json
+from datetime import datetime
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -115,3 +116,55 @@ Resposta: {
                     "action": "chat", 
                     "reply_text": "Ops, tive um pensamento confuso. Tente novamente."
                 })
+
+    async def analyze_search_query(self, query: str) -> dict:
+        """
+        Translates a natural language query into structured filters.
+        """
+        system_prompt = f"""Você é um especialista em busca de dados financeiros. 
+Sua tarefa é converter uma frase do usuário em filtros JSON estruturados.
+
+Retorne APENAS o JSON com os seguintes campos (use null se não identificado):
+{{
+    "category": string | null,
+    "description": string | null,
+    "start_date": string (ISO 8601) | null,
+    "end_date": string (ISO 8601) | null,
+    "min_amount": float | null,
+    "max_amount": float | null,
+    "type": "EXPENSE" | "INCOME" | "TRANSFER" | null
+}}
+
+Data de HOJE: {datetime.now().isoformat()}
+
+Exemplos:
+- "Quanto gastei com Uber mês passado?" -> {{"category": "Transporte", "description": "Uber", "start_date": "2026-01-01", "end_date": "2026-01-31"}}
+- "Lançamentos acima de 500 reais esse mês" -> {{"min_amount": 500.0, "start_date": "2026-02-01"}}
+- "Entradas de janeiro" -> {{"type": "INCOME", "start_date": "2026-01-01", "end_date": "2026-01-31"}}
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": query}
+        ]
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.0,
+            "max_tokens": 500
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                response = await client.post(f"{self.base_url}/chat/completions", headers=self.headers, json=payload)
+                if response.status_code == 200:
+                    content = response.json()['choices'][0]['message']['content']
+                    if "```json" in content:
+                        content = content.split("```json")[1].split("```")[0].strip()
+                    elif "```" in content:
+                        content = content.split("```")[1].split("```")[0].strip()
+                    return json.loads(content)
+            except Exception as e:
+                logger.error(f"Error parsing search query with LLM: {e}")
+            
+            return {}

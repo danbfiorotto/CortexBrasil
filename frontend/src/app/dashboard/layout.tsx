@@ -10,6 +10,7 @@ const NAV_ITEMS = [
     { name: 'Transações', href: '/dashboard/transactions' },
     { name: 'Contas', href: '/dashboard/accounts' },
     { name: 'Investimentos', href: '/dashboard/investments' },
+    { name: 'Relatórios', href: '/dashboard/analytics' },
 ];
 
 export default function DashboardLayout({

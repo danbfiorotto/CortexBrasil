@@ -100,7 +100,8 @@ async def get_transactions(
             "description": tx.description,
             "date": date_iso,
             "is_installment": bool(tx.installment_number),
-            "installment_info": f"{tx.installment_number}/{tx.installments_count}" if tx.installments_count and tx.installments_count > 1 else None
+            "installment_info": f"{tx.installment_number}/{tx.installments_count}" if tx.installments_count and tx.installments_count > 1 else None,
+            "is_cleared": tx.is_cleared
         })
 
     return {
@@ -372,3 +373,185 @@ async def bulk_delete_transactions(
     await repo.delete_transactions(current_user_phone, tx_ids)
     
     return {"status": "success", "message": f"{len(tx_ids)} transactions deleted"}
+
+@router.post("/transactions/bulk-update")
+async def bulk_update_transactions(
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Updates multiple transactions.
+    """
+    tx_ids = payload.get("ids", [])
+    if not tx_ids:
+        raise HTTPException(status_code=400, detail="No transaction IDs provided")
+        
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    repo = TransactionRepository(db)
+    count = await repo.bulk_update_transactions(
+        current_user_phone, 
+        tx_ids, 
+        category=payload.get("category"),
+        description=payload.get("description"),
+        is_cleared=payload.get("is_cleared")
+    )
+    
+    return {"status": "success", "message": f"{count} transactions updated"}
+
+@router.get("/transactions/export")
+async def export_transactions(
+    category: str = None,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Exports transactions to CSV.
+    """
+    from fastapi.responses import StreamingResponse
+    import io
+    import csv
+    
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    repo = TransactionRepository(db)
+    # Get all matching transactions (no pagination for export)
+    txs, _ = await repo.get_transactions(current_user_phone, limit=10000, category=category)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Data", "Descrição", "Categoria", "Valor", "Tipo", "Parcelas", "Status"])
+    
+    for tx in txs:
+        writer.writerow([
+            str(tx.id),
+            tx.date.strftime("%Y-%m-%d") if tx.date else "",
+            tx.description,
+            tx.category,
+            tx.amount,
+            tx.type,
+            f"{tx.installment_number}/{tx.installments_count}" if tx.installments_count else "1/1",
+            "Cleared" if tx.is_cleared else "Pending"
+        ])
+        
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=transacoes.csv"}
+    )
+
+@router.patch("/transactions/{transaction_id}")
+async def patch_transaction(
+    transaction_id: str,
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Updates a single transaction.
+    """
+    # RLS
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    
+    amount = payload.get("amount")
+    category = payload.get("category")
+    description = payload.get("description")
+    date_str = payload.get("date")
+    is_cleared = payload.get("is_cleared")
+    
+    date_val = None
+    if date_str:
+        try:
+            date_val = datetime.fromisoformat(date_str.replace('Z', '+00:00')).replace(tzinfo=None)
+        except:
+            raise HTTPException(status_code=400, detail="Invalid date format")
+
+    repo = TransactionRepository(db)
+    success = await repo.update_transaction(
+        current_user_phone, 
+        transaction_id, 
+        category=category, 
+        description=description,
+        amount=amount,
+        date=date_val,
+        is_cleared=is_cleared
+    )
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Transaction not found or no changes provided")
+        
+    return {"status": "success", "message": "Transaction updated"}
+
+@router.post("/transactions/search")
+async def search_transactions(
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    AI-powered natural language search for transactions.
+    """
+    query = payload.get("query")
+    if not query:
+        raise HTTPException(status_code=400, detail="Search query is required")
+        
+    # 1. Analyze query with LLM
+    from backend.core.clients import llm_client
+    if not llm_client:
+        raise HTTPException(status_code=500, detail="AI Search service unavailable")
+        
+    filters = await llm_client.analyze_search_query(query)
+    logger.info(f"AI Search Filters for '{query}': {filters}")
+    
+    # 2. Parse dates
+    start_date = None
+    end_date = None
+    if filters.get("start_date"):
+        try:
+            start_date = datetime.fromisoformat(filters["start_date"].replace('Z', '+00:00')).replace(tzinfo=None)
+        except: pass
+    if filters.get("end_date"):
+        try:
+            end_date = datetime.fromisoformat(filters["end_date"].replace('Z', '+00:00')).replace(tzinfo=None)
+        except: pass
+
+    # 3. Query DB
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    repo = TransactionRepository(db)
+    
+    txs, total = await repo.get_transactions(
+        user_phone=current_user_phone,
+        limit=50, # Return more for search
+        start_date=start_date,
+        end_date=end_date,
+        category=filters.get("category"),
+        description=filters.get("description"),
+        min_amount=filters.get("min_amount"),
+        max_amount=filters.get("max_amount"),
+        tx_type=filters.get("type")
+    )
+    
+    # 4. Format response
+    data = []
+    for tx in txs:
+        date_iso = tx.date.isoformat() if tx.date else ""
+        data.append({
+            "id": tx.id,
+            "amount": tx.amount,
+            "category": tx.category,
+            "description": tx.description,
+            "date": date_iso,
+            "is_installment": bool(tx.installment_number),
+            "installment_info": f"{tx.installment_number}/{tx.installments_count}" if tx.installment_number else None
+        })
+        
+    return {
+        "status": "success",
+        "data": data,
+        "filters_applied": filters,
+        "total": total
+    }
