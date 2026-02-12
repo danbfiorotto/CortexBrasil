@@ -1,4 +1,4 @@
-📄 PRD: Agente Financeiro Agêntico (Codinome: "Mentor Invisível")
+📄 PRD: Agente Financeiro Agêntico (Codinome: "Cortex Brasil")
 1. Visão Geral e Objetivo
 Problema
 O controle financeiro tradicional (planilhas e apps) falha por dois motivos: alto atrito de entrada (preguiça de anotar) e falta de inteligência proativa (os dados ficam parados, sem gerar insights).
@@ -32,7 +32,7 @@ Fluxo Principal
 Input: Usuário envia: "Paguei 120 de luz" ou áudio: "Amor, gastei 50 no mercado no cartão de crédito".
 Processamento: O backend transcreve (se áudio), a LLM extrai o JSON e valida as regras.
 Feedback: O bot responde com um emoji de confirmação e o saldo atual da categoria.
-Alerta (Opcional): Se o gasto estourar uma meta, o "Mentor" intervém: "Isso te deixa R$ 100 acima do limite de Lazer. Quer ajustar algo?"
+Alerta (Opcional): Se o gasto estourar uma meta, o "Cortex" intervém: "Isso te deixa R$ 100 acima do limite de Lazer. Quer ajustar algo?"
 
 5. Casos de Uso (User Stories)
 Como usuário, quero registrar um gasto por áudio enquanto dirijo, para que eu não esqueça de anotar depois.
@@ -48,4 +48,4 @@ Cronograma Estimado (Sprints de 1 semana)
 Semana 1: Setup de infra (Docker, Database, Cloudflare Tunnel) e integração básica WhatsApp.
 Semana 2: Implementação do motor de IA (Whisper + LLM Local) e extração de dados.
 Semana 3: Lógica de parcelamento, recorrência e isolamento de usuários.
-Semana 4: Teste em grupo (Alpha) e refinamento do "Tom de Voz" do Mentor.
+Semana 4: Teste em grupo (Alpha) e refinamento do "Tom de Voz" do Cortex.

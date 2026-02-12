@@ -21,10 +21,11 @@ async def apply_migration():
 
         print("🚀 Applying migration 005_add_profile_fields.sql...")
         try:
-            # Split by statement if needed, but simple alters can run together in some drivers
-            # Better to run execute for the whole block for simplicity if supported, 
-            # or split by ; if issues arise. Here allow multiline.
-            await conn.execute(text(sql_script))
+            # Split by statement and execute separately
+            statements = [s.strip() for s in sql_script.split(';') if s.strip()]
+            for statement in statements:
+                print(f"Executing: {statement}...")
+                await conn.execute(text(statement))
             print("✅ Migration applied successfully.")
         except Exception as e:
             print(f"❌ Migration failed: {e}")

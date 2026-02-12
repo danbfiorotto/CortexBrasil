@@ -5,7 +5,7 @@ Regra de Ouro: Se a IA gerar código incompleto (ex: ...rest of code), peça exp
 
 📂 Passo 0: O Contexto Mestre (Use sempre)
 Antes de iniciar qualquer prompt, copie e cole este bloco de contexto para que a IA "encarne" o Engenheiro Chefe do projeto.
-CONTEXTO DO PROJETO: Estamos construindo o "Mentor Invisível", um agente financeiro pessoal via WhatsApp.
+CONTEXTO DO PROJETO: Estamos construindo o "Cortex Brasil", um agente financeiro pessoal via WhatsApp.
 Arquitetura: Python (FastAPI), PostgreSQL (Local com RLS), Docker. - Hardware: Execução local em GPU NVIDIA RTX 5080 (16GB VRAM). - IA: LLM Qwen 2.5-7B (via vLLM) e Faster-Whisper para áudio. - Segurança: Dados isolados por Row-Level Security (RLS) e criptografia AES-256. - Objetivo: Receber áudios/textos, extrair transações financeiras (JSON), salvar no DB e gerar insights (Nudges).
 +4
 Restrição: Código deve ser production-ready, tipado (Type Hints), documentado e seguir princípios SOLID.

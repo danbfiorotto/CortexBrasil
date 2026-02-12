@@ -1,7 +1,7 @@
-Business Plan Estratégico: Mentor Invisível (SaaS Financeiro Agêntico)
+Business Plan Estratégico: Cortex Brasil (SaaS Financeiro Agêntico)
 Fase 1: Validação On-Premise | Fase 2: Escala Cloud Native
 1. Sumário Executivo
-O Mentor Invisível é um Agente Financeiro Pessoal autônomo acessível via WhatsApp, projetado para o público de alta renda (HENRYs - High Earners, Not Rich Yet). Diferente dos apps tradicionais que exigem inserção manual de dados, nossa solução usa IA Generativa multimodal (áudio/texto) para capturar, categorizar e analisar a vida financeira do usuário em tempo real, intervindo ativamente (Nudges) para otimizar o patrimônio.
+O Cortex Brasil é um Agente Financeiro Pessoal autônomo acessível via WhatsApp, projetado para o público de alta renda (HENRYs - High Earners, Not Rich Yet). Diferente dos apps tradicionais que exigem inserção manual de dados, nossa solução usa IA Generativa multimodal (áudio/texto) para capturar, categorizar e analisar a vida financeira do usuário em tempo real, intervindo ativamente (Nudges) para otimizar o patrimônio.
 A estratégia de go-to-market é dividida em dois horizontes temporais distintos para maximizar a eficiência de capital:
 MVP (Validação): Operação "Bootstrapped" utilizando infraestrutura local própria (GPU NVIDIA RTX 5080) para atender o grupo beta sem custos de nuvem, validando a retenção e a precisão dos modelos.
 Escala (Comercial): Migração para infraestrutura em nuvem (Cloud GPU/Serverless) para garantir elasticidade, alta disponibilidade e conformidade regulatória em massa.
@@ -10,7 +10,7 @@ Escala (Comercial): Migração para infraestrutura em nuvem (Cloud GPU/Serverles
 2.1 O Problema
 O público alvo possui alta complexidade financeira e pouco tempo. Eles não usam apps como Mobills ou planilhas porque a fricção de entrada é alta. Eles perdem dinheiro não por falta de renda, mas por "cegueira financeira" (assinaturas esquecidas, taxas ocultas, inflação de estilo de vida).
 2.2 A Solução: Agente, não Ferramenta
-O Mentor Invisível não é um dashboard passivo; é um membro ativo da família.
+O Cortex Brasil não é um dashboard passivo; é um membro ativo da família.
 Invisibilidade: Funciona onde a vida acontece (WhatsApp). Zero novos apps para instalar.
 Multimodalidade: Aceita áudios de 30 segundos ("Gastei 500 no jantar e rachei com o Pedro") e fotos de notas fiscais.
 Hiper-Personalização: Graças à memória de longo prazo (Vector DB), ele lembra que o usuário quer viajar em dezembro e avisa se o gasto de hoje ameaça essa meta.

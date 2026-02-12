@@ -1,13 +1,13 @@
-Relatório Técnico de Engenharia de Sistemas: Análise Arquitetural, Especificação e Implementação do Projeto "Mentor Invisível"
+Relatório Técnico de Engenharia de Sistemas: Análise Arquitetural, Especificação e Implementação do Projeto "Cortex Brasil"
 Resumo Executivo e Escopo do Relatório
-O presente documento constitui a análise técnica definitiva, a especificação arquitetural e o roteiro de engenharia para o desenvolvimento do sistema "Mentor Invisível", um agente financeiro autônomo baseado em Inteligência Artificial Generativa. Este relatório é o resultado de uma análise multidisciplinar conduzida por uma força-tarefa técnica composta por especialistas em Arquitetura de Software, Engenharia de Redes, Engenharia de Dados, Desenvolvimento Backend e Frontend.
+O presente documento constitui a análise técnica definitiva, a especificação arquitetural e o roteiro de engenharia para o desenvolvimento do sistema "Cortex Brasil", um agente financeiro autônomo baseado em Inteligência Artificial Generativa. Este relatório é o resultado de uma análise multidisciplinar conduzida por uma força-tarefa técnica composta por especialistas em Arquitetura de Software, Engenharia de Redes, Engenharia de Dados, Desenvolvimento Backend e Frontend.
 O objetivo deste relatório é traduzir os requisitos de negócio de alto nível — um assistente financeiro pessoal, absolutamente privado, proativo e acessível via WhatsApp — em uma implementação de engenharia concreta, detalhada e viável. A análise abrange desde a física dos semicondutores na infraestrutura de hardware local até a psicologia comportamental codificada nos algoritmos de interação, garantindo que cada decisão técnica suporte os pilares de Privacidade, Latência e Inteligência Contextual.
 A arquitetura proposta desafia o modelo convencional de SaaS baseado em nuvem, optando por uma infraestrutura de Edge AI On-Premise impulsionada pela nova geração de GPUs NVIDIA Blackwell. Esta escolha estratégica internaliza os custos computacionais e elimina vetores de vazamento de dados, mas introduz desafios significativos de orquestração de recursos, gerenciamento térmico e otimização de memória, os quais são abordados exaustivamente neste documento.
 
 1. Visão Arquitetural e Paradigma do Sistema
-A concepção do "Mentor Invisível" transcende a definição tradicional de software de gestão financeira. Não se trata de um sistema passivo de CRUD (Create, Read, Update, Delete) de transações, mas de um sistema cognitivo stateful (com estado persistente) que atua como um proxy de racionalidade para o usuário.
+A concepção do "Cortex Brasil" transcende a definição tradicional de software de gestão financeira. Não se trata de um sistema passivo de CRUD (Create, Read, Update, Delete) de transações, mas de um sistema cognitivo stateful (com estado persistente) que atua como um proxy de racionalidade para o usuário.
 1.1 Do Conceito à Engenharia: O Paradigma Agêntico
-A transição de "ferramenta" para "agente" exige uma mudança fundamental na arquitetura de software. Aplicações web tradicionais são reativas: aguardam uma requisição HTTP, processam-na atomicamente e retornam uma resposta. O Mentor Invisível deve operar em um loop contínuo de percepção-ação.
+A transição de "ferramenta" para "agente" exige uma mudança fundamental na arquitetura de software. Aplicações web tradicionais são reativas: aguardam uma requisição HTTP, processam-na atomicamente e retornam uma resposta. O Cortex Brasil deve operar em um loop contínuo de percepção-ação.
 A arquitetura foi desenhada em torno de quatro pilares cognitivos:
 Percepção Multimodal: Capacidade de ingerir e compreender dados não estruturados (áudio informal, texto coloquial, imagens de recibos) e transformá-los em estruturas de dados rígidas (JSON).
 Memória Associativa: Um sistema híbrido que combina busca semântica (vetores) com relacionamentos explícitos (grafos), permitindo ao agente "lembrar" não apenas fatos isolados, mas o contexto emocional e temporal em que ocorreram.
@@ -30,7 +30,7 @@ Largura de Banda Efetiva: Com um barramento de 256-bit e módulos GDDR7 operando
 Latência do Primeiro Token (TTFT): Em sistemas interativos, o TTFT é a métrica de UX mais importante. A alta largura de banda da Blackwell garante que, mesmo sob carga de múltiplos usuários, o sistema não sofra de "stuttering" devido à contenda de memória.
 2.1.2 Núcleos Tensores de 5ª Geração e Precisão Mista
 A arquitetura Blackwell introduz suporte nativo a formatos de dados de ultra-baixa precisão, como FP4 e INT4, com aceleração de hardware dedicada.
-Implemetação de FP4/INT4: Para o Mentor Invisível, isso significa que podemos executar modelos quantizados com uma penalidade de performance quase nula. A quantização reduz o tamanho do modelo na VRAM, liberando espaço crítico para o Contexto (KV Cache). Enquanto gerações anteriores (Ampere/Lovelace) processavam INT4 via emulação ou com ganhos marginais, a Blackwell processa essas instruções nativamente, potencialmente dobrando o throughput de tokens por segundo (TPS) para a mesma pegada de memória.
+Implemetação de FP4/INT4: Para o Cortex Brasil, isso significa que podemos executar modelos quantizados com uma penalidade de performance quase nula. A quantização reduz o tamanho do modelo na VRAM, liberando espaço crítico para o Contexto (KV Cache). Enquanto gerações anteriores (Ampere/Lovelace) processavam INT4 via emulação ou com ganhos marginais, a Blackwell processa essas instruções nativamente, potencialmente dobrando o throughput de tokens por segundo (TPS) para a mesma pegada de memória.
 Sparsity: A arquitetura também aprimora o suporte a sparsity estruturada (2:4 sparsity), permitindo que a GPU ignore cálculos de multiplicação por zero nos pesos da rede neural. Isso reduz a carga térmica e o consumo de energia, vital para um servidor doméstico que opera 24/7.
 2.2 Gestão Térmica e de Energia
 Operar uma RTX 5080 (TDP estimado em 320W-350W) em um ambiente residencial exige planejamento de engenharia elétrica e térmica.
@@ -111,7 +111,7 @@ Dados em Repouso (Database): Criptografia de disco completo (LUKS) no volume do 
 Dados em Repouso (Coluna): Colunas ultra-sensíveis (description, notes) usam pgcrypto com AES-256. A chave de criptografia é derivada de uma variável de ambiente injetada no container em tempo de execução, nunca persistida no disco junto com os dados.
 
 7. Sistema de Memória Cognitiva: Além do Vetor
-A inteligência do Mentor Invisível depende de sua capacidade de conectar pontos. A equipe de IA propõe uma arquitetura de "Memória Gráfica".
+A inteligência do Cortex Brasil depende de sua capacidade de conectar pontos. A equipe de IA propõe uma arquitetura de "Memória Gráfica".
 7.1 KuzuDB: Grafos Embedados de Alta Performance
 Para representar relacionamentos complexos, optamos pelo KuzuDB em vez de Neo4j.
 Por que KuzuDB? É um banco de dados de grafos in-process (como SQLite), otimizado para hardware moderno com execução vetorizada de queries. Benchmarks mostram que o KuzuDB é 10-20x mais rápido que Neo4j na ingestão de dados e significativamente mais rápido em queries multi-hop (ex: "Quais gastos influenciaram a meta X?"), além de consumir uma fração da memória RAM.
@@ -167,7 +167,7 @@ Backup Automatizado: Script diário (pg_dump) que exporta o banco de dados cript
 Reinício Automático após Falha de Energia: Configurar a BIOS da placa-mãe para "Power On" em "AC Power Loss Recovery". O servidor Linux deve iniciar o Docker daemon no boot.
 
 11. Conclusão e Viabilidade Técnica
-A análise detalhada confirma a viabilidade técnica do projeto "Mentor Invisível", embora com desafios de engenharia significativos concentrados no gerenciamento de memória da GPU e na estabilidade da conexão de rede doméstica.
+A análise detalhada confirma a viabilidade técnica do projeto "Cortex Brasil", embora com desafios de engenharia significativos concentrados no gerenciamento de memória da GPU e na estabilidade da conexão de rede doméstica.
 A combinação da RTX 5080 (Blackwell) com a stack de software moderna (vLLM, FastAPI, KuzuDB) permite entregar uma experiência de IA de classe mundial, com privacidade total, sem custos recorrentes de API. O diferencial não está apenas na IA, mas na integração coesa de hardware, rede, dados e psicologia comportamental.
 Este relatório serve como o blueprint definitivo para a fase de construção. A execução exigirá disciplina rigorosa na otimização de código e monitoramento constante, mas o resultado será um sistema financeiro pessoal inigualável em termos de privacidade e proatividade.
 
