@@ -121,8 +121,9 @@ export default function TransactionsPage() {
 
         try {
             await api.delete(`/api/dashboard/transactions/${id}`);
-            // Success: refresh data
+            // Success: refresh data and account balances
             fetchTransactions();
+            fetchAccounts();
         } catch (error) {
             console.error("Failed to delete transaction", error);
             alert("Erro ao deletar transação.");
@@ -139,6 +140,7 @@ export default function TransactionsPage() {
             });
             setSelectedIds(new Set());
             fetchTransactions();
+            fetchAccounts();
         } catch (error) {
             console.error("Failed to bulk delete transactions", error);
             alert("Erro ao deletar transações.");

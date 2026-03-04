@@ -49,6 +49,16 @@ async def lifespan(app: FastAPI):
     # Create tables on startup
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Apply balance trigger migration (idempotent - safe to run multiple times)
+    migration_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "006_fix_balance_trigger_with_update.sql")
+    if os.path.exists(migration_path):
+        async with engine.begin() as conn:
+            with open(migration_path, "r") as f:
+                sql = f.read()
+            await conn.execute(text(sql))
+            logger.info("✅ Balance trigger migration applied (006)")
+
     yield
     # Close Redis
     if clients.redis_client:
