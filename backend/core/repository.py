@@ -214,7 +214,7 @@ class TransactionRepository:
         await self.session.execute(stmt)
         await self.session.commit()
 
-    async def update_transaction(self, user_phone: str, tx_id: str, category: str = None, description: str = None, amount: float = None, date: datetime = None, is_cleared: bool = None):
+    async def update_transaction(self, user_phone: str, tx_id: str, category: str = None, description: str = None, amount: float = None, date: datetime = None, is_cleared: bool = None, account_id: str = None):
         """
         Updates category, description, amount, date and/or cleared status of a transaction.
         """
@@ -226,6 +226,7 @@ class TransactionRepository:
         if amount is not None: values["amount"] = amount
         if date: values["date"] = date
         if is_cleared is not None: values["is_cleared"] = is_cleared
+        if account_id is not None: values["account_id"] = account_id
             
         if not values:
             return None

@@ -245,7 +245,7 @@ async def get_hud_metrics(
         profile = profile_result.scalar_one_or_none()
         
         income = profile.monthly_income if profile else 0.0
-        needs_onboarding = (income <= 0)
+        needs_onboarding = not profile or profile.onboarding_completed == 0
         
         # 2. Get Current Month Data
         now = datetime.now()
@@ -497,6 +497,7 @@ async def patch_transaction(
     description = payload.get("description")
     date_str = payload.get("date")
     is_cleared = payload.get("is_cleared")
+    account_id = payload.get("account_id") or None
     
     date_val = None
     if date_str:
@@ -513,7 +514,8 @@ async def patch_transaction(
         description=description,
         amount=amount,
         date=date_val,
-        is_cleared=is_cleared
+        is_cleared=is_cleared,
+        account_id=account_id
     )
     
     if not success:
