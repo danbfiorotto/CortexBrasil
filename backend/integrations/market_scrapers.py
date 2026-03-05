@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 # Low-level fetchers
 # ---------------------------------------------------------------------------
 
-async def _fetch_brapi(ticker: str) -> float | None:
-    """Brapi.dev – covers B3 stocks, FIIs, BDRs. No key required."""
+async def _fetch_brapi(ticker: str) -> dict | None:
+    """Brapi.dev – covers B3 stocks, FIIs, BDRs. No key required.
+    Returns {"price": float, "dividend_yield": float | None} or None."""
     try:
         import httpx
-        url = f"https://brapi.dev/api/quote/{ticker}?range=1d&interval=1d"
+        url = f"https://brapi.dev/api/quote/{ticker}?range=1d&interval=1d&fundamental=true"
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(url)
         if r.status_code != 200:
@@ -34,8 +35,13 @@ async def _fetch_brapi(ticker: str) -> float | None:
         results = data.get("results", [])
         if not results:
             return None
-        price = results[0].get("regularMarketPrice")
-        return float(price) if price is not None else None
+        res = results[0]
+        price = res.get("regularMarketPrice")
+        if price is None:
+            return None
+        dy_raw = res.get("dividendYield") or res.get("trailingAnnualDividendYield")
+        dividend_yield = float(dy_raw) if dy_raw is not None else None
+        return {"price": float(price), "dividend_yield": dividend_yield}
     except Exception as e:
         logger.debug(f"Brapi failed for {ticker}: {e}")
         return None
@@ -208,6 +214,7 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
     Privacy: Only the ticker is sent externally. Position size stays local.
     """
     price: float | None = None
+    dividend_yield: float | None = None
     t = ticker.strip().upper()
 
     if asset_type == "CRYPTO":
@@ -231,15 +238,31 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
             _fetch_yfinance(t, ".SA"),
             return_exceptions=True,
         )
-        for r in results:
-            if isinstance(r, float) and r > 0:
-                price = r
-                break
+        brapi_result = results[0]
+        yf_price = results[1]
+
+        if isinstance(brapi_result, dict) and brapi_result.get("price", 0) > 0:
+            price = brapi_result["price"]
+            dividend_yield = brapi_result.get("dividend_yield")
+        elif isinstance(yf_price, float) and yf_price > 0:
+            price = yf_price
+
         if not price:
             # Try bare ticker (US stocks like AAPL, MSFT)
             price = await _fetch_yfinance(t)
         if not price:
             price = await _fetch_yahoo_direct(f"{t}.SA")
+
+        # Try to get dividend yield from yfinance if not already fetched
+        if dividend_yield is None and price:
+            try:
+                import yfinance as yf
+                info = yf.Ticker(f"{t}.SA").info or yf.Ticker(t).info
+                dy = info.get("dividendYield") or info.get("trailingAnnualDividendYield")
+                if dy:
+                    dividend_yield = float(dy) * 100  # yfinance returns as decimal (0.05 = 5%)
+            except Exception:
+                pass
 
     else:
         # FIXED_INCOME or unknown – yfinance only
@@ -253,6 +276,7 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
         "ticker": ticker,
         "price": round(float(price), 4),
         "change_pct": None,
+        "dividend_yield": round(dividend_yield, 4) if dividend_yield is not None else None,
         "last_updated": datetime.now().isoformat(),
     }
 
@@ -283,17 +307,19 @@ async def update_market_data(tickers: list[str], asset_types: dict[str, str] | N
                 continue
             await session.execute(
                 text("""
-                    INSERT INTO market_data (ticker, price, change_pct, last_updated)
-                    VALUES (:ticker, :price, :change_pct, NOW())
+                    INSERT INTO market_data (ticker, price, change_pct, dividend_yield, last_updated)
+                    VALUES (:ticker, :price, :change_pct, :dividend_yield, NOW())
                     ON CONFLICT (ticker) DO UPDATE SET
                         price = :price,
                         change_pct = :change_pct,
+                        dividend_yield = COALESCE(:dividend_yield, market_data.dividend_yield),
                         last_updated = NOW()
                 """),
                 {
                     "ticker": data["ticker"],
                     "price": data["price"],
                     "change_pct": data.get("change_pct"),
+                    "dividend_yield": data.get("dividend_yield"),
                 },
             )
             updated += 1
@@ -321,7 +347,8 @@ async def get_user_portfolio_value(user_phone: str) -> dict:
             text("""
                 SELECT a.id, a.ticker, a.name, a.type, a.quantity, a.avg_price,
                        COALESCE(m.price, 0) as current_price,
-                       m.change_pct
+                       m.change_pct,
+                       m.dividend_yield
                 FROM assets a
                 LEFT JOIN market_data m ON a.ticker = m.ticker
                 WHERE a.user_phone = :phone
@@ -362,6 +389,7 @@ async def get_user_portfolio_value(user_phone: str) -> dict:
                 "gain_loss": round(gain_loss, 2),
                 "gain_pct": round(gain_pct, 2),
                 "change_pct": float(row.change_pct) if row.change_pct else None,
+                "dividend_yield": float(row.dividend_yield) if row.dividend_yield else None,
             })
 
         total_gain = total_value - total_cost

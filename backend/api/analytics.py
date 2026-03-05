@@ -8,7 +8,9 @@ from backend.analytics.forecasting import project_balance, get_monthly_cashflow
 from backend.simulators.what_if import simulate_scenario
 from backend.workers.anomaly_detector import detect_anomalies
 from backend.integrations.market_scrapers import get_user_portfolio_value, update_market_data, search_ticker
+from backend.workers.investment_snapshotter import take_daily_snapshot
 import logging
+import asyncio
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 logger = logging.getLogger(__name__)
@@ -160,6 +162,8 @@ async def add_asset(
     except Exception as e:
         logger.warning(f"Could not fetch price for {req.ticker}: {e}")
 
+    asyncio.create_task(take_daily_snapshot(current_user_phone))
+
     return {"status": "ok", "message": f"Ativo {req.ticker.upper()} adicionado."}
 
 
@@ -182,6 +186,7 @@ async def delete_asset(
         if result.rowcount == 0:
             raise HTTPException(status_code=404, detail="Ativo não encontrado")
         await db.commit()
+        asyncio.create_task(take_daily_snapshot(current_user_phone))
         return {"status": "ok", "message": "Ativo removido."}
     except HTTPException:
         raise
@@ -255,6 +260,7 @@ async def sell_asset(
             )
 
         await db.commit()
+        asyncio.create_task(take_daily_snapshot(current_user_phone))
 
         msg = f"Venda de {req.quantity} {asset.ticker} registrada."
         if req.account_id:
@@ -267,3 +273,78 @@ async def sell_asset(
         await db.rollback()
         logger.error(f"Error in sell_asset: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao registrar venda: {str(e)}")
+
+
+@router.get("/investments/performance")
+async def get_investments_performance(
+    period: str = "1y",
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns normalized performance series (% return from period start) for
+    portfolio vs IBOV, CDI, SP500.
+    period: 1m | 3m | 6m | 1y | all
+    """
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    period_days = {"1m": 30, "3m": 90, "6m": 180, "1y": 365, "all": 36500}
+    days = period_days.get(period, 365)
+
+    # Portfolio snapshots
+    port_result = await db.execute(
+        text("""
+            SELECT snapshot_date, total_value
+            FROM investment_snapshots
+            WHERE user_phone = :phone
+              AND snapshot_date >= CURRENT_DATE - INTERVAL '1 day' * :days
+            ORDER BY snapshot_date
+        """),
+        {"phone": current_user_phone, "days": days}
+    )
+    port_rows = port_result.fetchall()
+
+    if not port_rows:
+        return {"series": {}, "empty": True, "message": "Dados de performance estarão disponíveis após alguns dias de uso."}
+
+    # Benchmark history
+    bench_result = await db.execute(
+        text("""
+            SELECT benchmark, snapshot_date, close_value
+            FROM benchmark_history
+            WHERE snapshot_date >= CURRENT_DATE - INTERVAL '1 day' * :days
+            ORDER BY snapshot_date
+        """),
+        {"days": days}
+    )
+    bench_rows = bench_result.fetchall()
+
+    def normalize(series: list[tuple]) -> list[dict]:
+        """Normalizes a (date, value) series to % return from first point."""
+        if not series:
+            return []
+        base = series[0][1]
+        if not base:
+            return []
+        return [
+            {"date": str(d), "value": round(((v / base) - 1) * 100, 4)}
+            for d, v in series
+        ]
+
+    portfolio_series = [(r.snapshot_date, float(r.total_value)) for r in port_rows]
+
+    bench_by_name: dict[str, list[tuple]] = {}
+    for row in bench_rows:
+        bench_by_name.setdefault(row.benchmark, []).append(
+            (row.snapshot_date, float(row.close_value))
+        )
+
+    series: dict[str, list] = {}
+    series["portfolio"] = normalize(portfolio_series)
+    for name, rows in bench_by_name.items():
+        series[name] = normalize(rows)
+
+    return {"series": series, "empty": False, "period": period}

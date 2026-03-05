@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3.exe --version)",
+      "Bash(py --version)",
+      "Bash(python -:*)",
+      "Bash(git add backend/api/dashboard.py backend/core/repository.py)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)"
+    ]
+  }
+}

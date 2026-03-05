@@ -3,6 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
+import PortfolioAllocation from '@/components/charts/PortfolioAllocation';
+import AssetTypeBreakdown from '@/components/charts/AssetTypeBreakdown';
+import GainLossWaterfall from '@/components/charts/GainLossWaterfall';
+import HoldingsTreemap from '@/components/charts/HoldingsTreemap';
+import DividendYield from '@/components/charts/DividendYield';
+import PerformanceBenchmark from '@/components/charts/PerformanceBenchmark';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -24,6 +30,7 @@ interface Holding {
     current_value: number;
     gain_loss: number;
     gain_pct: number;
+    dividend_yield?: number | null;
 }
 
 interface Portfolio {
@@ -77,6 +84,9 @@ export default function InvestmentsPage() {
     const [sellData, setSellData] = useState({ quantity: 0, sale_price: 0, account_id: '' });
     const [actionSubmitting, setActionSubmitting] = useState(false);
     const [actionError, setActionError] = useState('');
+
+    type ChartTab = 'overview' | 'performance' | 'analysis';
+    const [chartTab, setChartTab] = useState<ChartTab>('overview');
 
     const fetchPortfolio = useCallback(async () => {
         const token = Cookies.get('token');
@@ -446,6 +456,72 @@ export default function InvestmentsPage() {
                     </motion.form>
                 )}
             </AnimatePresence>
+
+            {/* Chart Tabs */}
+            {portfolio && portfolio.holdings.length > 0 && (
+                <div className="space-y-4">
+                    {/* Tab bar */}
+                    <div className="flex gap-1 p-1 rounded-xl bg-charcoal-bg border border-graphite-border w-fit">
+                        {([['overview', 'Visão Geral'], ['performance', 'Performance'], ['analysis', 'Análise']] as [ChartTab, string][]).map(([key, label]) => (
+                            <button
+                                key={key}
+                                onClick={() => setChartTab(key)}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                    chartTab === key
+                                        ? 'bg-royal-purple text-crisp-white'
+                                        : 'text-slate-low hover:text-crisp-white'
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Overview: PieChart + AssetTypeBreakdown + Treemap */}
+                    {chartTab === 'overview' && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="glass-panel rounded-2xl p-5">
+                                    <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Diversificação</p>
+                                    <PortfolioAllocation holdings={portfolio.holdings} />
+                                </div>
+                                <div className="glass-panel rounded-2xl p-5 md:col-span-2">
+                                    <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Custo vs Valor por Classe</p>
+                                    <AssetTypeBreakdown holdings={portfolio.holdings} />
+                                </div>
+                            </div>
+                            <div className="glass-panel rounded-2xl p-5">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Composição da Carteira</p>
+                                <HoldingsTreemap holdings={portfolio.holdings} />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Performance: vs benchmarks */}
+                    {chartTab === 'performance' && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <div className="glass-panel rounded-2xl p-5">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Performance vs Benchmarks</p>
+                                <PerformanceBenchmark />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Analysis: GainLoss + DividendYield */}
+                    {chartTab === 'analysis' && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="glass-panel rounded-2xl p-5">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Ganho / Perda por Ativo</p>
+                                <GainLossWaterfall holdings={portfolio.holdings} />
+                            </div>
+                            <div className="glass-panel rounded-2xl p-5">
+                                <p className="text-[10px] uppercase tracking-widest text-slate-low mb-3">Dividend Yield</p>
+                                <DividendYield holdings={portfolio.holdings} />
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+            )}
 
             {/* Holdings Table */}
             {loading ? (
