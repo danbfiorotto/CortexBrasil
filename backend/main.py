@@ -6,6 +6,7 @@ from backend.core.audio import AudioTranscriber
 from backend.db.session import engine, Base, get_db
 from backend.core.repository import TransactionRepository
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from contextlib import asynccontextmanager
 import hashlib
 import hmac
@@ -56,7 +57,9 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             with open(migration_path, "r") as f:
                 sql = f.read()
-            await conn.execute(text(sql))
+            # asyncpg requires single-statement execution; use raw connection
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
             logger.info("✅ Balance trigger migration applied (006)")
 
     yield
