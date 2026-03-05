@@ -38,6 +38,10 @@ export default function AccountsPage() {
         days_before_closing: 7
     });
     const [submitting, setSubmitting] = useState(false);
+    const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+    const [adjustForm, setAdjustForm] = useState({ new_balance: 0, description: '' });
+    const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+    const [adjustError, setAdjustError] = useState('');
 
     const fetchAccounts = useCallback(async () => {
         const token = Cookies.get('token');
@@ -95,6 +99,38 @@ export default function AccountsPage() {
             console.error('Failed to create account:', error);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const openAdjust = (acc: Account) => {
+        setAdjustingAccount(acc);
+        setAdjustForm({ new_balance: acc.current_balance, description: '' });
+        setAdjustError('');
+    };
+
+    const handleAdjustSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!adjustingAccount) return;
+        setAdjustSubmitting(true);
+        setAdjustError('');
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/accounts/${adjustingAccount.id}/balance`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(adjustForm),
+            });
+            if (res.ok) {
+                setAdjustingAccount(null);
+                await fetchAccounts();
+            } else {
+                const data = await res.json();
+                setAdjustError(data.detail || 'Erro ao ajustar saldo.');
+            }
+        } catch {
+            setAdjustError('Erro de conexão.');
+        } finally {
+            setAdjustSubmitting(false);
         }
     };
 
@@ -272,7 +308,14 @@ export default function AccountsPage() {
                                     </p>
                                     <div className="mt-3 pt-3 border-t border-graphite-border/30 flex justify-between items-center">
                                         <span className="text-[9px] text-slate-low uppercase font-black tracking-widest">Saldo Disponível</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                        <button
+                                            onClick={() => openAdjust(acc)}
+                                            className="flex items-center gap-1 text-[9px] text-slate-low hover:text-royal-purple transition-colors uppercase font-black tracking-widest"
+                                            title="Ajustar saldo"
+                                        >
+                                            <span className="material-symbols-outlined text-[13px]">edit</span>
+                                            Ajustar
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -280,6 +323,96 @@ export default function AccountsPage() {
                     })}
                 </div>
             </div>
+
+            {/* Balance Adjust Modal */}
+            <AnimatePresence>
+                {adjustingAccount && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setAdjustingAccount(null)}
+                            className="absolute inset-0 bg-charcoal-bg/95 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card rounded-3xl p-8 border border-graphite-border"
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-royal-purple/10 border border-royal-purple/20 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-royal-purple text-xl">tune</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-crisp-white">Ajustar Saldo</p>
+                                    <p className="text-[10px] text-slate-low uppercase tracking-wider font-black">{adjustingAccount.name}</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleAdjustSubmit} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Saldo Atual</label>
+                                    <p className={`text-lg font-bold ${adjustingAccount.current_balance >= 0 ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
+                                        {formatCurrency(adjustingAccount.current_balance)}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Novo Saldo (R$)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={adjustForm.new_balance}
+                                        onChange={(e) => setAdjustForm({ ...adjustForm, new_balance: parseFloat(e.target.value) || 0 })}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                {adjustForm.new_balance !== adjustingAccount.current_balance && (
+                                    <div className={`text-sm font-semibold ${adjustForm.new_balance > adjustingAccount.current_balance ? 'text-emerald-400' : 'text-crimson-bright'}`}>
+                                        Diferença: {adjustForm.new_balance > adjustingAccount.current_balance ? '+' : ''}{formatCurrency(adjustForm.new_balance - adjustingAccount.current_balance)}
+                                    </div>
+                                )}
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Motivo (opcional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Ex: Correção de saldo, taxa bancária..."
+                                        value={adjustForm.description}
+                                        onChange={(e) => setAdjustForm({ ...adjustForm, description: e.target.value })}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                    />
+                                </div>
+
+                                {adjustError && (
+                                    <p className="text-sm text-crimson-bright">{adjustError}</p>
+                                )}
+
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setAdjustingAccount(null)}
+                                        className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={adjustSubmitting || adjustForm.new_balance === adjustingAccount.current_balance}
+                                        className="px-5 py-2 rounded-xl bg-royal-purple hover:bg-royal-purple/80 text-sm font-semibold transition-all disabled:opacity-50"
+                                    >
+                                        {adjustSubmitting ? 'Salvando...' : 'Confirmar Ajuste'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Credit Cards Section */}
             <div className="space-y-4 pt-4">

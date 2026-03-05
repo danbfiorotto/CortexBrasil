@@ -1,14 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
+from sqlalchemy import text, insert
 from pydantic import BaseModel, Field
+from typing import Optional
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from backend.core.ledger import LedgerService
+from backend.db.models import Transaction
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+import uuid
 import logging
 
 router = APIRouter(prefix="/api/accounts", tags=["Accounts"])
 logger = logging.getLogger(__name__)
+
+
+class BalanceAdjust(BaseModel):
+    new_balance: float
+    description: Optional[str] = None
 
 
 class AccountCreate(BaseModel):
@@ -101,6 +110,79 @@ async def create_account(
         logger.error(f"Error creating account: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error during account creation.")
+
+    return {
+        "id": str(account.id),
+        "name": account.name,
+        "type": account.type,
+        "initial_balance": account.initial_balance,
+        "current_balance": account.current_balance,
+        "credit_limit": account.credit_limit,
+        "due_day": account.due_day,
+        "closing_day": account.closing_day,
+    }
+
+
+@router.patch("/{account_id}/balance")
+async def adjust_account_balance(
+    account_id: str,
+    payload: BalanceAdjust,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Creates a manual balance correction transaction for the given account."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    ledger = LedgerService(db)
+    accounts = await ledger.get_accounts(current_user_phone)
+    account = next((a for a in accounts if str(a.id) == account_id), None)
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Conta não encontrada.")
+    if account.type == "CREDIT":
+        raise HTTPException(status_code=400, detail="Ajuste de saldo não disponível para cartões de crédito.")
+
+    diff = round(payload.new_balance - account.current_balance, 2)
+    if diff == 0:
+        return {
+            "id": str(account.id),
+            "name": account.name,
+            "type": account.type,
+            "initial_balance": account.initial_balance,
+            "current_balance": account.current_balance,
+            "credit_limit": account.credit_limit,
+            "due_day": account.due_day,
+            "closing_day": account.closing_day,
+        }
+
+    tx_type = "INCOME" if diff > 0 else "EXPENSE"
+    description = payload.description or "Ajuste manual de saldo"
+
+    await db.execute(
+        insert(Transaction).values(
+            id=uuid.uuid4(),
+            user_phone=current_user_phone,
+            account_id=uuid.UUID(account_id),
+            type=tx_type,
+            amount=abs(diff),
+            category="Ajuste de Saldo",
+            description=description,
+            date=datetime.utcnow(),
+            is_cleared=True,
+        )
+    )
+
+    await ledger.recalculate_balances(current_user_phone)
+    await db.commit()
+
+    # Refresh account data
+    accounts = await ledger.get_accounts(current_user_phone)
+    account = next((a for a in accounts if str(a.id) == account_id), None)
+
+    logger.info(f"Balance adjusted for account {account_id} by {current_user_phone}: diff={diff}")
 
     return {
         "id": str(account.id),
