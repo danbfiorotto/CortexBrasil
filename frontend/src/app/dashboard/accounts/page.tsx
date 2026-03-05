@@ -164,16 +164,18 @@ export default function AccountsPage() {
                                     <option value="CASH">💵 Dinheiro / Carteira</option>
                                 </select>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Saldo/Limite Inicial</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.initial_balance}
-                                    onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                />
-                            </div>
+                            {formData.type !== 'CREDIT' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Saldo Inicial</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.initial_balance}
+                                        onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                    />
+                                </div>
+                            )}
 
                             {formData.type === 'CREDIT' && (
                                 <>
@@ -184,17 +186,6 @@ export default function AccountsPage() {
                                             step="0.01"
                                             value={formData.credit_limit}
                                             onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Dia de Fechamento</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="31"
-                                            value={formData.closing_day}
-                                            onChange={(e) => setFormData({ ...formData, closing_day: parseInt(e.target.value) || 1 })}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
                                     </div>
