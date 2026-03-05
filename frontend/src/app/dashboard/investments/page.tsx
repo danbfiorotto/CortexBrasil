@@ -103,7 +103,7 @@ export default function InvestmentsPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                setAccounts(data.filter((a: Account) => a.type !== 'CREDIT'));
+                setAccounts((data.accounts ?? data).filter((a: Account) => a.type !== 'CREDIT'));
             }
         } catch (error) {
             console.error('Failed to fetch accounts:', error);
