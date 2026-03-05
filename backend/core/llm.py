@@ -121,13 +121,12 @@ Resposta: {
         """
         Translates a natural language query into structured filters.
         """
-        system_prompt = f"""Você é um especialista em busca de dados financeiros. 
+        system_prompt = f"""Você é um especialista em busca de dados financeiros.
 Sua tarefa é converter uma frase do usuário em filtros JSON estruturados.
 
 Retorne APENAS o JSON com os seguintes campos (use null se não identificado):
 {{
-    "category": string | null,
-    "description": string | null,
+    "keywords": [string] | null,
     "start_date": string (ISO 8601) | null,
     "end_date": string (ISO 8601) | null,
     "min_amount": float | null,
@@ -135,10 +134,22 @@ Retorne APENAS o JSON com os seguintes campos (use null se não identificado):
     "type": "EXPENSE" | "INCOME" | "TRANSFER" | null
 }}
 
+IMPORTANTE sobre "keywords":
+- Lista de termos para buscar em QUALQUER campo (descrição ou categoria). Resultados batem se UM DELES combinar.
+- Inclua SINÔNIMOS, nomes de estabelecimentos, categorias relacionadas e variações. Seja abrangente.
+- Exemplos de expansão semântica:
+  * "comida" -> ["comida", "alimentação", "ifood", "rappi", "mercado", "restaurante", "hortifruti", "padaria", "lanche"]
+  * "transporte" -> ["transporte", "uber", "99", "taxi", "onibus", "metrô", "combustível", "gasolina"]
+  * "lazer" -> ["lazer", "cinema", "netflix", "spotify", "jogo", "bar", "entretenimento"]
+  * "moradia" -> ["moradia", "aluguel", "condomínio", "água", "luz", "energia", "internet"]
+- Para nomes específicos de estabelecimentos, inclua apenas o nome: ["uber", "nubank"]
+
 Data de HOJE: {datetime.now().isoformat()}
 
 Exemplos:
-- "Quanto gastei com Uber mês passado?" -> {{"category": "Transporte", "description": "Uber", "start_date": "2026-01-01", "end_date": "2026-01-31"}}
+- "Quanto gastei com Uber mês passado?" -> {{"keywords": ["uber"], "start_date": "2026-01-01", "end_date": "2026-01-31"}}
+- "Compras de comida" -> {{"keywords": ["comida", "alimentação", "ifood", "rappi", "mercado", "restaurante", "hortifruti", "padaria", "supermercado"], "type": "EXPENSE"}}
+- "Gastos com alimentação" -> {{"keywords": ["alimentação", "comida", "ifood", "mercado", "restaurante", "hortifruti"], "type": "EXPENSE"}}
 - "Lançamentos acima de 500 reais esse mês" -> {{"min_amount": 500.0, "start_date": "2026-02-01"}}
 - "Entradas de janeiro" -> {{"type": "INCOME", "start_date": "2026-01-01", "end_date": "2026-01-31"}}
 """

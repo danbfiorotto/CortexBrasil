@@ -105,7 +105,7 @@ export default function TransactionsPage() {
         try {
             const params: Record<string, string | number> = { page, limit: 10 };
             if (category && category !== 'Todas') params.category = category;
-            if (normalQuery.trim()) params.description = normalQuery.trim();
+            if (normalQuery.trim()) params.search = normalQuery.trim();
 
             const res = await api.get('/api/dashboard/transactions', { params });
             setData(res.data.data);

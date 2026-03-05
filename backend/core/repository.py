@@ -1,4 +1,4 @@
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from backend.db.models import Transaction
@@ -125,14 +125,16 @@ class TransactionRepository:
         return result.scalars().all()
 
     async def get_transactions(
-        self, 
-        user_phone: str, 
-        skip: int = 0, 
-        limit: int = 10, 
-        start_date: datetime = None, 
-        end_date: datetime = None, 
+        self,
+        user_phone: str,
+        skip: int = 0,
+        limit: int = 10,
+        start_date: datetime = None,
+        end_date: datetime = None,
         category: str = None,
         description: str = None,
+        search: str = None,
+        keywords: list = None,
         min_amount: float = None,
         max_amount: float = None,
         tx_type: str = None
@@ -142,10 +144,10 @@ class TransactionRepository:
         And returns total count for frontend pagination.
         """
         from sqlalchemy import func
-        
+
         # Base Query
         query = select(Transaction).where(Transaction.user_phone == user_phone)
-        
+
         # Filters
         if start_date:
             query = query.where(Transaction.date >= start_date)
@@ -154,7 +156,27 @@ class TransactionRepository:
         if category:
             query = query.where(Transaction.category == category)
         if description:
+            # Single-term description search
             query = query.where(Transaction.description.ilike(f"%{description}%"))
+        if search:
+            # Free-text search across description AND category (used by normal search)
+            pattern = f"%{search}%"
+            query = query.where(
+                or_(
+                    Transaction.description.ilike(pattern),
+                    Transaction.category.ilike(pattern),
+                )
+            )
+        if keywords:
+            # Multi-term search: each keyword checked against description OR category, results joined with OR
+            keyword_conditions = [
+                or_(
+                    Transaction.description.ilike(f"%{kw}%"),
+                    Transaction.category.ilike(f"%{kw}%"),
+                )
+                for kw in keywords
+            ]
+            query = query.where(or_(*keyword_conditions))
         if min_amount is not None:
             query = query.where(Transaction.amount >= min_amount)
         if max_amount is not None:

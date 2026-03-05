@@ -92,6 +92,7 @@ async def get_transactions(
     limit: int = 10,
     category: str = None,
     description: str = None,
+    search: str = None,
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -101,7 +102,7 @@ async def get_transactions(
     repo = TransactionRepository(db)
     skip = (page - 1) * limit
 
-    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category, description=description)
+    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category, description=description, search=search)
     
     data = []
     for tx in txs:
@@ -589,11 +590,10 @@ async def search_transactions(
     
     txs, total = await repo.get_transactions(
         user_phone=current_user_phone,
-        limit=50, # Return more for search
+        limit=50,  # Return more for search
         start_date=start_date,
         end_date=end_date,
-        category=filters.get("category"),
-        description=filters.get("description"),
+        keywords=filters.get("keywords"),  # multi-keyword search across description OR category
         min_amount=filters.get("min_amount"),
         max_amount=filters.get("max_amount"),
         tx_type=filters.get("type")
