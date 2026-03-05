@@ -138,12 +138,11 @@ async def add_asset(
         {"phone": current_user_phone}
     )
 
-    # Insert or update asset
+    # Insert asset (always new entry; allows multiple purchases at different prices)
     await db.execute(
         text("""
-            INSERT INTO assets (user_phone, ticker, name, type, quantity, avg_price)
-            VALUES (:phone, :ticker, :name, :type, :qty, :price)
-            ON CONFLICT (id) DO NOTHING
+            INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price)
+            VALUES (gen_random_uuid(), :phone, :ticker, :name, :type, :qty, :price)
         """),
         {
             "phone": current_user_phone,

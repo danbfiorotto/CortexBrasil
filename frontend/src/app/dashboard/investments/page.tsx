@@ -72,6 +72,7 @@ export default function InvestmentsPage() {
         ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0,
     });
     const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [accounts, setAccounts] = useState<Account[]>([]);
 
     // Ticker live search state
@@ -168,7 +169,8 @@ export default function InvestmentsPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (tickerStatus === 'not_found') return;
+        if (tickerStatus !== 'found') return;
+        setSubmitError('');
         setSubmitting(true);
         const token = Cookies.get('token');
         try {
@@ -186,9 +188,13 @@ export default function InvestmentsPage() {
                 setTickerStatus('idle');
                 setTickerInfo(null);
                 await fetchPortfolio();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                setSubmitError(err.detail || 'Erro ao adicionar ativo.');
             }
         } catch (error) {
             console.error('Failed to add asset:', error);
+            setSubmitError('Erro de conexão. Tente novamente.');
         } finally {
             setSubmitting(false);
         }
@@ -198,6 +204,7 @@ export default function InvestmentsPage() {
         setShowForm(false);
         setTickerStatus('idle');
         setTickerInfo(null);
+        setSubmitError('');
         setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
     };
 
@@ -441,13 +448,16 @@ export default function InvestmentsPage() {
                                 />
                             </div>
                         </div>
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-end items-center gap-3">
+                            {submitError && (
+                                <p className="text-xs text-red-400 mr-auto">{submitError}</p>
+                            )}
                             <button type="button" onClick={handleCloseForm} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting || tickerStatus === 'not_found' || tickerStatus === 'searching'}
+                                disabled={submitting || tickerStatus !== 'found'}
                                 className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-sm font-semibold transition-all disabled:opacity-50"
                             >
                                 {submitting ? 'Salvando...' : 'Adicionar'}
