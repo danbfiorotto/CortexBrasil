@@ -60,7 +60,7 @@ export default function TransactionsPage() {
     const [addType, setAddType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
     const [addForm, setAddForm] = useState({
         description: '',
-        category: 'Outros',
+        category: '',
         amount: '',
         date: new Date().toISOString().split('T')[0],
         installments: 1,
@@ -243,13 +243,14 @@ export default function TransactionsPage() {
             setAddForm(prev => ({
                 ...prev,
                 description: '',
-                category: 'Outros',
+                category: '',
                 amount: '',
                 date: new Date().toISOString().split('T')[0],
                 installments: 1
             }));
             fetchTransactions();
             fetchAccounts(); // Refresh balances
+            fetchCategories(); // Refresh in case a new category was added
         } catch (error: any) {
             console.error("Failed to add transaction", error);
             alert("Erro ao adicionar transação: " + (error.response?.data?.detail || error.message));
@@ -855,15 +856,18 @@ export default function TransactionsPage() {
                                 {addType !== 'INCOME' && (
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                                        <select
+                                        <input
+                                            list="add-categories-list"
                                             value={addForm.category}
                                             onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
-                                        >
+                                            placeholder="Selecione ou digite uma categoria"
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                        <datalist id="add-categories-list">
                                             {categories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
+                                                <option key={cat} value={cat} />
                                             ))}
-                                        </select>
+                                        </datalist>
                                     </div>
                                 )}
 
