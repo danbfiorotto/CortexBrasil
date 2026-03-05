@@ -4,6 +4,7 @@ from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.core.repository import TransactionRepository
+from backend.core.ledger import LedgerService
 from datetime import datetime, timedelta
 import logging
 
@@ -385,7 +386,11 @@ async def delete_transaction(
     
     repo = TransactionRepository(db)
     await repo.delete_transactions(current_user_phone, [transaction_id])
-    
+
+    ledger = LedgerService(db)
+    await ledger.recalculate_balances(current_user_phone)
+    await db.commit()
+
     return {"status": "success", "message": "Transaction deleted"}
 
 @router.post("/transactions/bulk-delete")
@@ -406,7 +411,11 @@ async def bulk_delete_transactions(
     
     repo = TransactionRepository(db)
     await repo.delete_transactions(current_user_phone, tx_ids)
-    
+
+    ledger = LedgerService(db)
+    await ledger.recalculate_balances(current_user_phone)
+    await db.commit()
+
     return {"status": "success", "message": f"{len(tx_ids)} transactions deleted"}
 
 @router.post("/transactions/bulk-update")

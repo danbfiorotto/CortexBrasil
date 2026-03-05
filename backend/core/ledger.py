@@ -37,6 +37,32 @@ class LedgerService:
         await self.session.flush()
         return account
 
+    async def recalculate_balances(self, user_phone: str):
+        """
+        Recalculates current_balance for all accounts of a user from scratch.
+        current_balance = initial_balance + SUM(incomes) - SUM(expenses) +/- transfers
+        """
+        await self.session.execute(text("""
+            UPDATE accounts a
+            SET current_balance = a.initial_balance + COALESCE((
+                SELECT SUM(
+                    CASE
+                        WHEN t.type = 'INCOME' THEN t.amount
+                        WHEN t.type = 'EXPENSE' THEN -t.amount
+                        WHEN t.type = 'TRANSFER' THEN -t.amount
+                        ELSE 0
+                    END
+                )
+                FROM transactions t
+                WHERE t.account_id = a.id
+            ), 0) + COALESCE((
+                SELECT SUM(t.amount)
+                FROM transactions t
+                WHERE t.destination_account_id = a.id AND t.type = 'TRANSFER'
+            ), 0)
+            WHERE a.user_phone = :phone
+        """), {"phone": user_phone})
+
     async def get_accounts(self, user_phone: str):
         """
         List all accounts with current computed balance.
