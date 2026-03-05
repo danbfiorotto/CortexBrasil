@@ -5,9 +5,11 @@ from backend.core.llm import LLMClient
 from backend.core.audio import AudioTranscriber
 from backend.db.session import engine, Base, get_db
 from backend.core.repository import TransactionRepository
+from backend.workers.benchmark_fetcher import fetch_all_benchmarks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from contextlib import asynccontextmanager
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -81,6 +83,20 @@ async def lifespan(app: FastAPI):
             raw = await conn.get_raw_connection()
             await raw.driver_connection.execute(sql)
             logger.info("✅ Account name uniqueness per type migration applied (008)")
+
+    # Apply investment performance history tables migration
+    migration_009_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "009_investment_performance_history.sql")
+    if os.path.exists(migration_009_path):
+        async with engine.begin() as conn:
+            with open(migration_009_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ Investment performance history migration applied (009)")
+
+    # Populate benchmark history in background (idempotent - only inserts missing dates)
+    asyncio.create_task(fetch_all_benchmarks())
+    logger.info("⏳ Benchmark history fetch started in background")
 
     yield
     # Close Redis
