@@ -137,7 +137,8 @@ class TransactionRepository:
         keywords: list = None,
         min_amount: float = None,
         max_amount: float = None,
-        tx_type: str = None
+        tx_type: str = None,
+        account_id: str = None
     ):
         """
         Fetch filtered transactions with pagination.
@@ -183,7 +184,10 @@ class TransactionRepository:
             query = query.where(Transaction.amount <= max_amount)
         if tx_type:
             query = query.where(Transaction.type == tx_type)
-            
+        if account_id:
+            import uuid as _uuid
+            query = query.where(Transaction.account_id == _uuid.UUID(account_id))
+
         # Count Query (before pagination)
         count_query = select(func.count()).select_from(query.subquery())
         total_count = await self.session.scalar(count_query)

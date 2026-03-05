@@ -93,6 +93,7 @@ async def get_transactions(
     category: str = None,
     description: str = None,
     search: str = None,
+    account_id: str = None,
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -102,7 +103,7 @@ async def get_transactions(
     repo = TransactionRepository(db)
     skip = (page - 1) * limit
 
-    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category, description=description, search=search)
+    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category, description=description, search=search, account_id=account_id)
     
     data = []
     for tx in txs:

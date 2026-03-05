@@ -48,6 +48,7 @@ export default function TransactionsPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [category, setCategory] = useState<string>('');
+    const [accountFilter, setAccountFilter] = useState<string>('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [editingTx, setEditingTx] = useState<Transaction | null>(null);
     const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '', account_id: '' });
@@ -77,7 +78,7 @@ export default function TransactionsPage() {
 
     useEffect(() => {
         if (!isAiActive) fetchTransactions();
-    }, [page, category, normalQuery]);
+    }, [page, category, accountFilter, normalQuery]);
 
     const fetchAccounts = async () => {
         try {
@@ -105,6 +106,7 @@ export default function TransactionsPage() {
         try {
             const params: Record<string, string | number> = { page, limit: 10 };
             if (category && category !== 'Todas') params.category = category;
+            if (accountFilter) params.account_id = accountFilter;
             if (normalQuery.trim()) params.search = normalQuery.trim();
 
             const res = await api.get('/api/dashboard/transactions', { params });
@@ -470,6 +472,23 @@ export default function TransactionsPage() {
                             keyboard_arrow_down
                         </span>
                     </div>
+                    <div className="relative">
+                        <select
+                            value={accountFilter}
+                            onChange={(e) => { setAccountFilter(e.target.value); setPage(1); }}
+                            className="appearance-none bg-graphite-card border border-graphite-border px-3 py-1.5 pr-8 rounded text-[10px] font-bold text-slate-low uppercase tracking-wider cursor-pointer hover:text-crisp-white transition-colors focus:ring-1 focus:ring-royal-purple outline-none"
+                        >
+                            <option value="">Todas as Contas</option>
+                            {accounts.map(acc => (
+                                <option key={acc.id} value={acc.id}>
+                                    {acc.name}{acc.type === 'CREDIT' ? ' (Cartão)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-low pointer-events-none">
+                            keyboard_arrow_down
+                        </span>
+                    </div>
                 </div>
 
                 <span className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
@@ -559,9 +578,14 @@ export default function TransactionsPage() {
                                                 </td>
                                                 <td className="py-4 px-4 border-b border-graphite-border">
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-[10px] font-bold text-slate-low uppercase tracking-wider">
-                                                            {accounts.find(a => a.id === tx.account_id)?.name || 'Carteira'}
-                                                        </span>
+                                                        {(() => {
+                                                            const acc = accounts.find(a => a.id === tx.account_id);
+                                                            return (
+                                                                <span className="text-[10px] font-bold text-slate-low uppercase tracking-wider">
+                                                                    {acc ? `${acc.name}${acc.type === 'CREDIT' ? ' (Cartão)' : ''}` : 'Carteira'}
+                                                                </span>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </td>
                                                 <td className="py-4 px-4 border-b border-graphite-border">
