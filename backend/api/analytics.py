@@ -243,8 +243,8 @@ async def sell_asset(
 
             await db.execute(
                 text("""
-                    INSERT INTO transactions (user_phone, account_id, type, amount, category, description, date)
-                    VALUES (:phone, :acc_id, 'INCOME', :amount, 'Investimentos', :desc, NOW())
+                    INSERT INTO transactions (id, user_phone, account_id, type, amount, category, description, date)
+                    VALUES (gen_random_uuid(), :phone, :acc_id, 'INCOME', :amount, 'Investimentos', :desc, NOW())
                 """),
                 {
                     "phone": current_user_phone,
