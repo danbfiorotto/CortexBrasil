@@ -91,16 +91,17 @@ async def get_transactions(
     page: int = 1,
     limit: int = 10,
     category: str = None,
+    description: str = None,
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # RLS
     await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
-    
+
     repo = TransactionRepository(db)
     skip = (page - 1) * limit
-    
-    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category)
+
+    txs, total = await repo.get_transactions(current_user_phone, skip=skip, limit=limit, category=category, description=description)
     
     data = []
     for tx in txs:

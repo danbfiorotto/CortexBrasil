@@ -56,6 +56,9 @@ export default function TransactionsPage() {
     const [aiQuery, setAiQuery] = useState('');
     const [isAiActive, setIsAiActive] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
+    const [searchMode, setSearchMode] = useState<'normal' | 'ai'>('normal');
+    const [normalQuery, setNormalQuery] = useState('');
+    const [showSearchHelp, setShowSearchHelp] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addType, setAddType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
     const [addForm, setAddForm] = useState({
@@ -73,8 +76,8 @@ export default function TransactionsPage() {
     }, []);
 
     useEffect(() => {
-        fetchTransactions();
-    }, [page, category]);
+        if (!isAiActive) fetchTransactions();
+    }, [page, category, normalQuery]);
 
     const fetchAccounts = async () => {
         try {
@@ -102,6 +105,7 @@ export default function TransactionsPage() {
         try {
             const params: Record<string, string | number> = { page, limit: 10 };
             if (category && category !== 'Todas') params.category = category;
+            if (normalQuery.trim()) params.description = normalQuery.trim();
 
             const res = await api.get('/api/dashboard/transactions', { params });
             setData(res.data.data);
@@ -279,6 +283,16 @@ export default function TransactionsPage() {
         fetchTransactions();
     };
 
+    const handleNormalSearch = (value: string) => {
+        setNormalQuery(value);
+        setPage(1);
+    };
+
+    const clearNormalSearch = () => {
+        setNormalQuery('');
+        setPage(1);
+    };
+
     const toggleSelectAll = () => {
         if (selectedIds.size === data.length) {
             setSelectedIds(new Set());
@@ -293,33 +307,130 @@ export default function TransactionsPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col h-full"
         >
-            {/* AI Search Bar */}
+            {/* Search Bar */}
             <div className="px-8 pt-8 pb-6">
-                <div className="max-w-4xl mx-auto w-full">
-                    <div className="relative group">
-                        <div className="absolute -inset-[1px] bg-gradient-to-r from-royal-purple to-indigo-600 rounded-lg blur-[2px] opacity-30 group-focus-within:opacity-60 transition duration-500" />
-                        <div className="relative flex items-center bg-graphite-card border border-graphite-border rounded-lg px-5 h-14 search-glow">
-                            <span className="material-symbols-outlined text-royal-purple mr-4 text-xl">auto_awesome</span>
-                            <input
-                                className="flex-1 bg-transparent border-none outline-none text-xs text-crisp-white placeholder:text-slate-low py-2.5 font-bold tracking-tight"
-                                placeholder={aiLoading ? "Cortex está pensando..." : "Buscar transações com IA..."}
-                                type="text"
-                                value={aiQuery}
-                                onChange={(e) => setAiQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
-                                disabled={aiLoading}
-                            />
-                            <div className="flex items-center gap-3">
-                                <div className="hidden md:flex items-center gap-1">
-                                    <kbd className="px-1.5 py-0.5 rounded border border-graphite-600 bg-charcoal-bg text-[10px] font-bold text-slate-low uppercase">ENTER</kbd>
+                <div className="max-w-4xl mx-auto w-full space-y-3">
+                    {/* Search Mode Toggle */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center bg-graphite-card border border-graphite-border rounded-lg p-0.5">
+                            <button
+                                onClick={() => { setSearchMode('normal'); if (isAiActive) clearAiSearch(); }}
+                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                                    searchMode === 'normal'
+                                        ? 'bg-graphite-border text-crisp-white'
+                                        : 'text-slate-low hover:text-crisp-white'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-sm">search</span>
+                                Busca Normal
+                            </button>
+                            <button
+                                onClick={() => { setSearchMode('ai'); if (normalQuery) clearNormalSearch(); }}
+                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                                    searchMode === 'ai'
+                                        ? 'bg-royal-purple/20 text-royal-purple'
+                                        : 'text-slate-low hover:text-crisp-white'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                                Busca Inteligente
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setShowSearchHelp(!showSearchHelp)}
+                            className="text-slate-low hover:text-crisp-white transition-colors"
+                            title="Como funciona?"
+                        >
+                            <span className="material-symbols-outlined text-lg">help_outline</span>
+                        </button>
+                    </div>
+
+                    {/* Help Tooltip */}
+                    <AnimatePresence>
+                        {showSearchHelp && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="bg-graphite-card border border-graphite-border rounded-lg p-4 text-xs text-slate-low space-y-2">
+                                    <div className="flex items-start gap-2">
+                                        <span className="material-symbols-outlined text-sm mt-0.5">search</span>
+                                        <div>
+                                            <p className="font-bold text-crisp-white">Busca Normal</p>
+                                            <p>Busca por texto na descrição das transações. Rápida e direta.</p>
+                                            <p className="text-[10px] mt-1 italic">Ex: "Uber", "mercado", "farmácia"</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="material-symbols-outlined text-sm mt-0.5 text-royal-purple">auto_awesome</span>
+                                        <div>
+                                            <p className="font-bold text-royal-purple">Busca Inteligente (IA)</p>
+                                            <p>Interpreta perguntas em linguagem natural usando IA. Mais lenta, mas entende contexto, datas e filtros complexos.</p>
+                                            <p className="text-[10px] mt-1 italic">Ex: "Quanto gastei com transporte mês passado?", "Entradas acima de 500 reais em janeiro"</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={handleAiSearch}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Search Input */}
+                    <div className="relative group">
+                        {searchMode === 'ai' && (
+                            <div className="absolute -inset-[1px] bg-gradient-to-r from-royal-purple to-indigo-600 rounded-lg blur-[2px] opacity-30 group-focus-within:opacity-60 transition duration-500" />
+                        )}
+                        <div className={`relative flex items-center bg-graphite-card border rounded-lg px-5 h-14 ${
+                            searchMode === 'ai' ? 'border-graphite-border search-glow' : 'border-graphite-border'
+                        }`}>
+                            <span className={`material-symbols-outlined mr-4 text-xl ${searchMode === 'ai' ? 'text-royal-purple' : 'text-slate-low'}`}>
+                                {searchMode === 'ai' ? 'auto_awesome' : 'search'}
+                            </span>
+
+                            {searchMode === 'normal' ? (
+                                <input
+                                    className="flex-1 bg-transparent border-none outline-none text-xs text-crisp-white placeholder:text-slate-low py-2.5 font-bold tracking-tight"
+                                    placeholder="Buscar por descrição..."
+                                    type="text"
+                                    value={normalQuery}
+                                    onChange={(e) => handleNormalSearch(e.target.value)}
+                                />
+                            ) : (
+                                <input
+                                    className="flex-1 bg-transparent border-none outline-none text-xs text-crisp-white placeholder:text-slate-low py-2.5 font-bold tracking-tight"
+                                    placeholder={aiLoading ? "Cortex está pensando..." : "Pergunte em linguagem natural..."}
+                                    type="text"
+                                    value={aiQuery}
+                                    onChange={(e) => setAiQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
                                     disabled={aiLoading}
-                                    className="bg-royal-purple hover:bg-royal-purple/90 text-crisp-white disabled:bg-slate-700 rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-royal-purple/20"
-                                >
-                                    {aiLoading ? 'Processando...' : 'Query'}
-                                </button>
+                                />
+                            )}
+
+                            <div className="flex items-center gap-3">
+                                {searchMode === 'normal' && normalQuery && (
+                                    <button
+                                        onClick={clearNormalSearch}
+                                        className="text-slate-low hover:text-crisp-white transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">close</span>
+                                    </button>
+                                )}
+                                {searchMode === 'ai' && (
+                                    <>
+                                        <div className="hidden md:flex items-center gap-1">
+                                            <kbd className="px-1.5 py-0.5 rounded border border-graphite-600 bg-charcoal-bg text-[10px] font-bold text-slate-low uppercase">ENTER</kbd>
+                                        </div>
+                                        <button
+                                            onClick={handleAiSearch}
+                                            disabled={aiLoading}
+                                            className="bg-royal-purple hover:bg-royal-purple/90 text-crisp-white disabled:bg-slate-700 rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-royal-purple/20"
+                                        >
+                                            {aiLoading ? 'Processando...' : 'Query'}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -330,7 +441,7 @@ export default function TransactionsPage() {
                 <div className="px-8 py-2 bg-royal-purple/10 border-b border-royal-purple/20 flex items-center justify-between">
                     <p className="text-[10px] font-bold text-royal-purple uppercase tracking-widest flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                        Modo Inteligente Ativo: "{aiQuery}"
+                        Busca Inteligente Ativa: &ldquo;{aiQuery}&rdquo;
                     </p>
                     <button
                         onClick={clearAiSearch}
