@@ -174,14 +174,21 @@ async def delete_asset(
         text("SELECT set_config('app.current_user_phone', :phone, false)"),
         {"phone": current_user_phone}
     )
-    result = await db.execute(
-        text("DELETE FROM assets WHERE id = :id AND user_phone = :phone RETURNING id"),
-        {"id": asset_id, "phone": current_user_phone}
-    )
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Ativo não encontrado")
-    await db.commit()
-    return {"status": "ok", "message": "Ativo removido."}
+    try:
+        result = await db.execute(
+            text("DELETE FROM assets WHERE id = :id::uuid AND user_phone = :phone RETURNING id"),
+            {"id": asset_id, "phone": current_user_phone}
+        )
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Ativo não encontrado")
+        await db.commit()
+        return {"status": "ok", "message": "Ativo removido."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error in delete_asset: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao remover ativo: {str(e)}")
 
 
 @router.post("/investments/{asset_id}/sell")
@@ -192,66 +199,71 @@ async def sell_asset(
     db: AsyncSession = Depends(get_db)
 ):
     """Registers the sale of an asset: reduces quantity and optionally deposits proceeds."""
-    await db.execute(
-        text("SELECT set_config('app.current_user_phone', :phone, false)"),
-        {"phone": current_user_phone}
-    )
-
-    # Fetch current asset
-    result = await db.execute(
-        text("SELECT ticker, name, quantity FROM assets WHERE id = :id AND user_phone = :phone"),
-        {"id": asset_id, "phone": current_user_phone}
-    )
-    asset = result.fetchone()
-    if not asset:
-        raise HTTPException(status_code=404, detail="Ativo não encontrado")
-
-    if req.quantity > asset.quantity:
-        raise HTTPException(status_code=400, detail=f"Quantidade a vender ({req.quantity}) maior que a posição atual ({asset.quantity})")
-
-    new_qty = asset.quantity - req.quantity
-    total_proceeds = req.quantity * req.sale_price
-
-    if new_qty <= 0:
-        # Remove asset entirely when fully sold
+    try:
         await db.execute(
-            text("DELETE FROM assets WHERE id = :id AND user_phone = :phone"),
+            text("SELECT set_config('app.current_user_phone', :phone, true)"),
+            {"phone": current_user_phone}
+        )
+
+        # Fetch current asset (bypass RLS with explicit user_phone filter)
+        result = await db.execute(
+            text("SELECT ticker, name, quantity FROM assets WHERE id = :id::uuid AND user_phone = :phone"),
             {"id": asset_id, "phone": current_user_phone}
         )
-    else:
-        await db.execute(
-            text("UPDATE assets SET quantity = :qty, updated_at = NOW() WHERE id = :id AND user_phone = :phone"),
-            {"qty": new_qty, "id": asset_id, "phone": current_user_phone}
-        )
+        asset = result.fetchone()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Ativo não encontrado")
 
-    # Deposit proceeds to account if specified
-    if req.account_id:
-        acc_result = await db.execute(
-            text("SELECT id, current_balance FROM accounts WHERE id = :id AND user_phone = :phone"),
-            {"id": req.account_id, "phone": current_user_phone}
-        )
-        account = acc_result.fetchone()
-        if not account:
-            raise HTTPException(status_code=404, detail="Conta de destino não encontrada")
+        if req.quantity > float(asset.quantity):
+            raise HTTPException(status_code=400, detail=f"Quantidade a vender ({req.quantity}) maior que a posição atual ({asset.quantity})")
 
-        # Create income transaction
-        await db.execute(
-            text("""
-                INSERT INTO transactions (user_phone, account_id, type, amount, category, description, date)
-                VALUES (:phone, :acc_id, 'INCOME', :amount, 'Investimentos',
-                        :desc, NOW())
-            """),
-            {
-                "phone": current_user_phone,
-                "acc_id": req.account_id,
-                "amount": total_proceeds,
-                "desc": f"Venda {asset.ticker} — {req.quantity} unid. a {req.sale_price}",
-            }
-        )
+        new_qty = float(asset.quantity) - req.quantity
+        total_proceeds = req.quantity * req.sale_price
 
-    await db.commit()
+        if new_qty <= 0:
+            await db.execute(
+                text("DELETE FROM assets WHERE id = :id::uuid AND user_phone = :phone"),
+                {"id": asset_id, "phone": current_user_phone}
+            )
+        else:
+            await db.execute(
+                text("UPDATE assets SET quantity = :qty, updated_at = NOW() WHERE id = :id::uuid AND user_phone = :phone"),
+                {"qty": new_qty, "id": asset_id, "phone": current_user_phone}
+            )
 
-    msg = f"Venda de {req.quantity} {asset.ticker} registrada."
-    if req.account_id:
-        msg += f" Valor de R$ {total_proceeds:,.2f} creditado na conta."
-    return {"status": "ok", "message": msg, "proceeds": total_proceeds}
+        # Deposit proceeds to account if specified
+        if req.account_id:
+            acc_result = await db.execute(
+                text("SELECT id FROM accounts WHERE id = :id::uuid AND user_phone = :phone"),
+                {"id": req.account_id, "phone": current_user_phone}
+            )
+            account = acc_result.fetchone()
+            if not account:
+                raise HTTPException(status_code=404, detail="Conta de destino não encontrada")
+
+            await db.execute(
+                text("""
+                    INSERT INTO transactions (user_phone, account_id, type, amount, category, description, date)
+                    VALUES (:phone, :acc_id::uuid, 'INCOME', :amount, 'Investimentos', :desc, NOW())
+                """),
+                {
+                    "phone": current_user_phone,
+                    "acc_id": req.account_id,
+                    "amount": total_proceeds,
+                    "desc": f"Venda {asset.ticker} - {req.quantity} unid. a {req.sale_price}",
+                }
+            )
+
+        await db.commit()
+
+        msg = f"Venda de {req.quantity} {asset.ticker} registrada."
+        if req.account_id:
+            msg += f" Valor de R$ {total_proceeds:,.2f} creditado na conta."
+        return {"status": "ok", "message": msg, "proceeds": total_proceeds}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error in sell_asset: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar venda: {str(e)}")
