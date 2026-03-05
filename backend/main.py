@@ -62,6 +62,16 @@ async def lifespan(app: FastAPI):
             await raw.driver_connection.execute(sql)
             logger.info("✅ Balance trigger migration applied (006)")
 
+    # Recalculate all account balances (idempotent - fixes any drift)
+    migration_007_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "007_recalculate_all_balances.sql")
+    if os.path.exists(migration_007_path):
+        async with engine.begin() as conn:
+            with open(migration_007_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ Balance recalculation migration applied (007)")
+
     yield
     # Close Redis
     if clients.redis_client:
