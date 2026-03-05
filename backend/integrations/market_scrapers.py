@@ -319,7 +319,7 @@ async def get_user_portfolio_value(user_phone: str) -> dict:
 
         result = await session.execute(
             text("""
-                SELECT a.ticker, a.name, a.type, a.quantity, a.avg_price,
+                SELECT a.id, a.ticker, a.name, a.type, a.quantity, a.avg_price,
                        COALESCE(m.price, 0) as current_price,
                        m.change_pct
                 FROM assets a
@@ -351,6 +351,7 @@ async def get_user_portfolio_value(user_phone: str) -> dict:
             total_cost += cost_basis
 
             holdings.append({
+                "id": str(row.id),
                 "ticker": row.ticker,
                 "name": row.name,
                 "type": row.type,

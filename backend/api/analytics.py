@@ -28,6 +28,12 @@ class AssetAddRequest(BaseModel):
     avg_price: float = Field(..., gt=0)
 
 
+class AssetSellRequest(BaseModel):
+    quantity: float = Field(..., gt=0)
+    sale_price: float = Field(..., gt=0)
+    account_id: str = Field(default="")  # optional: deposit proceeds to this account
+
+
 @router.get("/forecast")
 async def get_forecast(
     current_user_phone: str = Depends(get_current_user),
@@ -155,3 +161,97 @@ async def add_asset(
         logger.warning(f"Could not fetch price for {req.ticker}: {e}")
 
     return {"status": "ok", "message": f"Ativo {req.ticker.upper()} adicionado."}
+
+
+@router.delete("/investments/{asset_id}")
+async def delete_asset(
+    asset_id: str,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Removes an asset entry entirely (correcting a wrong entry)."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+    result = await db.execute(
+        text("DELETE FROM assets WHERE id = :id AND user_phone = :phone RETURNING id"),
+        {"id": asset_id, "phone": current_user_phone}
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Ativo não encontrado")
+    await db.commit()
+    return {"status": "ok", "message": "Ativo removido."}
+
+
+@router.post("/investments/{asset_id}/sell")
+async def sell_asset(
+    asset_id: str,
+    req: AssetSellRequest,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Registers the sale of an asset: reduces quantity and optionally deposits proceeds."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    # Fetch current asset
+    result = await db.execute(
+        text("SELECT ticker, name, quantity FROM assets WHERE id = :id AND user_phone = :phone"),
+        {"id": asset_id, "phone": current_user_phone}
+    )
+    asset = result.fetchone()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Ativo não encontrado")
+
+    if req.quantity > asset.quantity:
+        raise HTTPException(status_code=400, detail=f"Quantidade a vender ({req.quantity}) maior que a posição atual ({asset.quantity})")
+
+    new_qty = asset.quantity - req.quantity
+    total_proceeds = req.quantity * req.sale_price
+
+    if new_qty <= 0:
+        # Remove asset entirely when fully sold
+        await db.execute(
+            text("DELETE FROM assets WHERE id = :id AND user_phone = :phone"),
+            {"id": asset_id, "phone": current_user_phone}
+        )
+    else:
+        await db.execute(
+            text("UPDATE assets SET quantity = :qty, updated_at = NOW() WHERE id = :id AND user_phone = :phone"),
+            {"qty": new_qty, "id": asset_id, "phone": current_user_phone}
+        )
+
+    # Deposit proceeds to account if specified
+    if req.account_id:
+        acc_result = await db.execute(
+            text("SELECT id, current_balance FROM accounts WHERE id = :id AND user_phone = :phone"),
+            {"id": req.account_id, "phone": current_user_phone}
+        )
+        account = acc_result.fetchone()
+        if not account:
+            raise HTTPException(status_code=404, detail="Conta de destino não encontrada")
+
+        # Create income transaction
+        await db.execute(
+            text("""
+                INSERT INTO transactions (user_phone, account_id, type, amount, category, description, date)
+                VALUES (:phone, :acc_id, 'INCOME', :amount, 'Investimentos',
+                        :desc, NOW())
+            """),
+            {
+                "phone": current_user_phone,
+                "acc_id": req.account_id,
+                "amount": total_proceeds,
+                "desc": f"Venda {asset.ticker} — {req.quantity} unid. a {req.sale_price}",
+            }
+        )
+
+    await db.commit()
+
+    msg = f"Venda de {req.quantity} {asset.ticker} registrada."
+    if req.account_id:
+        msg += f" Valor de R$ {total_proceeds:,.2f} creditado na conta."
+    return {"status": "ok", "message": msg, "proceeds": total_proceeds}

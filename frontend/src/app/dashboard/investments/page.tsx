@@ -14,6 +14,7 @@ const ASSET_TYPE_MAP: Record<string, { label: string; icon: string; color: strin
 };
 
 interface Holding {
+    id: string;
     ticker: string;
     name: string;
     type: string;
@@ -42,7 +43,19 @@ interface TickerInfo {
     source: string;
 }
 
+interface Account {
+    id: string;
+    name: string;
+    type: string;
+    current_balance: number;
+}
+
 type TickerStatus = 'idle' | 'searching' | 'found' | 'not_found';
+
+type ActionModal =
+    | { type: 'sell'; holding: Holding }
+    | { type: 'delete'; holding: Holding }
+    | null;
 
 export default function InvestmentsPage() {
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -52,11 +65,18 @@ export default function InvestmentsPage() {
         ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0,
     });
     const [submitting, setSubmitting] = useState(false);
+    const [accounts, setAccounts] = useState<Account[]>([]);
 
     // Ticker live search state
     const [tickerStatus, setTickerStatus] = useState<TickerStatus>('idle');
     const [tickerInfo, setTickerInfo] = useState<TickerInfo | null>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Action modal state
+    const [actionModal, setActionModal] = useState<ActionModal>(null);
+    const [sellData, setSellData] = useState({ quantity: 0, sale_price: 0, account_id: '' });
+    const [actionSubmitting, setActionSubmitting] = useState(false);
+    const [actionError, setActionError] = useState('');
 
     const fetchPortfolio = useCallback(async () => {
         const token = Cookies.get('token');
@@ -75,9 +95,25 @@ export default function InvestmentsPage() {
         }
     }, []);
 
+    const fetchAccounts = useCallback(async () => {
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/accounts/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAccounts(data.filter((a: Account) => a.type !== 'CREDIT'));
+            }
+        } catch (error) {
+            console.error('Failed to fetch accounts:', error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchPortfolio();
-    }, [fetchPortfolio]);
+        fetchAccounts();
+    }, [fetchPortfolio, fetchAccounts]);
 
     // Live ticker search with 500ms debounce
     const handleTickerChange = (value: string) => {
@@ -105,7 +141,6 @@ export default function InvestmentsPage() {
                     const info: TickerInfo = await res.json();
                     setTickerInfo(info);
                     setTickerStatus('found');
-                    // Auto-fill name if it's still empty or matches previous ticker
                     setFormData(prev => ({
                         ...prev,
                         name: prev.name === '' || prev.name === prev.ticker ? info.name : prev.name,
@@ -154,6 +189,73 @@ export default function InvestmentsPage() {
         setTickerStatus('idle');
         setTickerInfo(null);
         setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
+    };
+
+    const openSell = (holding: Holding) => {
+        setSellData({ quantity: 0, sale_price: holding.current_price, account_id: '' });
+        setActionError('');
+        setActionModal({ type: 'sell', holding });
+    };
+
+    const openDelete = (holding: Holding) => {
+        setActionError('');
+        setActionModal({ type: 'delete', holding });
+    };
+
+    const closeModal = () => {
+        setActionModal(null);
+        setActionError('');
+    };
+
+    const handleDelete = async () => {
+        if (!actionModal || actionModal.type !== 'delete') return;
+        setActionSubmitting(true);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/analytics/investments/${actionModal.holding.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                closeModal();
+                await fetchPortfolio();
+            } else {
+                const err = await res.json();
+                setActionError(err.detail || 'Erro ao remover ativo.');
+            }
+        } catch {
+            setActionError('Erro de conexão.');
+        } finally {
+            setActionSubmitting(false);
+        }
+    };
+
+    const handleSell = async () => {
+        if (!actionModal || actionModal.type !== 'sell') return;
+        setActionSubmitting(true);
+        setActionError('');
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/analytics/investments/${actionModal.holding.id}/sell`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(sellData),
+            });
+            if (res.ok) {
+                closeModal();
+                await fetchPortfolio();
+            } else {
+                const err = await res.json();
+                setActionError(err.detail || 'Erro ao registrar venda.');
+            }
+        } catch {
+            setActionError('Erro de conexão.');
+        } finally {
+            setActionSubmitting(false);
+        }
     };
 
     const formatCurrency = (value: number) =>
@@ -239,7 +341,6 @@ export default function InvestmentsPage() {
                                         }`}
                                         required
                                     />
-                                    {/* Status indicator */}
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
                                         {tickerStatus === 'searching' && (
                                             <motion.div
@@ -252,7 +353,6 @@ export default function InvestmentsPage() {
                                         {tickerStatus === 'not_found' && <span className="text-red-400">✗</span>}
                                     </div>
                                 </div>
-                                {/* Ticker info preview */}
                                 <AnimatePresence>
                                     {tickerStatus === 'found' && tickerInfo && (
                                         <motion.div
@@ -371,6 +471,7 @@ export default function InvestmentsPage() {
                                     <th className="text-right px-5 py-3">Valor</th>
                                     <th className="text-right px-5 py-3">L/P</th>
                                     <th className="text-right px-5 py-3">%</th>
+                                    <th className="px-5 py-3"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -382,7 +483,7 @@ export default function InvestmentsPage() {
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.05 }}
-                                            className="border-b border-graphite-border/30 hover:bg-graphite-border/10 transition-colors"
+                                            className="border-b border-graphite-border/30 hover:bg-graphite-border/10 transition-colors group"
                                         >
                                             <td className="px-5 py-4">
                                                 <div className="flex items-center gap-2">
@@ -403,6 +504,24 @@ export default function InvestmentsPage() {
                                             <td className={`text-right px-5 py-4 text-sm font-semibold ${h.gain_pct >= 0 ? 'text-emerald-400' : 'text-crimson-bright'}`}>
                                                 {formatPct(h.gain_pct)}
                                             </td>
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                                                    <button
+                                                        onClick={() => openSell(h)}
+                                                        title="Registrar venda"
+                                                        className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-semibold transition-colors"
+                                                    >
+                                                        Vender
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openDelete(h)}
+                                                        title="Remover lançamento"
+                                                        className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold transition-colors"
+                                                    >
+                                                        Remover
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </motion.tr>
                                     );
                                 })}
@@ -420,6 +539,133 @@ export default function InvestmentsPage() {
                     Buscamos apenas o preço público — ninguém sabe sua posição real.
                 </p>
             </div>
+
+            {/* Action Modals */}
+            <AnimatePresence>
+                {actionModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="glass-panel rounded-2xl p-6 w-full max-w-md space-y-4"
+                        >
+                            {/* DELETE modal */}
+                            {actionModal.type === 'delete' && (
+                                <>
+                                    <h3 className="text-lg font-semibold">Remover Ativo</h3>
+                                    <p className="text-sm text-slate-low">
+                                        Isso vai excluir o lançamento de{' '}
+                                        <strong className="text-crisp-white">{actionModal.holding.ticker}</strong>{' '}
+                                        ({actionModal.holding.quantity.toLocaleString('pt-BR')} unid.) permanentemente.
+                                        Use esta opção para corrigir um lançamento errado.
+                                    </p>
+                                    {actionError && <p className="text-xs text-red-400">{actionError}</p>}
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button onClick={closeModal} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleDelete}
+                                            disabled={actionSubmitting}
+                                            className="px-5 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-sm font-semibold transition-all disabled:opacity-50"
+                                        >
+                                            {actionSubmitting ? 'Removendo...' : 'Confirmar remoção'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* SELL modal */}
+                            {actionModal.type === 'sell' && (
+                                <>
+                                    <h3 className="text-lg font-semibold">Registrar Venda — {actionModal.holding.ticker}</h3>
+                                    <p className="text-xs text-slate-low">
+                                        Posição atual: {actionModal.holding.quantity.toLocaleString('pt-BR')} unid.
+                                    </p>
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Qtd. vendida</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.00000001"
+                                                    min="0.00000001"
+                                                    max={actionModal.holding.quantity}
+                                                    value={sellData.quantity || ''}
+                                                    onChange={(e) => setSellData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="0"
+                                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Preço de venda</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0.01"
+                                                    value={sellData.sale_price || ''}
+                                                    onChange={(e) => setSellData(prev => ({ ...prev, sale_price: parseFloat(e.target.value) || 0 }))}
+                                                    placeholder="0,00"
+                                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {sellData.quantity > 0 && sellData.sale_price > 0 && (
+                                            <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                                <p className="text-xs text-amber-400">
+                                                    Total da venda:{' '}
+                                                    <strong>{formatCurrency(sellData.quantity * sellData.sale_price)}</strong>
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">
+                                                Creditar em conta <span className="text-slate-low/60">(opcional)</span>
+                                            </label>
+                                            <select
+                                                value={sellData.account_id}
+                                                onChange={(e) => setSellData(prev => ({ ...prev, account_id: e.target.value }))}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
+                                            >
+                                                <option value="">Não creditar em conta</option>
+                                                {accounts.map((acc) => (
+                                                    <option key={acc.id} value={acc.id}>
+                                                        {acc.name} ({formatCurrency(acc.current_balance)})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {actionError && <p className="text-xs text-red-400">{actionError}</p>}
+
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <button onClick={closeModal} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleSell}
+                                            disabled={actionSubmitting || sellData.quantity <= 0 || sellData.sale_price <= 0}
+                                            className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-sm font-semibold transition-all disabled:opacity-50"
+                                        >
+                                            {actionSubmitting ? 'Registrando...' : 'Confirmar venda'}
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
