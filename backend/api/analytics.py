@@ -176,7 +176,7 @@ async def delete_asset(
     )
     try:
         result = await db.execute(
-            text("DELETE FROM assets WHERE id = :id::uuid AND user_phone = :phone RETURNING id"),
+            text("DELETE FROM assets WHERE id = :id AND user_phone = :phone RETURNING id"),
             {"id": asset_id, "phone": current_user_phone}
         )
         if result.rowcount == 0:
@@ -207,7 +207,7 @@ async def sell_asset(
 
         # Fetch current asset (bypass RLS with explicit user_phone filter)
         result = await db.execute(
-            text("SELECT ticker, name, quantity FROM assets WHERE id = :id::uuid AND user_phone = :phone"),
+            text("SELECT ticker, name, quantity FROM assets WHERE id = :id AND user_phone = :phone"),
             {"id": asset_id, "phone": current_user_phone}
         )
         asset = result.fetchone()
@@ -222,19 +222,19 @@ async def sell_asset(
 
         if new_qty <= 0:
             await db.execute(
-                text("DELETE FROM assets WHERE id = :id::uuid AND user_phone = :phone"),
+                text("DELETE FROM assets WHERE id = :id AND user_phone = :phone"),
                 {"id": asset_id, "phone": current_user_phone}
             )
         else:
             await db.execute(
-                text("UPDATE assets SET quantity = :qty, updated_at = NOW() WHERE id = :id::uuid AND user_phone = :phone"),
+                text("UPDATE assets SET quantity = :qty, updated_at = NOW() WHERE id = :id AND user_phone = :phone"),
                 {"qty": new_qty, "id": asset_id, "phone": current_user_phone}
             )
 
         # Deposit proceeds to account if specified
         if req.account_id:
             acc_result = await db.execute(
-                text("SELECT id FROM accounts WHERE id = :id::uuid AND user_phone = :phone"),
+                text("SELECT id FROM accounts WHERE id = :id AND user_phone = :phone"),
                 {"id": req.account_id, "phone": current_user_phone}
             )
             account = acc_result.fetchone()
@@ -244,7 +244,7 @@ async def sell_asset(
             await db.execute(
                 text("""
                     INSERT INTO transactions (user_phone, account_id, type, amount, category, description, date)
-                    VALUES (:phone, :acc_id::uuid, 'INCOME', :amount, 'Investimentos', :desc, NOW())
+                    VALUES (:phone, :acc_id, 'INCOME', :amount, 'Investimentos', :desc, NOW())
                 """),
                 {
                     "phone": current_user_phone,
