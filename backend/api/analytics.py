@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.analytics.forecasting import project_balance, get_monthly_cashflow
 from backend.simulators.what_if import simulate_scenario
 from backend.workers.anomaly_detector import detect_anomalies
-from backend.integrations.market_scrapers import get_user_portfolio_value, update_market_data
+from backend.integrations.market_scrapers import get_user_portfolio_value, update_market_data, search_ticker
 import logging
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
@@ -88,6 +88,23 @@ async def get_anomalies(
     return await detect_anomalies(current_user_phone)
 
 
+@router.get("/investments/search")
+async def search_ticker_endpoint(
+    q: str,
+    current_user_phone: str = Depends(get_current_user),
+):
+    """
+    Validates a ticker and returns name + current price.
+    Used for live search while the user types in the form.
+    """
+    if not q or len(q.strip()) < 1:
+        raise HTTPException(status_code=400, detail="Query too short")
+    result = await search_ticker(q.strip().upper())
+    if not result:
+        raise HTTPException(status_code=404, detail="Ticker não encontrado em nenhuma bolsa")
+    return result
+
+
 @router.get("/investments")
 async def get_investments(
     current_user_phone: str = Depends(get_current_user),
@@ -131,9 +148,9 @@ async def add_asset(
     )
     await db.commit()
 
-    # Trigger price update for this ticker
+    # Trigger price update for this ticker (pass type for better source selection)
     try:
-        await update_market_data([req.ticker.upper()])
+        await update_market_data([req.ticker.upper()], {req.ticker.upper(): req.type})
     except Exception as e:
         logger.warning(f"Could not fetch price for {req.ticker}: {e}")
 

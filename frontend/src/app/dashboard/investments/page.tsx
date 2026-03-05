@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,6 +33,17 @@ interface Portfolio {
     total_gain_pct: number;
 }
 
+interface TickerInfo {
+    ticker: string;
+    name: string;
+    price: number;
+    currency: string;
+    exchange: string;
+    source: string;
+}
+
+type TickerStatus = 'idle' | 'searching' | 'found' | 'not_found';
+
 export default function InvestmentsPage() {
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
     const [loading, setLoading] = useState(true);
@@ -41,6 +52,11 @@ export default function InvestmentsPage() {
         ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0,
     });
     const [submitting, setSubmitting] = useState(false);
+
+    // Ticker live search state
+    const [tickerStatus, setTickerStatus] = useState<TickerStatus>('idle');
+    const [tickerInfo, setTickerInfo] = useState<TickerInfo | null>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchPortfolio = useCallback(async () => {
         const token = Cookies.get('token');
@@ -63,8 +79,51 @@ export default function InvestmentsPage() {
         fetchPortfolio();
     }, [fetchPortfolio]);
 
+    // Live ticker search with 500ms debounce
+    const handleTickerChange = (value: string) => {
+        const upper = value.toUpperCase();
+        setFormData(prev => ({ ...prev, ticker: upper }));
+
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        if (upper.length < 2) {
+            setTickerStatus('idle');
+            setTickerInfo(null);
+            return;
+        }
+
+        setTickerStatus('searching');
+
+        debounceRef.current = setTimeout(async () => {
+            const token = Cookies.get('token');
+            try {
+                const res = await fetch(
+                    `${API_URL}/api/analytics/investments/search?q=${encodeURIComponent(upper)}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (res.ok) {
+                    const info: TickerInfo = await res.json();
+                    setTickerInfo(info);
+                    setTickerStatus('found');
+                    // Auto-fill name if it's still empty or matches previous ticker
+                    setFormData(prev => ({
+                        ...prev,
+                        name: prev.name === '' || prev.name === prev.ticker ? info.name : prev.name,
+                    }));
+                } else {
+                    setTickerInfo(null);
+                    setTickerStatus('not_found');
+                }
+            } catch {
+                setTickerInfo(null);
+                setTickerStatus('not_found');
+            }
+        }, 500);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (tickerStatus === 'not_found') return;
         setSubmitting(true);
         const token = Cookies.get('token');
         try {
@@ -79,6 +138,8 @@ export default function InvestmentsPage() {
             if (res.ok) {
                 setShowForm(false);
                 setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
+                setTickerStatus('idle');
+                setTickerInfo(null);
                 await fetchPortfolio();
             }
         } catch (error) {
@@ -86,6 +147,13 @@ export default function InvestmentsPage() {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleCloseForm = () => {
+        setShowForm(false);
+        setTickerStatus('idle');
+        setTickerInfo(null);
+        setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
     };
 
     const formatCurrency = (value: number) =>
@@ -153,17 +221,70 @@ export default function InvestmentsPage() {
                     >
                         <h3 className="text-lg font-semibold">Adicionar Ativo</h3>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            {/* Ticker with live search */}
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Ticker</label>
-                                <input
-                                    type="text"
-                                    placeholder="PETR4"
-                                    value={formData.ticker}
-                                    onChange={(e) => setFormData({ ...formData, ticker: e.target.value.toUpperCase() })}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="PETR4"
+                                        value={formData.ticker}
+                                        onChange={(e) => handleTickerChange(e.target.value)}
+                                        className={`w-full bg-charcoal-bg border rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors pr-9 ${
+                                            tickerStatus === 'found'
+                                                ? 'border-emerald-500 focus:border-emerald-400'
+                                                : tickerStatus === 'not_found'
+                                                ? 'border-red-500 focus:border-red-400'
+                                                : 'border-graphite-border focus:border-royal-purple'
+                                        }`}
+                                        required
+                                    />
+                                    {/* Status indicator */}
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                                        {tickerStatus === 'searching' && (
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 0.8 }}
+                                                className="w-4 h-4 border-t-2 border-royal-purple rounded-full"
+                                            />
+                                        )}
+                                        {tickerStatus === 'found' && <span className="text-emerald-400">✓</span>}
+                                        {tickerStatus === 'not_found' && <span className="text-red-400">✗</span>}
+                                    </div>
+                                </div>
+                                {/* Ticker info preview */}
+                                <AnimatePresence>
+                                    {tickerStatus === 'found' && tickerInfo && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0 }}
+                                            className="mt-1.5 px-2 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20"
+                                        >
+                                            <p className="text-[10px] text-emerald-400 font-semibold truncate">{tickerInfo.name}</p>
+                                            <p className="text-[10px] text-slate-low">
+                                                {tickerInfo.exchange && <span>{tickerInfo.exchange} · </span>}
+                                                <span className="text-emerald-300">
+                                                    {tickerInfo.currency === 'BRL'
+                                                        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(tickerInfo.price)
+                                                        : `$${tickerInfo.price.toFixed(2)}`}
+                                                </span>
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                    {tickerStatus === 'not_found' && (
+                                        <motion.p
+                                            initial={{ opacity: 0, y: -4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0 }}
+                                            className="mt-1 text-[10px] text-red-400"
+                                        >
+                                            Ticker não encontrado em nenhuma bolsa
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
                             </div>
+
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Nome</label>
                                 <input
@@ -211,12 +332,12 @@ export default function InvestmentsPage() {
                             </div>
                         </div>
                         <div className="flex justify-end gap-3">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
+                            <button type="button" onClick={handleCloseForm} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
-                                disabled={submitting}
+                                disabled={submitting || tickerStatus === 'not_found' || tickerStatus === 'searching'}
                                 className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-sm font-semibold transition-all disabled:opacity-50"
                             >
                                 {submitting ? 'Salvando...' : 'Adicionar'}
