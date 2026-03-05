@@ -69,6 +69,23 @@ async def get_dashboard_summary(
         "safe_to_spend": 1500.00 - float(total_spent_month) # Placeholder budget
     }
 
+@router.get("/categories")
+async def get_categories(
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+    from backend.db.models import Transaction
+    result = await db.execute(
+        select(Transaction.category)
+        .where(Transaction.category != None)
+        .distinct()
+        .order_by(Transaction.category)
+    )
+    categories = [row[0] for row in result.fetchall()]
+    return {"categories": categories}
+
+
 @router.get("/transactions")
 async def get_transactions(
     page: int = 1,

@@ -24,11 +24,6 @@ interface Account {
     current_balance: number;
 }
 
-const CATEGORIES = [
-    "Alimentação", "Transporte", "Moradia", "Lazer", "Saúde",
-    "Educação", "Compras", "Serviços", "Receita", "Outros"
-];
-
 const CATEGORY_ICONS: Record<string, string> = {
     'Alimentação': 'restaurant',
     'Transporte': 'commute',
@@ -56,6 +51,7 @@ export default function TransactionsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [editingTx, setEditingTx] = useState<Transaction | null>(null);
     const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '', account_id: '' });
+    const [categories, setCategories] = useState<string[]>([]);
     const [showBulkCategoryMenu, setShowBulkCategoryMenu] = useState(false);
     const [aiQuery, setAiQuery] = useState('');
     const [isAiActive, setIsAiActive] = useState(false);
@@ -72,8 +68,12 @@ export default function TransactionsPage() {
     });
 
     useEffect(() => {
-        fetchTransactions();
+        fetchCategories();
         fetchAccounts();
+    }, []);
+
+    useEffect(() => {
+        fetchTransactions();
     }, [page, category]);
 
     const fetchAccounts = async () => {
@@ -85,6 +85,15 @@ export default function TransactionsPage() {
             }
         } catch (error) {
             console.error("Failed to fetch accounts", error);
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const res = await api.get('/api/dashboard/categories');
+            setCategories(res.data.categories);
+        } catch (error) {
+            console.error("Failed to fetch categories", error);
         }
     };
 
@@ -341,7 +350,7 @@ export default function TransactionsPage() {
                             className="appearance-none bg-graphite-card border border-graphite-border px-3 py-1.5 pr-8 rounded text-[10px] font-bold text-slate-low uppercase tracking-wider cursor-pointer hover:text-crisp-white transition-colors focus:ring-1 focus:ring-royal-purple outline-none"
                         >
                             <option value="">Todas Categorias</option>
-                            {CATEGORIES.map(cat => (
+                            {categories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
@@ -542,7 +551,7 @@ export default function TransactionsPage() {
                                     </button>
                                     {showBulkCategoryMenu && (
                                         <div className="absolute bottom-full mb-2 left-0 bg-graphite-card border border-graphite-border rounded shadow-2xl py-2 min-w-[140px] z-[60]">
-                                            {CATEGORIES.map(cat => (
+                                            {categories.map(cat => (
                                                 <button
                                                     key={cat}
                                                     onClick={() => handleBulkCategorize(cat)}
@@ -689,7 +698,7 @@ export default function TransactionsPage() {
                                             onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
                                         >
-                                            {CATEGORIES.map(cat => (
+                                            {categories.map(cat => (
                                                 <option key={cat} value={cat}>{cat}</option>
                                             ))}
                                         </select>
@@ -851,7 +860,7 @@ export default function TransactionsPage() {
                                             onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
                                         >
-                                            {CATEGORIES.map(cat => (
+                                            {categories.map(cat => (
                                                 <option key={cat} value={cat}>{cat}</option>
                                             ))}
                                         </select>
