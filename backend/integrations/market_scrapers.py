@@ -127,10 +127,48 @@ async def _fetch_yahoo_direct(ticker: str) -> float | None:
 # Ticker search / validation
 # ---------------------------------------------------------------------------
 
+async def _search_yahoo_finance(ticker: str) -> dict | None:
+    """
+    Searches Yahoo Finance directly via HTTP (no API key required).
+    Tries .SA suffix first (B3), then bare ticker (US stocks), then -USD (crypto).
+    """
+    try:
+        import httpx
+        headers = {"User-Agent": "Mozilla/5.0"}
+        async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+            for suffix, currency, exchange in [(".SA", "BRL", "B3"), ("", "USD", ""), ("-USD", "USD", "")]:
+                yf_sym = f"{ticker}{suffix}"
+                r = await client.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}")
+                if r.status_code != 200:
+                    continue
+                data = r.json()
+                results = data.get("chart", {}).get("result") or []
+                if not results:
+                    continue
+                meta = results[0].get("meta", {})
+                price = meta.get("regularMarketPrice") or meta.get("previousClose")
+                if not price:
+                    continue
+                name = meta.get("longName") or meta.get("shortName") or ticker
+                cur = meta.get("currency") or currency
+                exch = meta.get("fullExchangeName") or meta.get("exchangeName") or exchange
+                return {
+                    "ticker": ticker,
+                    "name": name,
+                    "price": round(float(price), 4),
+                    "currency": cur,
+                    "exchange": exch,
+                    "source": f"yahoo{suffix}",
+                }
+    except Exception as e:
+        logger.debug(f"Yahoo Finance search failed for {ticker}: {e}")
+    return None
+
+
 async def search_ticker(query: str) -> dict | None:
     """
     Validates a ticker and returns its name + current price.
-    Tries Brapi (BR) first, then yfinance with .SA, then bare ticker (US).
+    Uses Yahoo Finance directly (no API key), with CoinGecko fallback for crypto.
     Returns: {"ticker": str, "name": str, "price": float, "currency": str, "exchange": str}
     """
     if not query or len(query) < 1:
@@ -138,57 +176,12 @@ async def search_ticker(query: str) -> dict | None:
 
     q = query.strip().upper()
 
-    # 1. Try Brapi (covers B3 very well)
-    try:
-        import httpx
-        url = f"https://brapi.dev/api/quote/{q}?range=1d&interval=1d"
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get(url)
-        if r.status_code == 200:
-            data = r.json()
-            results = data.get("results", [])
-            if results and results[0].get("regularMarketPrice"):
-                res = results[0]
-                return {
-                    "ticker": q,
-                    "name": res.get("longName") or res.get("shortName") or q,
-                    "price": float(res["regularMarketPrice"]),
-                    "currency": res.get("currency", "BRL"),
-                    "exchange": res.get("exchange", "B3"),
-                    "source": "brapi",
-                }
-    except Exception:
-        pass
+    # 1. Yahoo Finance (covers B3, US, and most global markets)
+    result = await _search_yahoo_finance(q)
+    if result:
+        return result
 
-    # 2. Try yfinance with .SA suffix
-    try:
-        import yfinance as yf
-        for suffix in [".SA", "", "-USD"]:
-            stock = yf.Ticker(f"{q}{suffix}")
-            info = stock.fast_info
-            price = getattr(info, "last_price", None) or getattr(info, "previous_close", None)
-            if price:
-                try:
-                    full_info = stock.info
-                    name = full_info.get("longName") or full_info.get("shortName") or q
-                    currency = full_info.get("currency", "BRL" if suffix == ".SA" else "USD")
-                    exchange = full_info.get("exchange", "")
-                except Exception:
-                    name = q
-                    currency = "BRL" if suffix == ".SA" else "USD"
-                    exchange = ""
-                return {
-                    "ticker": q,
-                    "name": name,
-                    "price": round(float(price), 4),
-                    "currency": currency,
-                    "exchange": exchange,
-                    "source": f"yfinance{suffix}",
-                }
-    except Exception as e:
-        logger.debug(f"yfinance search failed for {q}: {e}")
-
-    # 3. Try CoinGecko for crypto
+    # 2. CoinGecko fallback for crypto
     cg = await _fetch_coingecko(q)
     if cg:
         return {
@@ -196,7 +189,7 @@ async def search_ticker(query: str) -> dict | None:
             "name": q,
             "price": cg,
             "currency": "BRL",
-            "exchange": "CoinGecko",
+            "exchange": "Crypto",
             "source": "coingecko",
         }
 
