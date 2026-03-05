@@ -35,7 +35,7 @@ export default function AccountsPage() {
         initial_balance: 0,
         credit_limit: 0,
         due_day: 10,
-        closing_day: 1
+        days_before_closing: 7
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -72,7 +72,12 @@ export default function AccountsPage() {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    ...formData,
+                    closing_day: formData.type === 'CREDIT'
+                        ? ((formData.due_day - formData.days_before_closing - 1 + 31) % 31) + 1
+                        : undefined,
+                }),
             });
             if (res.ok) {
                 setShowForm(false);
@@ -82,7 +87,7 @@ export default function AccountsPage() {
                     initial_balance: 0,
                     credit_limit: 0,
                     due_day: 10,
-                    closing_day: 1
+                    days_before_closing: 7
                 });
                 await fetchAccounts();
             }
@@ -199,6 +204,20 @@ export default function AccountsPage() {
                                             onChange={(e) => setFormData({ ...formData, due_day: parseInt(e.target.value) || 10 })}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Dias antes do fechamento</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="30"
+                                            value={formData.days_before_closing}
+                                            onChange={(e) => setFormData({ ...formData, days_before_closing: parseInt(e.target.value) || 7 })}
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                        <p className="text-[10px] text-slate-low pl-1">
+                                            Fecha {formData.days_before_closing}d antes → dia {((formData.due_day - formData.days_before_closing - 1 + 31) % 31) + 1}
+                                        </p>
                                     </div>
                                 </>
                             )}
