@@ -79,10 +79,11 @@ async def create_account(
 
     ledger = LedgerService(db)
 
-    # Check for duplicate name
-    existing = await ledger.get_account_by_name(current_user_phone, payload.name)
+    # Check for duplicate name within the same account type
+    existing = await ledger.get_account_by_name(current_user_phone, payload.name, payload.type)
     if existing:
-        raise HTTPException(status_code=409, detail=f"Conta '{payload.name}' já existe.")
+        type_label = {"CHECKING": "Conta Corrente", "CREDIT": "Cartão de Crédito", "INVESTMENT": "Investimento", "CASH": "Dinheiro"}.get(payload.type, payload.type)
+        raise HTTPException(status_code=409, detail=f"{type_label} '{payload.name}' já existe.")
 
     try:
         account = await ledger.create_account(

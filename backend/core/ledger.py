@@ -72,15 +72,19 @@ class LedgerService:
         result = await self.session.execute(select(Account).where(Account.user_phone == user_phone))
         return result.scalars().all()
 
-    async def get_account_by_name(self, user_phone: str, name: str):
+    async def get_account_by_name(self, user_phone: str, name: str, acc_type: str = None):
         """
-        Fuzzy search for account by name (e.g. "Nubank" matches "Conta Nubank")
+        Search for account by exact name (case-insensitive) and optionally by type.
+        Used for duplicate detection — name uniqueness is scoped per type.
         """
         lower_name = name.lower()
-        stmt = select(Account).where(
-            Account.user_phone == user_phone, 
-            func.lower(Account.name).contains(lower_name)
-        )
+        conditions = [
+            Account.user_phone == user_phone,
+            func.lower(Account.name) == lower_name,
+        ]
+        if acc_type:
+            conditions.append(Account.type == acc_type.upper())
+        stmt = select(Account).where(*conditions)
         result = await self.session.execute(stmt)
         return result.scalars().first()
 

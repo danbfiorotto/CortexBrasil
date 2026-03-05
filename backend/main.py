@@ -72,6 +72,16 @@ async def lifespan(app: FastAPI):
             await raw.driver_connection.execute(sql)
             logger.info("✅ Balance recalculation migration applied (007)")
 
+    # Add unique constraint on (user_phone, name, type) to allow same name for different account types
+    migration_008_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "008_unique_account_name_per_type.sql")
+    if os.path.exists(migration_008_path):
+        async with engine.begin() as conn:
+            with open(migration_008_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ Account name uniqueness per type migration applied (008)")
+
     yield
     # Close Redis
     if clients.redis_client:
