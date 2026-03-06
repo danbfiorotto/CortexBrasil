@@ -211,40 +211,43 @@ async def suggest_tickers(query: str, limit: int = 5) -> list[dict]:
         headers = {"User-Agent": "Mozilla/5.0"}
 
         async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+            print(f"DEBUG: suggest_tickers query='{query}' url='{url}'")
             r = await client.get(url)
             if r.status_code != 200:
+                print(f"DEBUG: suggest_tickers error status={r.status_code}")
                 return []
 
             data = r.json()
             quotes = data.get("quotes", [])
+            print(f"DEBUG: suggest_tickers found {len(quotes)} raw quotes")
             results = []
 
             for q in quotes:
-                # We focus on Equity, ETF, Crypto, and Index
                 ticker = q.get("symbol")
-                name = q.get("shortname") or q.get("longname") or ticker
-                exchange = q.get("exchDisp") or q.get("exchange")
-                quote_type = q.get("quoteType")
-
                 if not ticker:
                     continue
 
-                # Strip .SA for cleaner display if it's B3
+                full_name = q.get("longname") or q.get("shortname") or ticker
+                exchange = q.get("exchDisp") or q.get("exchange") or "B3"
+                quote_type = q.get("quoteType")
+                
+                # Clean ticker for B3
                 display_ticker = ticker
                 if ticker.endswith(".SA"):
                     display_ticker = ticker[:-3]
 
                 results.append({
                     "ticker": display_ticker,
-                    "symbol": ticker, # full symbol for fetching
-                    "name": name,
+                    "symbol": ticker,
+                    "name": full_name,
                     "exchange": exchange,
                     "type": quote_type
                 })
-
+            
+            print(f"DEBUG: suggest_tickers returning {len(results)} results")
             return results
     except Exception as e:
-        logger.debug(f"Ticker suggestion failed for {query}: {e}")
+        print(f"DEBUG: Ticker suggestion failed for {query}: {e}")
         return []
 
 
