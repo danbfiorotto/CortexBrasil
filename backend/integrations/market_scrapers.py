@@ -196,6 +196,58 @@ async def search_ticker(query: str) -> dict | None:
     return None
 
 
+async def suggest_tickers(query: str, limit: int = 5) -> list[dict]:
+    """
+    Suggests tickers based on a query using Yahoo Finance Search API.
+    Returns: list of {"ticker": str, "name": str, "exchange": str, "type": str}
+    """
+    if not query or len(query) < 2:
+        return []
+
+    try:
+        import httpx
+        # Yahoo Finance Query Suggestions API
+        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount={limit}&newsCount=0"
+        headers = {"User-Agent": "Mozilla/5.0"}
+
+        async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+            r = await client.get(url)
+            if r.status_code != 200:
+                return []
+
+            data = r.json()
+            quotes = data.get("quotes", [])
+            results = []
+
+            for q in quotes:
+                # We focus on Equity, ETF, Crypto, and Index
+                ticker = q.get("symbol")
+                name = q.get("shortname") or q.get("longname") or ticker
+                exchange = q.get("exchDisp") or q.get("exchange")
+                quote_type = q.get("quoteType")
+
+                if not ticker:
+                    continue
+
+                # Strip .SA for cleaner display if it's B3
+                display_ticker = ticker
+                if ticker.endswith(".SA"):
+                    display_ticker = ticker[:-3]
+
+                results.append({
+                    "ticker": display_ticker,
+                    "symbol": ticker, # full symbol for fetching
+                    "name": name,
+                    "exchange": exchange,
+                    "type": quote_type
+                })
+
+            return results
+    except Exception as e:
+        logger.debug(f"Ticker suggestion failed for {query}: {e}")
+        return []
+
+
 # ---------------------------------------------------------------------------
 # Main price fetcher (multi-source with fallback)
 # ---------------------------------------------------------------------------

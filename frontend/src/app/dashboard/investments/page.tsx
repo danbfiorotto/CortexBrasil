@@ -78,7 +78,10 @@ export default function InvestmentsPage() {
     // Ticker live search state
     const [tickerStatus, setTickerStatus] = useState<TickerStatus>('idle');
     const [tickerInfo, setTickerInfo] = useState<TickerInfo | null>(null);
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Action modal state
     const [actionModal, setActionModal] = useState<ActionModal>(null);
@@ -132,12 +135,32 @@ export default function InvestmentsPage() {
         setFormData(prev => ({ ...prev, ticker: upper }));
 
         if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (suggestDebounceRef.current) clearTimeout(suggestDebounceRef.current);
 
         if (upper.length < 2) {
             setTickerStatus('idle');
             setTickerInfo(null);
+            setSuggestions([]);
+            setShowSuggestions(false);
             return;
         }
+
+        // Suggestions search
+        suggestDebounceRef.current = setTimeout(async () => {
+            const token = Cookies.get('token');
+            try {
+                const res = await fetch(`${API_URL}/api/analytics/investments/suggest?q=${encodeURIComponent(upper)}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setSuggestions(data);
+                    setShowSuggestions(data.length > 0);
+                }
+            } catch (err) {
+                console.error("Failed to fetch suggestions", err);
+            }
+        }, 300);
 
         setTickerStatus('searching');
 
@@ -152,9 +175,10 @@ export default function InvestmentsPage() {
                     const info: TickerInfo = await res.json();
                     setTickerInfo(info);
                     setTickerStatus('found');
+                    // Always update name if it satisfies one of: empty, matches current ticker, or matches previous ticker name
                     setFormData(prev => ({
                         ...prev,
-                        name: prev.name === '' || prev.name === prev.ticker ? info.name : prev.name,
+                        name: info.name,
                     }));
                 } else {
                     setTickerInfo(null);
@@ -164,7 +188,38 @@ export default function InvestmentsPage() {
                 setTickerInfo(null);
                 setTickerStatus('not_found');
             }
-        }, 500);
+        }, 600);
+    };
+
+    const handleSelectSuggestion = (suggestion: any) => {
+        const fullTicker = suggestion.symbol;
+        const displayTicker = suggestion.ticker;
+        
+        setFormData(prev => ({
+            ...prev,
+            ticker: displayTicker,
+            name: suggestion.name,
+            type: suggestion.type === 'CRYPTOCURRENCY' ? 'CRYPTO' : (suggestion.exchange === 'B3' || suggestion.symbol.endsWith('.SA') ? 'STOCK' : prev.type)
+        }));
+        
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setTickerStatus('searching');
+        
+        // Fetch full info for the selected suggestion
+        const token = Cookies.get('token');
+        fetch(`${API_URL}/api/analytics/investments/search?q=${encodeURIComponent(fullTicker)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        }).then(res => {
+            if (res.ok) return res.json();
+            throw new Error();
+        }).then((info: TickerInfo) => {
+            setTickerInfo(info);
+            setTickerStatus('found');
+            setFormData(prev => ({ ...prev, name: info.name }));
+        }).catch(() => {
+            setTickerStatus('not_found');
+        });
     };
 
     const parseDecimal = (val: string) => parseFloat(val.replace(',', '.')) || 0;
@@ -388,6 +443,36 @@ export default function InvestmentsPage() {
                                         {tickerStatus === 'found' && <span className="text-emerald-400">✓</span>}
                                         {tickerStatus === 'not_found' && <span className="text-red-400">✗</span>}
                                     </div>
+
+                                    {/* Suggestions Dropdown */}
+                                    <AnimatePresence>
+                                        {showSuggestions && suggestions.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 4 }}
+                                                className="absolute left-0 right-0 top-full mt-2 bg-charcoal-bg border border-graphite-border rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto overflow-x-hidden"
+                                            >
+                                                {suggestions.map((s, idx) => (
+                                                    <button
+                                                        key={`${s.symbol}-${idx}`}
+                                                        type="button"
+                                                        onClick={() => handleSelectSuggestion(s)}
+                                                        className="w-full text-left px-4 py-3 hover:bg-graphite-border/30 border-b border-graphite-border/50 last:border-0 transition-colors flex items-center justify-between gap-3"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-bold text-crisp-white">{s.ticker}</p>
+                                                            <p className="text-[10px] text-slate-low truncate">{s.name}</p>
+                                                        </div>
+                                                        <div className="text-right flex-shrink-0">
+                                                            <p className="text-[10px] text-royal-purple font-semibold uppercase">{s.exchange}</p>
+                                                            <p className="text-[9px] text-slate-low/60">{s.type}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                                 <AnimatePresence>
                                     {tickerStatus === 'found' && tickerInfo && (

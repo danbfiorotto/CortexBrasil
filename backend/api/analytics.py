@@ -114,6 +114,21 @@ async def search_ticker_endpoint(
     return result
 
 
+@router.get("/investments/suggest")
+async def suggest_tickers_endpoint(
+    q: str,
+    current_user_phone: str = Depends(get_current_user),
+):
+    """
+    Returns a list of ticker suggestions based on a query.
+    Used for autocomplete.
+    """
+    if not q or len(q.strip()) < 2:
+        return []
+    from backend.integrations.market_scrapers import suggest_tickers
+    return await suggest_tickers(q.strip().upper())
+
+
 @router.get("/investments")
 async def get_investments(
     current_user_phone: str = Depends(get_current_user),
