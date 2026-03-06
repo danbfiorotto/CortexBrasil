@@ -52,6 +52,13 @@ export default function TransactionsPage() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const parseDecimal = (val: string) => parseFloat(String(val).replace(',', '.')) || 0;
 
+    const handleDecimalKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'];
+        if (allowed.includes(e.key)) return;
+        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key)) return;
+        if (!/^[\d,.]$/.test(e.key)) e.preventDefault();
+    };
+
     const [editingTx, setEditingTx] = useState<Transaction | null>(null);
     const [editForm, setEditForm] = useState({ description: '', category: '', amount: '' as string | number, date: '', account_id: '' });
     const [categories, setCategories] = useState<string[]>([]);
@@ -857,6 +864,7 @@ export default function TransactionsPage() {
                                             inputMode="decimal"
                                             placeholder="0,00"
                                             value={editForm.amount}
+                                            onKeyDown={handleDecimalKeyDown}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
@@ -1023,6 +1031,7 @@ export default function TransactionsPage() {
                                             inputMode="decimal"
                                             placeholder="0,00"
                                             value={addForm.amount}
+                                            onKeyDown={handleDecimalKeyDown}
                                             onChange={(e) => setAddForm(prev => ({ ...prev, amount: e.target.value }))}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />

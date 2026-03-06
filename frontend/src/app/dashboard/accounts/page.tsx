@@ -31,6 +31,13 @@ export default function AccountsPage() {
     const [showForm, setShowForm] = useState(false);
     const parseDecimal = (val: string) => parseFloat(String(val).replace(',', '.')) || 0;
 
+    const handleDecimalKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'];
+        if (allowed.includes(e.key)) return;
+        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key)) return;
+        if (!/^[\d,.]$/.test(e.key)) e.preventDefault();
+    };
+
     const [formData, setFormData] = useState({
         name: '',
         type: 'CHECKING',
@@ -300,6 +307,7 @@ export default function AccountsPage() {
                                         inputMode="decimal"
                                         placeholder="0,00"
                                         value={formData.initial_balance}
+                                        onKeyDown={handleDecimalKeyDown}
                                         onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                     />
@@ -315,6 +323,7 @@ export default function AccountsPage() {
                                             inputMode="decimal"
                                             placeholder="0,00"
                                             value={formData.credit_limit}
+                                            onKeyDown={handleDecimalKeyDown}
                                             onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
@@ -471,6 +480,7 @@ export default function AccountsPage() {
                                         inputMode="decimal"
                                         placeholder="0,00"
                                         value={adjustForm.new_balance}
+                                        onKeyDown={handleDecimalKeyDown}
                                         onChange={(e) => setAdjustForm({ ...adjustForm, new_balance: e.target.value })}
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         required
@@ -572,6 +582,7 @@ export default function AccountsPage() {
                                                 inputMode="decimal"
                                                 placeholder="0,00"
                                                 value={editForm.credit_limit}
+                                                onKeyDown={handleDecimalKeyDown}
                                                 onChange={(e) => setEditForm({ ...editForm, credit_limit: e.target.value })}
                                                 className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                             />

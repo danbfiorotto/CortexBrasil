@@ -169,6 +169,13 @@ export default function InvestmentsPage() {
 
     const parseDecimal = (val: string) => parseFloat(val.replace(',', '.')) || 0;
 
+    const handleDecimalKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'];
+        if (allowed.includes(e.key)) return;
+        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key)) return;
+        if (!/^[\d,.]$/.test(e.key)) e.preventDefault();
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (tickerStatus !== 'found') return;
@@ -444,6 +451,7 @@ export default function InvestmentsPage() {
                                     inputMode="decimal"
                                     placeholder="0"
                                     value={formData.quantity}
+                                    onKeyDown={handleDecimalKeyDown}
                                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                     required
@@ -456,6 +464,7 @@ export default function InvestmentsPage() {
                                     inputMode="decimal"
                                     placeholder="0,00"
                                     value={formData.avg_price}
+                                    onKeyDown={handleDecimalKeyDown}
                                     onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                     required
@@ -726,6 +735,7 @@ export default function InvestmentsPage() {
                                                     type="text"
                                                     inputMode="decimal"
                                                     value={sellData.quantity}
+                                                    onKeyDown={handleDecimalKeyDown}
                                                     onChange={(e) => setSellData(prev => ({ ...prev, quantity: e.target.value }))}
                                                     placeholder="0"
                                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
@@ -737,6 +747,7 @@ export default function InvestmentsPage() {
                                                     type="text"
                                                     inputMode="decimal"
                                                     value={sellData.sale_price}
+                                                    onKeyDown={handleDecimalKeyDown}
                                                     onChange={(e) => setSellData(prev => ({ ...prev, sale_price: e.target.value }))}
                                                     placeholder="0,00"
                                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
