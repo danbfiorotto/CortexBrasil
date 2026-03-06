@@ -829,15 +829,18 @@ export default function TransactionsPage() {
                                 {editingTx?.type !== 'INCOME' && (
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                                        <select
+                                        <input
+                                            list="edit-categories-list"
                                             value={editForm.category}
                                             onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
-                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all appearance-none"
-                                        >
+                                            placeholder="Selecione ou crie uma categoria..."
+                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        />
+                                        <datalist id="edit-categories-list">
                                             {categories.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
+                                                <option key={cat} value={cat} />
                                             ))}
-                                        </select>
+                                        </datalist>
                                     </div>
                                 )}
 
