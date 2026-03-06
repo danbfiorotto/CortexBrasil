@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Cortex Brasil - Financial Dashboard",
+  title: "Cortex Brasil - Painel Financeiro",
   description:
-    "Domine suas finanças com Inteligência Artificial. Dashboard financeiro premium.",
+    "Domine suas finanças com Inteligência Artificial. Painel financeiro premium.",
 };
 
 export default function RootLayout({

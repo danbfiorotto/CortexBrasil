@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
-    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Painel', href: '/dashboard' },
     { name: 'Transações', href: '/dashboard/transactions' },
     { name: 'Contas', href: '/dashboard/accounts' },
     { name: 'Investimentos', href: '/dashboard/investments' },
