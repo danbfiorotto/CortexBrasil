@@ -616,12 +616,11 @@ export default function TransactionsPage() {
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
                                                     <div className="flex items-center gap-2">
-                                                        <div className={`size-1.5 rounded-full ${tx.is_cleared
-                                                            ? 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.4)]'
-                                                            : 'bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.4)]'
-                                                            }`} />
-                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-vibrant' : 'text-slate-500'}`}>
-                                                            {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Cleared' : 'Pending'}
+                                                        <span className={`text-base leading-none ${tx.is_cleared ? '' : 'scale-x-[-1] inline-block'}`}>
+                                                            {tx.is_cleared ? '👍' : '👎'}
+                                                        </span>
+                                                        <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Pago' : 'Não pago'}
                                                         </span>
                                                     </div>
                                                 </td>
