@@ -72,5 +72,6 @@ docker-compose up -d   # Starts: app, db, redis, vllm, cloudflared
 
 ## Workflow
 
-- Always commit + push to GitHub after code changes
+- Always commit + push to GitHub after **any** code change (frontend or backend)
+- Always restart the uvicorn backend server after any Python backend change
 - Remote: `https://github.com/danbfiorotto/CortexBrasil.git` (branch: main)

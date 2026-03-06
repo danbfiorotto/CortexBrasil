@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import Cookies from 'js-cookie';
@@ -15,6 +15,28 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [instruction, setInstruction] = useState('');
+    const [resendCooldown, setResendCooldown] = useState(0);
+
+    const cooldownRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+        };
+    }, []);
+
+    const startCooldown = () => {
+        setResendCooldown(30);
+        cooldownRef.current = setInterval(() => {
+            setResendCooldown(prev => {
+                if (prev <= 1) {
+                    clearInterval(cooldownRef.current!);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
 
     const handleRequestOtp = async () => {
         setLoading(true);
@@ -24,8 +46,25 @@ export default function LoginPage() {
             const response = await api.post('/auth/request-otp', { phone_number: formattedPhone });
             setInstruction(response.data.instruction || 'Código enviado!');
             setStep('otp');
+            startCooldown();
         } catch (err: any) {
             setError('Erro ao enviar código. Verifique o número.');
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const formattedPhone = phone.replace(/\D/g, '');
+            const response = await api.post('/auth/request-otp', { phone_number: formattedPhone });
+            setInstruction(response.data.instruction || 'Código reenviado!');
+            startCooldown();
+        } catch (err: any) {
+            setError('Erro ao reenviar código. Tente novamente.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -192,6 +231,18 @@ export default function LoginPage() {
                                 <div className="bg-royal-purple/10 p-3 rounded-lg border border-royal-purple/20 text-center">
                                     <p className="text-xs text-royal-purple font-medium">{instruction}</p>
                                 </div>
+
+                                <button
+                                    onClick={handleResendOtp}
+                                    disabled={loading || resendCooldown > 0}
+                                    className="w-full text-xs font-bold text-slate-low hover:text-emerald-vibrant disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 transition-colors -mt-2"
+                                >
+                                    <span className="material-symbols-outlined text-sm">refresh</span>
+                                    {resendCooldown > 0
+                                        ? `Reenviar código (${resendCooldown}s)`
+                                        : 'Reenviar código'
+                                    }
+                                </button>
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-low uppercase tracking-widest mb-2">Código de 6 dígitos</label>
