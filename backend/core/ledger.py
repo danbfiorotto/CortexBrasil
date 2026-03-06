@@ -69,7 +69,9 @@ class LedgerService:
         """
         # RLS injection usually happens at Request middleware level.
         # Assuming RLS is active or we filter by phone manually as a fallback
-        result = await self.session.execute(select(Account).where(Account.user_phone == user_phone))
+        result = await self.session.execute(
+            select(Account).where(Account.user_phone == user_phone, Account.is_active == True)
+        )
         return result.scalars().all()
 
     async def get_account_by_name(self, user_phone: str, name: str, acc_type: str = None):

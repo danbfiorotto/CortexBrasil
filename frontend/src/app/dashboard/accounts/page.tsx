@@ -43,6 +43,22 @@ export default function AccountsPage() {
     const [adjustSubmitting, setAdjustSubmitting] = useState(false);
     const [adjustError, setAdjustError] = useState('');
 
+    // Edit state
+    const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        credit_limit: 0,
+        due_day: 10,
+        days_before_closing: 7,
+        closing_day: 3,
+    });
+    const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editError, setEditError] = useState('');
+
+    // Delete state
+    const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
     const fetchAccounts = useCallback(async () => {
         const token = Cookies.get('token');
         try {
@@ -131,6 +147,73 @@ export default function AccountsPage() {
             setAdjustError('Erro de conexão.');
         } finally {
             setAdjustSubmitting(false);
+        }
+    };
+
+    const openEdit = (acc: Account) => {
+        const daysBeforeClosing = acc.due_day && acc.closing_day
+            ? ((acc.due_day - acc.closing_day + 31) % 31) || 7
+            : 7;
+        setEditingAccount(acc);
+        setEditForm({
+            name: acc.name,
+            credit_limit: acc.credit_limit || 0,
+            due_day: acc.due_day || 10,
+            days_before_closing: daysBeforeClosing,
+            closing_day: acc.closing_day || 3,
+        });
+        setEditError('');
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingAccount) return;
+        setEditSubmitting(true);
+        setEditError('');
+        const token = Cookies.get('token');
+        try {
+            const body: Record<string, unknown> = { name: editForm.name };
+            if (editingAccount.type === 'CREDIT') {
+                body.credit_limit = editForm.credit_limit;
+                body.due_day = editForm.due_day;
+                body.closing_day = ((editForm.due_day - editForm.days_before_closing - 1 + 31) % 31) + 1;
+            }
+            const res = await fetch(`${API_URL}/api/accounts/${editingAccount.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify(body),
+            });
+            if (res.ok) {
+                setEditingAccount(null);
+                await fetchAccounts();
+            } else {
+                const data = await res.json();
+                setEditError(data.detail || 'Erro ao editar conta.');
+            }
+        } catch {
+            setEditError('Erro de conexão.');
+        } finally {
+            setEditSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!deletingAccount) return;
+        setDeleteSubmitting(true);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/accounts/${deletingAccount.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok || res.status === 204) {
+                setDeletingAccount(null);
+                await fetchAccounts();
+            }
+        } catch {
+            // silent fail — fetchAccounts will reflect the actual state
+        } finally {
+            setDeleteSubmitting(false);
         }
     };
 
@@ -301,6 +384,22 @@ export default function AccountsPage() {
                                             <p className="text-[10px] text-slate-low uppercase tracking-wider font-black">{typeInfo.label}</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => openEdit(acc)}
+                                            className="p-1.5 rounded-lg hover:bg-royal-purple/20 text-slate-low hover:text-royal-purple transition-colors"
+                                            title="Editar conta"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">edit</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setDeletingAccount(acc)}
+                                            className="p-1.5 rounded-lg hover:bg-crimson-bright/20 text-slate-low hover:text-crimson-bright transition-colors"
+                                            title="Excluir conta"
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <p className={`text-xl font-bold ${acc.current_balance >= 0 ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
@@ -313,7 +412,7 @@ export default function AccountsPage() {
                                             className="flex items-center gap-1 text-[9px] text-slate-low hover:text-royal-purple transition-colors uppercase font-black tracking-widest"
                                             title="Ajustar saldo"
                                         >
-                                            <span className="material-symbols-outlined text-[13px]">edit</span>
+                                            <span className="material-symbols-outlined text-[13px]">tune</span>
                                             Ajustar
                                         </button>
                                     </div>
@@ -414,6 +513,171 @@ export default function AccountsPage() {
                 )}
             </AnimatePresence>
 
+            {/* Edit Account Modal */}
+            <AnimatePresence>
+                {editingAccount && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setEditingAccount(null)}
+                            className="absolute inset-0 bg-charcoal-bg/95 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card rounded-3xl p-8 border border-graphite-border"
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-royal-purple/10 border border-royal-purple/20 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-royal-purple text-xl">edit</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-crisp-white">Editar Conta</p>
+                                    <p className="text-[10px] text-slate-low uppercase tracking-wider font-black">
+                                        {ACCOUNT_TYPE_MAP[editingAccount.type]?.label}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleEditSubmit} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">
+                                        {editingAccount.type === 'CREDIT' ? 'Nome do Cartão' : 'Nome da Conta'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                {editingAccount.type === 'CREDIT' && (
+                                    <>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Limite do Cartão (R$)</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editForm.credit_limit}
+                                                onChange={(e) => setEditForm({ ...editForm, credit_limit: parseFloat(e.target.value) || 0 })}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Dia de Vencimento</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="31"
+                                                value={editForm.due_day}
+                                                onChange={(e) => setEditForm({ ...editForm, due_day: parseInt(e.target.value) || 10 })}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Dias antes do fechamento</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="30"
+                                                value={editForm.days_before_closing}
+                                                onChange={(e) => setEditForm({ ...editForm, days_before_closing: parseInt(e.target.value) || 7 })}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                            />
+                                            <p className="text-[10px] text-slate-low pl-1">
+                                                Fecha {editForm.days_before_closing}d antes → dia {((editForm.due_day - editForm.days_before_closing - 1 + 31) % 31) + 1}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+
+                                {editError && (
+                                    <p className="text-sm text-crimson-bright">{editError}</p>
+                                )}
+
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditingAccount(null)}
+                                        className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={editSubmitting}
+                                        className="px-5 py-2 rounded-xl bg-royal-purple hover:bg-royal-purple/80 text-sm font-semibold transition-all disabled:opacity-50"
+                                    >
+                                        {editSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {deletingAccount && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => !deleteSubmitting && setDeletingAccount(null)}
+                            className="absolute inset-0 bg-charcoal-bg/95 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-md bg-graphite-card rounded-3xl p-8 border border-graphite-border"
+                        >
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-crimson-bright/10 border border-crimson-bright/20 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-crimson-bright text-xl">delete</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-crisp-white">Excluir Conta</p>
+                                    <p className="text-[10px] text-slate-low uppercase tracking-wider font-black">{deletingAccount.name}</p>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-slate-low mb-2">
+                                Tem certeza que deseja excluir esta conta?
+                            </p>
+                            <p className="text-xs text-slate-low/70 mb-6">
+                                Os lançamentos anteriores serão mantidos no histórico de transações. Não será mais possível registrar novas transações nesta conta.
+                            </p>
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeletingAccount(null)}
+                                    disabled={deleteSubmitting}
+                                    className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors disabled:opacity-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={deleteSubmitting}
+                                    className="px-5 py-2 rounded-xl bg-crimson-bright hover:bg-red-500 text-sm font-semibold transition-all disabled:opacity-50"
+                                >
+                                    {deleteSubmitting ? 'Excluindo...' : 'Sim, excluir'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Credit Cards Section */}
             <div className="space-y-4 pt-4">
                 <h3 className="text-sm font-black text-slate-low uppercase tracking-widest flex items-center gap-2">
@@ -433,7 +697,7 @@ export default function AccountsPage() {
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: i * 0.05 }}
-                                className="glass-panel rounded-2xl p-6 bg-gradient-to-br from-graphite-card/80 to-charcoal-bg/80 border border-graphite-border hover:border-royal-purple/40 transition-all"
+                                className="glass-panel rounded-2xl p-6 bg-gradient-to-br from-graphite-card/80 to-charcoal-bg/80 border border-graphite-border hover:border-royal-purple/40 transition-all group"
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex items-center gap-3">
@@ -445,9 +709,27 @@ export default function AccountsPage() {
                                             <p className="text-[10px] text-slate-low font-black uppercase tracking-wider">Vence dia {acc.due_day}</p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[9px] text-slate-low font-black uppercase tracking-widest mb-1">Fatura Atual</p>
-                                        <p className="text-lg font-bold text-crisp-white">{formatCurrency(usedBala)}</p>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => openEdit(acc)}
+                                                className="p-1.5 rounded-lg hover:bg-royal-purple/20 text-slate-low hover:text-royal-purple transition-colors"
+                                                title="Editar cartão"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">edit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setDeletingAccount(acc)}
+                                                className="p-1.5 rounded-lg hover:bg-crimson-bright/20 text-slate-low hover:text-crimson-bright transition-colors"
+                                                title="Excluir cartão"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">delete</span>
+                                            </button>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[9px] text-slate-low font-black uppercase tracking-widest mb-1">Fatura Atual</p>
+                                            <p className="text-lg font-bold text-crisp-white">{formatCurrency(usedBala)}</p>
+                                        </div>
                                     </div>
                                 </div>
 

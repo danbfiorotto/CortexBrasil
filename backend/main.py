@@ -94,6 +94,16 @@ async def lifespan(app: FastAPI):
             await raw.driver_connection.execute(sql)
             logger.info("✅ Investment performance history migration applied (009)")
 
+    # Add is_active column to accounts (soft delete support)
+    migration_010_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "010_add_is_active_to_accounts.sql")
+    if os.path.exists(migration_010_path):
+        async with engine.begin() as conn:
+            with open(migration_010_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ is_active column migration applied (010)")
+
     # Populate benchmark history in background (idempotent - only inserts missing dates)
     asyncio.create_task(fetch_all_benchmarks())
     logger.info("⏳ Benchmark history fetch started in background")

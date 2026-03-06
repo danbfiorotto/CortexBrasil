@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text, insert
+from sqlalchemy import text, insert, select
 from pydantic import BaseModel, Field
 from typing import Optional
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from backend.core.ledger import LedgerService
-from backend.db.models import Transaction
+from backend.db.models import Transaction, Account
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import uuid
@@ -18,6 +18,13 @@ logger = logging.getLogger(__name__)
 class BalanceAdjust(BaseModel):
     new_balance: float
     description: Optional[str] = None
+
+
+class AccountUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    credit_limit: Optional[float] = None
+    due_day: Optional[int] = Field(default=None, ge=1, le=31)
+    closing_day: Optional[int] = Field(default=None, ge=1, le=31)
 
 
 class AccountCreate(BaseModel):
@@ -194,3 +201,85 @@ async def adjust_account_balance(
         "due_day": account.due_day,
         "closing_day": account.closing_day,
     }
+
+
+@router.put("/{account_id}")
+async def update_account(
+    account_id: str,
+    payload: AccountUpdate,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Updates name and optional fields of an account."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    result = await db.execute(
+        select(Account).where(
+            Account.id == uuid.UUID(account_id),
+            Account.user_phone == current_user_phone,
+            Account.is_active == True,
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Conta não encontrada.")
+
+    # Check for name conflict (excluding self)
+    ledger = LedgerService(db)
+    existing = await ledger.get_account_by_name(current_user_phone, payload.name, account.type)
+    if existing and str(existing.id) != account_id:
+        raise HTTPException(status_code=409, detail=f"Já existe uma conta com o nome '{payload.name}'.")
+
+    account.name = payload.name
+    if payload.credit_limit is not None:
+        account.credit_limit = payload.credit_limit
+    if payload.due_day is not None:
+        account.due_day = payload.due_day
+    if payload.closing_day is not None:
+        account.closing_day = payload.closing_day
+
+    await db.commit()
+    await db.refresh(account)
+    logger.info(f"Account {account_id} updated by {current_user_phone}")
+
+    return {
+        "id": str(account.id),
+        "name": account.name,
+        "type": account.type,
+        "initial_balance": account.initial_balance,
+        "current_balance": account.current_balance,
+        "credit_limit": account.credit_limit,
+        "due_day": account.due_day,
+        "closing_day": account.closing_day,
+    }
+
+
+@router.delete("/{account_id}", status_code=204)
+async def delete_account(
+    account_id: str,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Soft-deletes an account. Past transactions are preserved; new ones cannot be added."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    result = await db.execute(
+        select(Account).where(
+            Account.id == uuid.UUID(account_id),
+            Account.user_phone == current_user_phone,
+            Account.is_active == True,
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Conta não encontrada.")
+
+    account.is_active = False
+    await db.commit()
+    logger.info(f"Account {account_id} soft-deleted by {current_user_phone}")
