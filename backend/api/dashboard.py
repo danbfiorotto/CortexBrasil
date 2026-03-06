@@ -153,15 +153,17 @@ async def create_transaction(
     ledger = LedgerService(db)
     
     try:
+        is_cleared_val = payload.get("is_cleared")
         tx = await ledger.register_transaction(
             user_phone=current_user_phone,
             amount=float(payload.get("amount", 0)),
             category=payload.get("category", "Outros"),
             description=payload.get("description", ""),
             tx_type=payload.get("type", "EXPENSE"),
-            account_id=payload.get("account_id"), # Pass account_id if available
+            account_id=payload.get("account_id"),
             installments=payload.get("installments"),
-            date=datetime.fromisoformat(payload["date"]) if payload.get("date") else None
+            date=datetime.fromisoformat(payload["date"]) if payload.get("date") else None,
+            is_cleared=is_cleared_val if is_cleared_val is not None else None
         )
         await db.commit()
         return {"status": "success", "transaction_id": str(tx.id)}

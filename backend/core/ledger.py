@@ -90,18 +90,19 @@ class LedgerService:
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
-    async def register_transaction(self, 
-                                   user_phone: str, 
-                                   amount: float, 
-                                   category: str, 
-                                   description: str, 
+    async def register_transaction(self,
+                                   user_phone: str,
+                                   amount: float,
+                                   category: str,
+                                   description: str,
                                    tx_type: str = "EXPENSE",
                                    account_name: str = None,
                                    destination_account_name: str = None,
                                    account_id: UUID = None,
                                    destination_account_id: UUID = None,
                                    installments: int = None,
-                                   date: datetime = None) -> Transaction:
+                                   date: datetime = None,
+                                   is_cleared: bool = None) -> Transaction:
         """
         Central method to register Income, Expense or Transfer.
         """
@@ -185,7 +186,7 @@ class LedgerService:
              return first_tx
         else:
             # Single Transaction
-            tx = Transaction(
+            tx_kwargs = dict(
                 user_phone=user_phone,
                 account_id=resolved_account_id,
                 destination_account_id=resolved_dest_account_id,
@@ -195,5 +196,8 @@ class LedgerService:
                 description=description,
                 date=date or datetime.utcnow()
             )
+            if is_cleared is not None:
+                tx_kwargs["is_cleared"] = is_cleared
+            tx = Transaction(**tx_kwargs)
             self.session.add(tx)
             return tx

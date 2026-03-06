@@ -77,7 +77,8 @@ export default function TransactionsPage() {
         amount: '',
         date: new Date().toISOString().split('T')[0],
         installments: 1,
-        account_id: ''
+        account_id: '',
+        is_cleared: false
     });
 
     useEffect(() => {
@@ -248,6 +249,17 @@ export default function TransactionsPage() {
         }
     };
 
+    const handleToggleClear = async (tx: Transaction) => {
+        try {
+            await api.patch(`/api/dashboard/transactions/${tx.id}`, {
+                is_cleared: !tx.is_cleared
+            });
+            fetchTransactions();
+        } catch (error) {
+            console.error("Failed to toggle cleared status", error);
+        }
+    };
+
     const submitAdd = async () => {
         try {
             await api.post('/api/dashboard/transactions', {
@@ -264,7 +276,8 @@ export default function TransactionsPage() {
                 category: '',
                 amount: '',
                 date: new Date().toISOString().split('T')[0],
-                installments: 1
+                installments: 1,
+                is_cleared: false
             }));
             fetchTransactions();
             fetchAccounts(); // Refresh balances
@@ -615,14 +628,18 @@ export default function TransactionsPage() {
                                                     {tx.type === 'INCOME' ? '+ ' : '- '}{formatBRL(Math.abs(tx.amount))}
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
-                                                    <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleToggleClear(tx)}
+                                                        className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer"
+                                                        title={tx.is_cleared ? 'Marcar como não pago' : 'Marcar como pago'}
+                                                    >
                                                         <span className={`text-base leading-none ${tx.is_cleared ? '' : 'scale-x-[-1] inline-block'}`}>
                                                             {tx.is_cleared ? '👍' : '👎'}
                                                         </span>
                                                         <span className={`text-[9px] font-black uppercase tracking-widest ${tx.is_cleared ? 'text-emerald-500' : 'text-red-500'}`}>
                                                             {tx.is_installment ? tx.installment_info || 'Parcelado' : tx.is_cleared ? 'Pago' : 'Não pago'}
                                                         </span>
-                                                    </div>
+                                                    </button>
                                                 </td>
                                                 <td className="py-4 px-6 border-b border-graphite-border">
                                                     <div className="flex justify-center gap-2">
@@ -1058,6 +1075,32 @@ export default function TransactionsPage() {
                                         />
                                     </div>
                                 )}
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Status do Pagamento</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAddForm(prev => ({ ...prev, is_cleared: true }))}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${addForm.is_cleared
+                                                ? 'bg-emerald-500/15 border-emerald-500 text-emerald-500'
+                                                : 'bg-charcoal-bg border-graphite-border text-slate-low hover:border-graphite-600'
+                                            }`}
+                                        >
+                                            <span>👍</span> Pago
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAddForm(prev => ({ ...prev, is_cleared: false }))}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${!addForm.is_cleared
+                                                ? 'bg-red-500/15 border-red-500 text-red-500'
+                                                : 'bg-charcoal-bg border-graphite-border text-slate-low hover:border-graphite-600'
+                                            }`}
+                                        >
+                                            <span className="scale-x-[-1] inline-block">👎</span> Não pago
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex gap-4 mt-8">
