@@ -28,6 +28,7 @@ class AssetAddRequest(BaseModel):
     type: str = Field(..., pattern="^(STOCK|FII|CRYPTO|FIXED_INCOME)$")
     quantity: float = Field(..., gt=0)
     avg_price: float = Field(..., gt=0)
+    purchased_at: str = Field(default="")  # ISO date string, e.g. "2024-01-15"
 
 
 class AssetSellRequest(BaseModel):
@@ -139,10 +140,18 @@ async def add_asset(
     )
 
     # Insert asset (always new entry; allows multiple purchases at different prices)
+    from datetime import date as date_type
+    purchased_at = None
+    if req.purchased_at:
+        try:
+            purchased_at = date_type.fromisoformat(req.purchased_at)
+        except ValueError:
+            purchased_at = None
+
     await db.execute(
         text("""
-            INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price)
-            VALUES (gen_random_uuid(), :phone, :ticker, :name, :type, :qty, :price)
+            INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price, purchased_at)
+            VALUES (gen_random_uuid(), :phone, :ticker, :name, :type, :qty, :price, :purchased_at)
         """),
         {
             "phone": current_user_phone,
@@ -151,6 +160,7 @@ async def add_asset(
             "type": req.type,
             "qty": req.quantity,
             "price": req.avg_price,
+            "purchased_at": purchased_at or date_type.today(),
         }
     )
     await db.commit()

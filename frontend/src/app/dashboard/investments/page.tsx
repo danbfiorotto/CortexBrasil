@@ -69,7 +69,7 @@ export default function InvestmentsPage() {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
-        ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0,
+        ticker: '', name: '', type: 'STOCK', quantity: '', avg_price: '', purchased_at: new Date().toISOString().split('T')[0],
     });
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
@@ -82,7 +82,7 @@ export default function InvestmentsPage() {
 
     // Action modal state
     const [actionModal, setActionModal] = useState<ActionModal>(null);
-    const [sellData, setSellData] = useState({ quantity: 0, sale_price: 0, account_id: '' });
+    const [sellData, setSellData] = useState({ quantity: '', sale_price: '', account_id: '' });
     const [actionSubmitting, setActionSubmitting] = useState(false);
     const [actionError, setActionError] = useState('');
 
@@ -167,6 +167,8 @@ export default function InvestmentsPage() {
         }, 500);
     };
 
+    const parseDecimal = (val: string) => parseFloat(val.replace(',', '.')) || 0;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (tickerStatus !== 'found') return;
@@ -174,17 +176,22 @@ export default function InvestmentsPage() {
         setSubmitting(true);
         const token = Cookies.get('token');
         try {
+            const payload = {
+                ...formData,
+                quantity: parseDecimal(formData.quantity),
+                avg_price: parseDecimal(formData.avg_price),
+            };
             const res = await fetch(`${API_URL}/api/analytics/investments/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
             if (res.ok) {
                 setShowForm(false);
-                setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
+                setFormData({ ticker: '', name: '', type: 'STOCK', quantity: '', avg_price: '', purchased_at: new Date().toISOString().split('T')[0] });
                 setTickerStatus('idle');
                 setTickerInfo(null);
                 await fetchPortfolio();
@@ -205,11 +212,11 @@ export default function InvestmentsPage() {
         setTickerStatus('idle');
         setTickerInfo(null);
         setSubmitError('');
-        setFormData({ ticker: '', name: '', type: 'STOCK', quantity: 0, avg_price: 0 });
+        setFormData({ ticker: '', name: '', type: 'STOCK', quantity: '', avg_price: '', purchased_at: new Date().toISOString().split('T')[0] });
     };
 
     const openSell = (holding: Holding) => {
-        setSellData({ quantity: 0, sale_price: holding.current_price, account_id: '' });
+        setSellData({ quantity: '', sale_price: holding.current_price.toString(), account_id: '' });
         setActionError('');
         setActionModal({ type: 'sell', holding });
     };
@@ -253,13 +260,18 @@ export default function InvestmentsPage() {
         setActionError('');
         const token = Cookies.get('token');
         try {
+            const sellPayload = {
+                ...sellData,
+                quantity: parseDecimal(sellData.quantity),
+                sale_price: parseDecimal(sellData.sale_price),
+            };
             const res = await fetch(`${API_URL}/api/analytics/investments/${actionModal.holding.id}/sell`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(sellData),
+                body: JSON.stringify(sellPayload),
             });
             if (res.ok) {
                 closeModal();
@@ -339,7 +351,7 @@ export default function InvestmentsPage() {
                         className="glass-panel rounded-2xl p-6 space-y-4 overflow-hidden"
                     >
                         <h3 className="text-lg font-semibold">Adicionar Ativo</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                             {/* Ticker with live search */}
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Ticker</label>
@@ -428,10 +440,11 @@ export default function InvestmentsPage() {
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Quantidade</label>
                                 <input
-                                    type="number"
-                                    step="0.00000001"
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0"
                                     value={formData.quantity}
-                                    onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
+                                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                     required
                                 />
@@ -439,10 +452,21 @@ export default function InvestmentsPage() {
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Preço Médio</label>
                                 <input
-                                    type="number"
-                                    step="0.01"
+                                    type="text"
+                                    inputMode="decimal"
+                                    placeholder="0,00"
                                     value={formData.avg_price}
-                                    onChange={(e) => setFormData({ ...formData, avg_price: parseFloat(e.target.value) || 0 })}
+                                    onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
+                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Data de Compra</label>
+                                <input
+                                    type="date"
+                                    value={formData.purchased_at}
+                                    onChange={(e) => setFormData({ ...formData, purchased_at: e.target.value })}
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                     required
                                 />
@@ -452,15 +476,34 @@ export default function InvestmentsPage() {
                             {submitError && (
                                 <p className="text-xs text-red-400 mr-auto">{submitError}</p>
                             )}
-                            <button type="button" onClick={handleCloseForm} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
+                            {submitting && (
+                                <p className="text-xs text-emerald-400 mr-auto flex items-center gap-2">
+                                    <motion.span
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 0.8 }}
+                                        className="inline-block w-3 h-3 border-t-2 border-emerald-400 rounded-full"
+                                    />
+                                    Salvando e buscando cotação...
+                                </p>
+                            )}
+                            <button type="button" onClick={handleCloseForm} disabled={submitting} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors disabled:opacity-40">
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
                                 disabled={submitting || tickerStatus !== 'found'}
-                                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-sm font-semibold transition-all disabled:opacity-50"
+                                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-sm font-semibold transition-all disabled:opacity-50 flex items-center gap-2"
                             >
-                                {submitting ? 'Salvando...' : 'Adicionar'}
+                                {submitting ? (
+                                    <>
+                                        <motion.span
+                                            animate={{ rotate: 360 }}
+                                            transition={{ repeat: Infinity, duration: 0.8 }}
+                                            className="inline-block w-4 h-4 border-t-2 border-white rounded-full"
+                                        />
+                                        Salvando...
+                                    </>
+                                ) : 'Adicionar'}
                             </button>
                         </div>
                     </motion.form>
@@ -680,12 +723,10 @@ export default function InvestmentsPage() {
                                             <div>
                                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Qtd. vendida</label>
                                                 <input
-                                                    type="number"
-                                                    step="0.00000001"
-                                                    min="0.00000001"
-                                                    max={actionModal.holding.quantity}
-                                                    value={sellData.quantity || ''}
-                                                    onChange={(e) => setSellData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={sellData.quantity}
+                                                    onChange={(e) => setSellData(prev => ({ ...prev, quantity: e.target.value }))}
                                                     placeholder="0"
                                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
                                                 />
@@ -693,22 +734,21 @@ export default function InvestmentsPage() {
                                             <div>
                                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Preço de venda</label>
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0.01"
-                                                    value={sellData.sale_price || ''}
-                                                    onChange={(e) => setSellData(prev => ({ ...prev, sale_price: parseFloat(e.target.value) || 0 }))}
+                                                    type="text"
+                                                    inputMode="decimal"
+                                                    value={sellData.sale_price}
+                                                    onChange={(e) => setSellData(prev => ({ ...prev, sale_price: e.target.value }))}
                                                     placeholder="0,00"
                                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-amber-400 focus:outline-none transition-colors"
                                                 />
                                             </div>
                                         </div>
 
-                                        {sellData.quantity > 0 && sellData.sale_price > 0 && (
+                                        {parseDecimal(sellData.quantity) > 0 && parseDecimal(sellData.sale_price) > 0 && (
                                             <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
                                                 <p className="text-xs text-amber-400">
                                                     Total da venda:{' '}
-                                                    <strong>{formatCurrency(sellData.quantity * sellData.sale_price)}</strong>
+                                                    <strong>{formatCurrency(parseDecimal(sellData.quantity) * parseDecimal(sellData.sale_price))}</strong>
                                                 </p>
                                             </div>
                                         )}
@@ -740,7 +780,7 @@ export default function InvestmentsPage() {
                                         </button>
                                         <button
                                             onClick={handleSell}
-                                            disabled={actionSubmitting || sellData.quantity <= 0 || sellData.sale_price <= 0}
+                                            disabled={actionSubmitting || parseDecimal(sellData.quantity) <= 0 || parseDecimal(sellData.sale_price) <= 0}
                                             className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-sm font-semibold transition-all disabled:opacity-50"
                                         >
                                             {actionSubmitting ? 'Registrando...' : 'Confirmar venda'}

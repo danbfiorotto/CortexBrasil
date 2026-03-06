@@ -50,8 +50,10 @@ export default function TransactionsPage() {
     const [category, setCategory] = useState<string>('');
     const [accountFilter, setAccountFilter] = useState<string>('');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const parseDecimal = (val: string) => parseFloat(String(val).replace(',', '.')) || 0;
+
     const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-    const [editForm, setEditForm] = useState({ description: '', category: '', amount: 0, date: '', account_id: '' });
+    const [editForm, setEditForm] = useState({ description: '', category: '', amount: '' as string | number, date: '', account_id: '' });
     const [categories, setCategories] = useState<string[]>([]);
     const [showBulkCategoryMenu, setShowBulkCategoryMenu] = useState(false);
     const [aiQuery, setAiQuery] = useState('');
@@ -217,7 +219,7 @@ export default function TransactionsPage() {
         setEditForm({
             description: tx.description,
             category: tx.category,
-            amount: Math.abs(tx.amount),
+            amount: Math.abs(tx.amount).toString(),
             date: tx.date.split('T')[0],
             account_id: tx.account_id || ''
         });
@@ -226,7 +228,10 @@ export default function TransactionsPage() {
     const submitEdit = async () => {
         if (!editingTx) return;
         try {
-            await api.patch(`/api/dashboard/transactions/${editingTx.id}`, editForm);
+            await api.patch(`/api/dashboard/transactions/${editingTx.id}`, {
+                ...editForm,
+                amount: parseDecimal(String(editForm.amount)),
+            });
             setEditingTx(null);
             fetchTransactions();
             fetchAccounts(); // Refresh balances in case account was changed
@@ -241,7 +246,7 @@ export default function TransactionsPage() {
             await api.post('/api/dashboard/transactions', {
                 ...addForm,
                 category: addType === 'INCOME' ? 'Receita' : addForm.category,
-                amount: parseFloat(addForm.amount),
+                amount: parseDecimal(addForm.amount),
                 type: addType,
                 installments: addType === 'EXPENSE' ? addForm.installments : 1
             });
@@ -848,10 +853,11 @@ export default function TransactionsPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
                                         <input
-                                            type="number"
-                                            step="0.01"
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="0,00"
                                             value={editForm.amount}
-                                            onChange={(e) => setEditForm(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
                                     </div>
@@ -1013,8 +1019,8 @@ export default function TransactionsPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Valor</label>
                                         <input
-                                            type="number"
-                                            step="0.01"
+                                            type="text"
+                                            inputMode="decimal"
                                             placeholder="0,00"
                                             value={addForm.amount}
                                             onChange={(e) => setAddForm(prev => ({ ...prev, amount: e.target.value }))}

@@ -29,17 +29,19 @@ export default function AccountsPage() {
     const [totalBalance, setTotalBalance] = useState(0);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const parseDecimal = (val: string) => parseFloat(String(val).replace(',', '.')) || 0;
+
     const [formData, setFormData] = useState({
         name: '',
         type: 'CHECKING',
-        initial_balance: 0,
-        credit_limit: 0,
+        initial_balance: '' as string | number,
+        credit_limit: '' as string | number,
         due_day: 10,
         days_before_closing: 7
     });
     const [submitting, setSubmitting] = useState(false);
     const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
-    const [adjustForm, setAdjustForm] = useState({ new_balance: 0, description: '' });
+    const [adjustForm, setAdjustForm] = useState({ new_balance: '' as string | number, description: '' });
     const [adjustSubmitting, setAdjustSubmitting] = useState(false);
     const [adjustError, setAdjustError] = useState('');
 
@@ -47,7 +49,7 @@ export default function AccountsPage() {
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [editForm, setEditForm] = useState({
         name: '',
-        credit_limit: 0,
+        credit_limit: '' as string | number,
         due_day: 10,
         days_before_closing: 7,
         closing_day: 3,
@@ -94,6 +96,8 @@ export default function AccountsPage() {
                 },
                 body: JSON.stringify({
                     ...formData,
+                    initial_balance: parseDecimal(String(formData.initial_balance)),
+                    credit_limit: parseDecimal(String(formData.credit_limit)),
                     closing_day: formData.type === 'CREDIT'
                         ? ((formData.due_day - formData.days_before_closing - 1 + 31) % 31) + 1
                         : undefined,
@@ -104,8 +108,8 @@ export default function AccountsPage() {
                 setFormData({
                     name: '',
                     type: 'CHECKING',
-                    initial_balance: 0,
-                    credit_limit: 0,
+                    initial_balance: '',
+                    credit_limit: '',
                     due_day: 10,
                     days_before_closing: 7
                 });
@@ -120,7 +124,7 @@ export default function AccountsPage() {
 
     const openAdjust = (acc: Account) => {
         setAdjustingAccount(acc);
-        setAdjustForm({ new_balance: acc.current_balance, description: '' });
+        setAdjustForm({ new_balance: acc.current_balance.toString(), description: '' });
         setAdjustError('');
     };
 
@@ -134,7 +138,7 @@ export default function AccountsPage() {
             const res = await fetch(`${API_URL}/api/accounts/${adjustingAccount.id}/balance`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(adjustForm),
+                body: JSON.stringify({ ...adjustForm, new_balance: parseDecimal(String(adjustForm.new_balance)) }),
             });
             if (res.ok) {
                 setAdjustingAccount(null);
@@ -157,7 +161,7 @@ export default function AccountsPage() {
         setEditingAccount(acc);
         setEditForm({
             name: acc.name,
-            credit_limit: acc.credit_limit || 0,
+            credit_limit: acc.credit_limit ? acc.credit_limit.toString() : '',
             due_day: acc.due_day || 10,
             days_before_closing: daysBeforeClosing,
             closing_day: acc.closing_day || 3,
@@ -174,7 +178,7 @@ export default function AccountsPage() {
         try {
             const body: Record<string, unknown> = { name: editForm.name };
             if (editingAccount.type === 'CREDIT') {
-                body.credit_limit = editForm.credit_limit;
+                body.credit_limit = parseDecimal(String(editForm.credit_limit));
                 body.due_day = editForm.due_day;
                 body.closing_day = ((editForm.due_day - editForm.days_before_closing - 1 + 31) % 31) + 1;
             }
@@ -292,10 +296,11 @@ export default function AccountsPage() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Saldo Inicial</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0,00"
                                         value={formData.initial_balance}
-                                        onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
+                                        onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                     />
                                 </div>
@@ -306,10 +311,11 @@ export default function AccountsPage() {
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Limite do Cartão</label>
                                         <input
-                                            type="number"
-                                            step="0.01"
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="0,00"
                                             value={formData.credit_limit}
-                                            onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })}
+                                            onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })}
                                             className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         />
                                     </div>
@@ -461,18 +467,19 @@ export default function AccountsPage() {
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Novo Saldo (R$)</label>
                                     <input
-                                        type="number"
-                                        step="0.01"
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0,00"
                                         value={adjustForm.new_balance}
-                                        onChange={(e) => setAdjustForm({ ...adjustForm, new_balance: parseFloat(e.target.value) || 0 })}
+                                        onChange={(e) => setAdjustForm({ ...adjustForm, new_balance: e.target.value })}
                                         className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                         required
                                     />
                                 </div>
 
-                                {adjustForm.new_balance !== adjustingAccount.current_balance && (
-                                    <div className={`text-sm font-semibold ${adjustForm.new_balance > adjustingAccount.current_balance ? 'text-emerald-400' : 'text-crimson-bright'}`}>
-                                        Diferença: {adjustForm.new_balance > adjustingAccount.current_balance ? '+' : ''}{formatCurrency(adjustForm.new_balance - adjustingAccount.current_balance)}
+                                {parseDecimal(String(adjustForm.new_balance)) !== adjustingAccount.current_balance && (
+                                    <div className={`text-sm font-semibold ${parseDecimal(String(adjustForm.new_balance)) > adjustingAccount.current_balance ? 'text-emerald-400' : 'text-crimson-bright'}`}>
+                                        Diferença: {parseDecimal(String(adjustForm.new_balance)) > adjustingAccount.current_balance ? '+' : ''}{formatCurrency(parseDecimal(String(adjustForm.new_balance)) - adjustingAccount.current_balance)}
                                     </div>
                                 )}
 
@@ -501,7 +508,7 @@ export default function AccountsPage() {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={adjustSubmitting || adjustForm.new_balance === adjustingAccount.current_balance}
+                                        disabled={adjustSubmitting || parseDecimal(String(adjustForm.new_balance)) === adjustingAccount.current_balance}
                                         className="px-5 py-2 rounded-xl bg-royal-purple hover:bg-royal-purple/80 text-sm font-semibold transition-all disabled:opacity-50"
                                     >
                                         {adjustSubmitting ? 'Salvando...' : 'Confirmar Ajuste'}
@@ -561,10 +568,11 @@ export default function AccountsPage() {
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-slate-low uppercase tracking-widest">Limite do Cartão (R$)</label>
                                             <input
-                                                type="number"
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="0,00"
                                                 value={editForm.credit_limit}
-                                                onChange={(e) => setEditForm({ ...editForm, credit_limit: parseFloat(e.target.value) || 0 })}
+                                                onChange={(e) => setEditForm({ ...editForm, credit_limit: e.target.value })}
                                                 className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
                                             />
                                         </div>
