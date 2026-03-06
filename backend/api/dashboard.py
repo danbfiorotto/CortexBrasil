@@ -78,7 +78,7 @@ async def get_categories(
     from backend.db.models import Transaction
     result = await db.execute(
         select(Transaction.category)
-        .where(Transaction.category != None)
+        .where(Transaction.category != None, Transaction.user_phone == current_user_phone)
         .distinct()
         .order_by(Transaction.category)
     )
