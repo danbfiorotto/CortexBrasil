@@ -778,13 +778,13 @@ export default function TransactionsPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setEditingTx(null)}
-                            className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
+                            className="absolute inset-0 z-0 bg-charcoal-bg/80 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
+                            className="relative z-10 w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
                         >
                             <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
                                 <span className="material-symbols-outlined text-royal-purple">edit_note</span>
@@ -934,13 +934,13 @@ export default function TransactionsPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsAddModalOpen(false)}
-                            className="absolute inset-0 bg-charcoal-bg/80 backdrop-blur-sm"
+                            className="absolute inset-0 z-0 bg-charcoal-bg/80 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
+                            className="relative z-10 w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
                         >
                             <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
                                 <span className={`material-symbols-outlined ${addType === 'INCOME' ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
