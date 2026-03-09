@@ -517,6 +517,15 @@ export default function TransactionsPage() {
                                     {acc.name}{acc.type === 'CREDIT' ? ' (Cartão)' : ''}
                                 </option>
                             ))}
+                            {allAccounts.filter(acc => acc.is_active === false).length > 0 && (
+                                <optgroup label="— Contas Excluídas —">
+                                    {allAccounts.filter(acc => acc.is_active === false).map(acc => (
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name}{acc.type === 'CREDIT' ? ' (Cartão)' : ''} (excluída)
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
                         </select>
                         <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-low pointer-events-none">
                             keyboard_arrow_down
