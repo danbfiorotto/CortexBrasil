@@ -473,15 +473,16 @@ export default function InvestmentsPage() {
                                                             key={`${s.symbol}-${idx}`}
                                                             type="button"
                                                             onClick={() => handleSelectSuggestion(s)}
-                                                            className="w-full text-left px-4 py-3 hover:bg-graphite-border/30 border-b border-graphite-border/50 last:border-0 transition-colors flex items-center justify-between gap-3"
+                                                            className="w-full text-left px-4 py-3 hover:bg-graphite-border/30 border-b border-graphite-border/50 last:border-0 transition-colors grid gap-x-2"
+                                                            style={{ gridTemplateColumns: '1fr auto' }}
                                                         >
-                                                            <div className="min-w-0">
-                                                                <p className="text-sm font-bold text-crisp-white">{s.ticker}</p>
+                                                            <div className="min-w-0 overflow-hidden">
+                                                                <p className="text-sm font-bold text-crisp-white truncate">{s.ticker}</p>
                                                                 <p className="text-[10px] text-slate-low truncate">{s.name}</p>
                                                             </div>
-                                                            <div className="text-right flex-shrink-0">
-                                                                <p className="text-[10px] text-royal-purple font-semibold uppercase">{s.exchange}</p>
-                                                                <p className="text-[9px] text-slate-low/60">{s.type}</p>
+                                                            <div className="text-right self-center">
+                                                                <p className="text-[10px] text-royal-purple font-semibold uppercase whitespace-nowrap">{s.exchange}</p>
+                                                                <p className="text-[9px] text-slate-low/60 whitespace-nowrap">{s.type}</p>
                                                             </div>
                                                         </button>
                                                     ))}
