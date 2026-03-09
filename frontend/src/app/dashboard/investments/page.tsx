@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
 import PortfolioAllocation from '@/components/charts/PortfolioAllocation';
@@ -82,6 +83,16 @@ export default function InvestmentsPage() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const suggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const tickerInputRef = useRef<HTMLInputElement>(null);
+    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    // Update dropdown position when it becomes visible
+    useEffect(() => {
+        if (showSuggestions && tickerInputRef.current) {
+            const rect = tickerInputRef.current.getBoundingClientRect();
+            setDropdownPos({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX, width: rect.width });
+        }
+    }, [showSuggestions, suggestions]);
 
     // Action modal state
     const [actionModal, setActionModal] = useState<ActionModal>(null);
@@ -419,6 +430,7 @@ export default function InvestmentsPage() {
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Ticker</label>
                                 <div className="relative">
                                     <input
+                                        ref={tickerInputRef}
                                         type="text"
                                         placeholder="PETR4"
                                         value={formData.ticker}
@@ -444,35 +456,40 @@ export default function InvestmentsPage() {
                                         {tickerStatus === 'not_found' && <span className="text-red-400">✗</span>}
                                     </div>
 
-                                    {/* Suggestions Dropdown */}
-                                    <AnimatePresence>
-                                        {showSuggestions && suggestions.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 4 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 4 }}
-                                                className="absolute left-0 right-0 top-full mt-2 bg-charcoal-bg border border-graphite-border rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto overflow-x-hidden"
-                                            >
-                                                {suggestions.map((s, idx) => (
-                                                    <button
-                                                        key={`${s.symbol}-${idx}`}
-                                                        type="button"
-                                                        onClick={() => handleSelectSuggestion(s)}
-                                                        className="w-full text-left px-4 py-3 hover:bg-graphite-border/30 border-b border-graphite-border/50 last:border-0 transition-colors flex items-center justify-between gap-3"
-                                                    >
-                                                        <div className="min-w-0">
-                                                            <p className="text-sm font-bold text-crisp-white">{s.ticker}</p>
-                                                            <p className="text-[10px] text-slate-low truncate">{s.name}</p>
-                                                        </div>
-                                                        <div className="text-right flex-shrink-0">
-                                                            <p className="text-[10px] text-royal-purple font-semibold uppercase">{s.exchange}</p>
-                                                            <p className="text-[9px] text-slate-low/60">{s.type}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                    {/* Suggestions Dropdown — rendered via portal to escape overflow clipping */}
+                                    {typeof document !== 'undefined' && createPortal(
+                                        <AnimatePresence>
+                                            {showSuggestions && suggestions.length > 0 && dropdownPos && (
+                                                <motion.div
+                                                    key="ticker-suggestions"
+                                                    initial={{ opacity: 0, y: 4 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 4 }}
+                                                    style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+                                                    className="bg-charcoal-bg border border-graphite-border rounded-xl shadow-2xl max-h-60 overflow-y-auto overflow-x-hidden"
+                                                >
+                                                    {suggestions.map((s, idx) => (
+                                                        <button
+                                                            key={`${s.symbol}-${idx}`}
+                                                            type="button"
+                                                            onClick={() => handleSelectSuggestion(s)}
+                                                            className="w-full text-left px-4 py-3 hover:bg-graphite-border/30 border-b border-graphite-border/50 last:border-0 transition-colors flex items-center justify-between gap-3"
+                                                        >
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm font-bold text-crisp-white">{s.ticker}</p>
+                                                                <p className="text-[10px] text-slate-low truncate">{s.name}</p>
+                                                            </div>
+                                                            <div className="text-right flex-shrink-0">
+                                                                <p className="text-[10px] text-royal-purple font-semibold uppercase">{s.exchange}</p>
+                                                                <p className="text-[9px] text-slate-low/60">{s.type}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>,
+                                        document.body
+                                    )}
                                 </div>
                                 <AnimatePresence>
                                     {tickerStatus === 'found' && tickerInfo && (
