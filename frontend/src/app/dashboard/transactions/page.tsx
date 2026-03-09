@@ -22,6 +22,7 @@ interface Account {
     name: string;
     type: string;
     current_balance: number;
+    is_active?: boolean;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -45,6 +46,7 @@ export default function TransactionsPage() {
     const [data, setData] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [accounts, setAccounts] = useState<Account[]>([]);
+    const [allAccounts, setAllAccounts] = useState<Account[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [category, setCategory] = useState<string>('');
@@ -92,10 +94,14 @@ export default function TransactionsPage() {
 
     const fetchAccounts = async () => {
         try {
-            const res = await api.get('/api/accounts/');
-            setAccounts(res.data.accounts);
-            if (res.data.accounts.length > 0 && !addForm.account_id) {
-                setAddForm(prev => ({ ...prev, account_id: res.data.accounts[0].id }));
+            const [activeRes, allRes] = await Promise.all([
+                api.get('/api/accounts/'),
+                api.get('/api/accounts/all'),
+            ]);
+            setAccounts(activeRes.data.accounts);
+            setAllAccounts(allRes.data.accounts);
+            if (activeRes.data.accounts.length > 0 && !addForm.account_id) {
+                setAddForm(prev => ({ ...prev, account_id: activeRes.data.accounts[0].id }));
             }
         } catch (error) {
             console.error("Failed to fetch accounts", error);
@@ -604,10 +610,13 @@ export default function TransactionsPage() {
                                                 <td className="py-4 px-4 border-b border-graphite-border">
                                                     <div className="flex flex-col gap-1">
                                                         {(() => {
-                                                            const acc = accounts.find(a => a.id === tx.account_id);
+                                                            const acc = allAccounts.find(a => a.id === tx.account_id);
+                                                            const isDeleted = acc && acc.is_active === false;
                                                             return (
-                                                                <span className="text-[10px] font-bold text-slate-low uppercase tracking-wider">
-                                                                    {acc ? `${acc.name}${acc.type === 'CREDIT' ? ' (Cartão)' : ''}` : 'Carteira'}
+                                                                <span className={`text-[10px] font-bold uppercase tracking-wider ${isDeleted ? 'text-slate-low/50' : 'text-slate-low'}`}>
+                                                                    {acc
+                                                                        ? `${acc.name}${acc.type === 'CREDIT' ? ' (Cartão)' : ''}${isDeleted ? ' (excluída)' : ''}`
+                                                                        : 'Carteira'}
                                                                 </span>
                                                             );
                                                         })()}

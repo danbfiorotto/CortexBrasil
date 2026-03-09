@@ -52,7 +52,7 @@ async def list_accounts(
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Returns all accounts for the authenticated user."""
+    """Returns all active accounts for the authenticated user."""
     await db.execute(
         text("SELECT set_config('app.current_user_phone', :phone, false)"),
         {"phone": current_user_phone}
@@ -78,6 +78,33 @@ async def list_accounts(
             for acc in accounts
         ],
         "total_balance": total_balance,
+    }
+
+
+@router.get("/all")
+async def list_all_accounts(
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns all accounts (active and deleted) for transaction history lookup."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    ledger = LedgerService(db)
+    accounts = await ledger.get_accounts(current_user_phone, include_inactive=True)
+
+    return {
+        "accounts": [
+            {
+                "id": str(acc.id),
+                "name": acc.name,
+                "type": acc.type,
+                "is_active": acc.is_active,
+            }
+            for acc in accounts
+        ]
     }
 
 

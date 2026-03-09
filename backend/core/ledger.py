@@ -63,14 +63,18 @@ class LedgerService:
             WHERE a.user_phone = :phone
         """), {"phone": user_phone})
 
-    async def get_accounts(self, user_phone: str):
+    async def get_accounts(self, user_phone: str, include_inactive: bool = False):
         """
         List all accounts with current computed balance.
+        If include_inactive is True, also returns soft-deleted accounts (for historical lookup).
         """
         # RLS injection usually happens at Request middleware level.
         # Assuming RLS is active or we filter by phone manually as a fallback
+        conditions = [Account.user_phone == user_phone]
+        if not include_inactive:
+            conditions.append(Account.is_active == True)
         result = await self.session.execute(
-            select(Account).where(Account.user_phone == user_phone, Account.is_active == True)
+            select(Account).where(*conditions)
         )
         return result.scalars().all()
 
