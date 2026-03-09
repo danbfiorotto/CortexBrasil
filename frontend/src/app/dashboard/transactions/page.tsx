@@ -784,6 +784,7 @@ export default function TransactionsPage() {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
                             className="relative z-10 w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
                         >
                             <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
@@ -940,6 +941,7 @@ export default function TransactionsPage() {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
                             className="relative z-10 w-full max-w-md bg-graphite-card border border-graphite-border rounded-2xl p-8 shadow-2xl overflow-y-auto max-h-[90vh]"
                         >
                             <h3 className="text-xl font-bold text-crisp-white mb-6 flex items-center gap-3">
