@@ -114,6 +114,16 @@ async def lifespan(app: FastAPI):
             await raw.driver_connection.execute(sql)
             logger.info("✅ purchased_at column migration applied (011)")
 
+    # Only cleared transactions affect balance (is_cleared = FALSE means pending/unpaid)
+    migration_012_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "012_is_cleared_affects_balance.sql")
+    if os.path.exists(migration_012_path):
+        async with engine.begin() as conn:
+            with open(migration_012_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ is_cleared balance logic migration applied (012)")
+
     # Populate benchmark history in background (idempotent - only inserts missing dates)
     asyncio.create_task(fetch_all_benchmarks())
     logger.info("⏳ Benchmark history fetch started in background")

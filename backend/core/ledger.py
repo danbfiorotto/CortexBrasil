@@ -54,11 +54,11 @@ class LedgerService:
                     END
                 )
                 FROM transactions t
-                WHERE t.account_id = a.id
+                WHERE t.account_id = a.id AND t.is_cleared = TRUE
             ), 0) + COALESCE((
                 SELECT SUM(t.amount)
                 FROM transactions t
-                WHERE t.destination_account_id = a.id AND t.type = 'TRANSFER'
+                WHERE t.destination_account_id = a.id AND t.type = 'TRANSFER' AND t.is_cleared = TRUE
             ), 0)
             WHERE a.user_phone = :phone
         """), {"phone": user_phone})
