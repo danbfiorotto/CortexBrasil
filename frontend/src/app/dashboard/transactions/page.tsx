@@ -94,17 +94,19 @@ export default function TransactionsPage() {
 
     const fetchAccounts = async () => {
         try {
-            const [activeRes, allRes] = await Promise.all([
-                api.get('/api/accounts/'),
-                api.get('/api/accounts/all'),
-            ]);
+            const activeRes = await api.get('/api/accounts/');
             setAccounts(activeRes.data.accounts);
-            setAllAccounts(allRes.data.accounts);
             if (activeRes.data.accounts.length > 0 && !addForm.account_id) {
                 setAddForm(prev => ({ ...prev, account_id: activeRes.data.accounts[0].id }));
             }
         } catch (error) {
-            console.error("Failed to fetch accounts", error);
+            console.error("Failed to fetch active accounts", error);
+        }
+        try {
+            const allRes = await api.get('/api/accounts/all');
+            setAllAccounts(allRes.data.accounts);
+        } catch (error) {
+            console.error("Failed to fetch all accounts", error);
         }
     };
 
