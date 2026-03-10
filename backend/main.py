@@ -128,6 +128,11 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(fetch_all_benchmarks())
     logger.info("⏳ Benchmark history fetch started in background")
 
+    # Pre-populate symbol caches (Binance, CoinGecko, Brapi) in background
+    from backend.integrations.symbol_cache import warm_up_caches
+    asyncio.create_task(warm_up_caches())
+    logger.info("⏳ Symbol cache warm-up started in background")
+
     yield
     # Close Redis
     if clients.redis_client:

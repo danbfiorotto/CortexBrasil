@@ -133,33 +133,11 @@ async def _search_binance(ticker: str) -> dict | None:
 
 
 async def _suggest_binance(query: str, limit: int = 5) -> list[dict]:
-    """Binance public REST – returns crypto symbols matching the query prefix."""
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.get("https://api.binance.com/api/v3/exchangeInfo")
-        if r.status_code != 200:
-            return []
-        q = query.upper()
-        matches = []
-        for s in r.json().get("symbols", []):
-            if s.get("quoteAsset") != "USDT" or s.get("status") != "TRADING":
-                continue
-            base = s.get("baseAsset", "")
-            if base.startswith(q):
-                matches.append({
-                    "ticker": base,
-                    "symbol": base,
-                    "name": base,
-                    "exchange": "Binance",
-                    "type": "CRYPTOCURRENCY",
-                })
-                if len(matches) >= limit:
-                    break
-        return matches
-    except Exception as e:
-        logger.debug(f"Binance suggest failed for {query}: {e}")
-        return []
+    """Binance crypto symbols matching query prefix — served from Redis cache."""
+    from backend.integrations.symbol_cache import search_binance
+    results = await search_binance(query, limit=limit)
+    # Normalize to standard suggest shape
+    return [{"ticker": r["ticker"], "symbol": r["ticker"], "name": r["name"], "exchange": r["exchange"], "type": r["type"]} for r in results]
 
 
 async def _fetch_yahoo_direct(ticker: str) -> float | None:
@@ -260,48 +238,80 @@ async def search_ticker(query: str) -> dict | None:
 
 async def suggest_tickers(query: str, limit: int = 5) -> list[dict]:
     """
-    Suggests tickers based on a query using Yahoo Finance + Binance.
-    Returns: list of {"ticker": str, "name": str, "exchange": str, "type": str}
+    Suggests tickers based on a query.
+
+    Sources (all run in parallel):
+      - Yahoo Finance Search API  → live, covers B3 / US / ETF / global
+      - Binance cache (Redis)     → crypto symbols prefix match
+      - CoinGecko cache (Redis)   → crypto symbol + name prefix match
+      - Brapi cache (Redis)       → B3 tickers prefix match
+
+    Cache hits are pure in-process filtering (< 1ms).
+    Returns up to `limit` deduplicated results, Yahoo results first.
     """
     if not query or len(query) < 2:
         return []
 
-    yahoo_results: list[dict] = []
-    binance_results: list[dict] = []
+    from backend.integrations.symbol_cache import search_binance, search_coingecko, search_brapi
 
-    try:
-        import httpx
-        url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount={limit}&newsCount=0"
-        headers = {"User-Agent": "Mozilla/5.0"}
+    async def _yahoo() -> list[dict]:
+        try:
+            import httpx
+            url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount={limit}&newsCount=0"
+            async with httpx.AsyncClient(timeout=10, headers={"User-Agent": "Mozilla/5.0"}) as client:
+                r = await client.get(url)
+            if r.status_code != 200:
+                return []
+            results = []
+            for q in r.json().get("quotes", []):
+                ticker = q.get("symbol")
+                if not ticker:
+                    continue
+                display_ticker = ticker[:-3] if ticker.endswith(".SA") else ticker
+                results.append({
+                    "ticker": display_ticker,
+                    "symbol": ticker,
+                    "name": q.get("longname") or q.get("shortname") or ticker,
+                    "exchange": q.get("exchDisp") or q.get("exchange") or "",
+                    "type": q.get("quoteType"),
+                })
+            return results
+        except Exception as e:
+            logger.debug(f"Yahoo suggest failed for {query}: {e}")
+            return []
 
-        async with httpx.AsyncClient(timeout=10, headers=headers) as client:
-            r = await client.get(url)
-            if r.status_code == 200:
-                for q in r.json().get("quotes", []):
-                    ticker = q.get("symbol")
-                    if not ticker:
-                        continue
-                    display_ticker = ticker[:-3] if ticker.endswith(".SA") else ticker
-                    yahoo_results.append({
-                        "ticker": display_ticker,
-                        "symbol": ticker,
-                        "name": q.get("longname") or q.get("shortname") or ticker,
-                        "exchange": q.get("exchDisp") or q.get("exchange") or "",
-                        "type": q.get("quoteType"),
-                    })
-    except Exception as e:
-        logger.debug(f"Yahoo suggest failed for {query}: {e}")
+    def _normalize(items: list[dict]) -> list[dict]:
+        return [{"ticker": r["ticker"], "symbol": r.get("symbol", r["ticker"]), "name": r["name"], "exchange": r["exchange"], "type": r["type"]} for r in items]
 
-    # Fetch Binance suggestions in parallel only when query looks like crypto
-    binance_results = await _suggest_binance(query, limit=limit)
+    yahoo, binance, coingecko, brapi = await asyncio.gather(
+        _yahoo(),
+        search_binance(query, limit=limit),
+        search_coingecko(query, limit=limit),
+        search_brapi(query, limit=limit),
+        return_exceptions=True,
+    )
 
-    # Merge: Yahoo first, then Binance entries not already present
-    seen = {r["ticker"] for r in yahoo_results}
-    merged = yahoo_results[:]
-    for b in binance_results:
-        if b["ticker"] not in seen:
-            merged.append(b)
-            seen.add(b["ticker"])
+    # Treat exceptions as empty lists
+    yahoo     = yahoo     if isinstance(yahoo, list)     else []
+    binance   = binance   if isinstance(binance, list)   else []
+    coingecko = coingecko if isinstance(coingecko, list) else []
+    brapi     = brapi     if isinstance(brapi, list)     else []
+
+    # Merge: Yahoo first (live, richest data), then cache sources in order
+    seen: set[str] = set()
+    merged: list[dict] = []
+
+    for item in yahoo:
+        key = item["ticker"]
+        if key not in seen:
+            seen.add(key)
+            merged.append(item)
+
+    for item in _normalize(binance) + _normalize(coingecko) + _normalize(brapi):
+        key = item["ticker"]
+        if key not in seen:
+            seen.add(key)
+            merged.append(item)
 
     return merged[:limit]
 
