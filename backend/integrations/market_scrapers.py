@@ -105,6 +105,63 @@ async def _fetch_binance(ticker: str) -> float | None:
         return None
 
 
+async def _search_binance(ticker: str) -> dict | None:
+    """Binance public REST – validates a crypto ticker and returns price in BRL."""
+    try:
+        import httpx
+        symbol = f"{ticker.upper()}USDT"
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}")
+        if r.status_code != 200:
+            return None
+        price_usdt = float(r.json().get("price", 0))
+        if not price_usdt:
+            return None
+        usd_brl = await _fetch_yfinance("BRL=X") or 5.0
+        price_brl = round(price_usdt * usd_brl, 4)
+        return {
+            "ticker": ticker.upper(),
+            "name": ticker.upper(),
+            "price": price_brl,
+            "currency": "BRL",
+            "exchange": "Binance",
+            "source": "binance",
+        }
+    except Exception as e:
+        logger.debug(f"Binance search failed for {ticker}: {e}")
+        return None
+
+
+async def _suggest_binance(query: str, limit: int = 5) -> list[dict]:
+    """Binance public REST – returns crypto symbols matching the query prefix."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get("https://api.binance.com/api/v3/exchangeInfo")
+        if r.status_code != 200:
+            return []
+        q = query.upper()
+        matches = []
+        for s in r.json().get("symbols", []):
+            if s.get("quoteAsset") != "USDT" or s.get("status") != "TRADING":
+                continue
+            base = s.get("baseAsset", "")
+            if base.startswith(q):
+                matches.append({
+                    "ticker": base,
+                    "symbol": base,
+                    "name": base,
+                    "exchange": "Binance",
+                    "type": "CRYPTOCURRENCY",
+                })
+                if len(matches) >= limit:
+                    break
+        return matches
+    except Exception as e:
+        logger.debug(f"Binance suggest failed for {query}: {e}")
+        return []
+
+
 async def _fetch_yahoo_direct(ticker: str) -> float | None:
     """Direct Yahoo Finance v8 API – last-resort fallback."""
     try:
@@ -168,7 +225,7 @@ async def _search_yahoo_finance(ticker: str) -> dict | None:
 async def search_ticker(query: str) -> dict | None:
     """
     Validates a ticker and returns its name + current price.
-    Uses Yahoo Finance directly (no API key), with CoinGecko fallback for crypto.
+    Uses Yahoo Finance directly (no API key), with Binance + CoinGecko fallback for crypto.
     Returns: {"ticker": str, "name": str, "price": float, "currency": str, "exchange": str}
     """
     if not query or len(query) < 1:
@@ -181,7 +238,12 @@ async def search_ticker(query: str) -> dict | None:
     if result:
         return result
 
-    # 2. CoinGecko fallback for crypto
+    # 2. Binance fallback for crypto (broader coverage than CoinGecko's symbol map)
+    binance = await _search_binance(q)
+    if binance:
+        return binance
+
+    # 3. CoinGecko fallback for crypto
     cg = await _fetch_coingecko(q)
     if cg:
         return {
@@ -198,57 +260,50 @@ async def search_ticker(query: str) -> dict | None:
 
 async def suggest_tickers(query: str, limit: int = 5) -> list[dict]:
     """
-    Suggests tickers based on a query using Yahoo Finance Search API.
+    Suggests tickers based on a query using Yahoo Finance + Binance.
     Returns: list of {"ticker": str, "name": str, "exchange": str, "type": str}
     """
     if not query or len(query) < 2:
         return []
 
+    yahoo_results: list[dict] = []
+    binance_results: list[dict] = []
+
     try:
         import httpx
-        # Yahoo Finance Query Suggestions API
         url = f"https://query2.finance.yahoo.com/v1/finance/search?q={query}&quotesCount={limit}&newsCount=0"
         headers = {"User-Agent": "Mozilla/5.0"}
 
         async with httpx.AsyncClient(timeout=10, headers=headers) as client:
-            print(f"DEBUG: suggest_tickers query='{query}' url='{url}'")
             r = await client.get(url)
-            if r.status_code != 200:
-                print(f"DEBUG: suggest_tickers error status={r.status_code}")
-                return []
-
-            data = r.json()
-            quotes = data.get("quotes", [])
-            print(f"DEBUG: suggest_tickers found {len(quotes)} raw quotes")
-            results = []
-
-            for q in quotes:
-                ticker = q.get("symbol")
-                if not ticker:
-                    continue
-
-                full_name = q.get("longname") or q.get("shortname") or ticker
-                exchange = q.get("exchDisp") or q.get("exchange") or "B3"
-                quote_type = q.get("quoteType")
-                
-                # Clean ticker for B3
-                display_ticker = ticker
-                if ticker.endswith(".SA"):
-                    display_ticker = ticker[:-3]
-
-                results.append({
-                    "ticker": display_ticker,
-                    "symbol": ticker,
-                    "name": full_name,
-                    "exchange": exchange,
-                    "type": quote_type
-                })
-            
-            print(f"DEBUG: suggest_tickers returning {len(results)} results")
-            return results
+            if r.status_code == 200:
+                for q in r.json().get("quotes", []):
+                    ticker = q.get("symbol")
+                    if not ticker:
+                        continue
+                    display_ticker = ticker[:-3] if ticker.endswith(".SA") else ticker
+                    yahoo_results.append({
+                        "ticker": display_ticker,
+                        "symbol": ticker,
+                        "name": q.get("longname") or q.get("shortname") or ticker,
+                        "exchange": q.get("exchDisp") or q.get("exchange") or "",
+                        "type": q.get("quoteType"),
+                    })
     except Exception as e:
-        print(f"DEBUG: Ticker suggestion failed for {query}: {e}")
-        return []
+        logger.debug(f"Yahoo suggest failed for {query}: {e}")
+
+    # Fetch Binance suggestions in parallel only when query looks like crypto
+    binance_results = await _suggest_binance(query, limit=limit)
+
+    # Merge: Yahoo first, then Binance entries not already present
+    seen = {r["ticker"] for r in yahoo_results}
+    merged = yahoo_results[:]
+    for b in binance_results:
+        if b["ticker"] not in seen:
+            merged.append(b)
+            seen.add(b["ticker"])
+
+    return merged[:limit]
 
 
 # ---------------------------------------------------------------------------
