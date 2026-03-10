@@ -159,10 +159,19 @@ async def search_coingecko(query: str, limit: int = 5) -> list[dict]:
         data = await _fetch_and_cache_coingecko()
     q = query.upper()
     q_lower = query.lower()
-    # Symbol prefix matches first, then name prefix
-    by_symbol = [s for s in data if s["ticker"].startswith(q)]
-    by_name   = [s for s in data if s["name"].lower().startswith(q_lower) and s not in by_symbol]
-    merged = (by_symbol + by_name)[:limit]
+    # Exact symbol matches first (prioritize well-known cg_ids),
+    # then symbol prefix, then name prefix
+    _KNOWN_IDS = {"BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana", "BNB": "binancecoin",
+                  "XRP": "ripple", "ADA": "cardano", "DOGE": "dogecoin", "DOT": "polkadot",
+                  "AVAX": "avalanche-2", "MATIC": "matic-network", "LINK": "chainlink",
+                  "LTC": "litecoin", "UNI": "uniswap", "ATOM": "cosmos", "SHIB": "shiba-inu"}
+    exact    = sorted(
+        [s for s in data if s["ticker"] == q],
+        key=lambda s: (0 if s.get("cg_id") == _KNOWN_IDS.get(q) else 1, len(s["name"]))
+    )
+    by_symbol = [s for s in data if s["ticker"].startswith(q) and s not in exact]
+    by_name   = [s for s in data if s["name"].lower().startswith(q_lower) and s not in exact and s not in by_symbol]
+    merged = (exact + by_symbol + by_name)[:limit]
     return merged
 
 
