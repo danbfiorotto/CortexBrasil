@@ -38,6 +38,16 @@ class AssetSellRequest(BaseModel):
     account_id: str = Field(default="")  # optional: deposit proceeds to this account
 
 
+@router.get("/exchange-rate")
+async def get_exchange_rate(
+    current_user_phone: str = Depends(get_current_user),
+):
+    """Returns the current USD/BRL exchange rate."""
+    from backend.integrations.market_scrapers import _fetch_yfinance
+    rate = await _fetch_yfinance("BRL=X") or 5.0
+    return {"usd_brl": round(rate, 4)}
+
+
 @router.get("/forecast")
 async def get_forecast(
     current_user_phone: str = Depends(get_current_user),

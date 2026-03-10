@@ -79,6 +79,7 @@ export default function InvestmentsPage() {
     // Ticker live search state
     const [tickerStatus, setTickerStatus] = useState<TickerStatus>('idle');
     const [tickerInfo, setTickerInfo] = useState<TickerInfo | null>(null);
+    const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -191,6 +192,12 @@ export default function InvestmentsPage() {
                         ticker: info.ticker || prev.ticker,
                         name: info.name,
                     }));
+                    if (info.currency === 'USD') {
+                        fetch(`${API_URL}/api/analytics/exchange-rate`, { headers: { Authorization: `Bearer ${token}` } })
+                            .then(r => r.json()).then(d => setUsdBrlRate(d.usd_brl)).catch(() => setUsdBrlRate(null));
+                    } else {
+                        setUsdBrlRate(null);
+                    }
                 } else {
                     setTickerInfo(null);
                     setTickerStatus('not_found');
@@ -228,6 +235,12 @@ export default function InvestmentsPage() {
             setTickerInfo(info);
             setTickerStatus('found');
             setFormData(prev => ({ ...prev, ticker: info.ticker || prev.ticker, name: info.name }));
+            if (info.currency === 'USD') {
+                fetch(`${API_URL}/api/analytics/exchange-rate`, { headers: { Authorization: `Bearer ${token}` } })
+                    .then(r => r.json()).then(d => setUsdBrlRate(d.usd_brl)).catch(() => setUsdBrlRate(null));
+            } else {
+                setUsdBrlRate(null);
+            }
         }).catch(() => {
             setTickerStatus('not_found');
         });
@@ -589,6 +602,18 @@ export default function InvestmentsPage() {
                                         required
                                     />
                                 </div>
+                                {tickerInfo?.currency === 'USD' && usdBrlRate && (
+                                    <div className="mt-1.5 px-2 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-2">
+                                        <span className="text-[10px] text-blue-300">
+                                            Câmbio: <span className="font-semibold">1 USD = R$ {usdBrlRate.toFixed(4)}</span>
+                                        </span>
+                                        {parseDecimal(formData.avg_price) > 0 && (
+                                            <span className="text-[10px] text-blue-300">
+                                                ≈ <span className="font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseDecimal(formData.avg_price) * usdBrlRate)}</span>
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Data de Compra</label>
