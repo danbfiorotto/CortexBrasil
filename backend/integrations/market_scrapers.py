@@ -211,11 +211,28 @@ async def _search_yahoo_finance(ticker: str) -> dict | None:
     return None
 
 
+_CRYPTO_EXCHANGES = {"CCC", "Crypto", "cryptocurrency", "Coinbase", "Binance"}
+
+def _is_crypto_result(result: dict) -> bool:
+    """Detects if a Yahoo Finance result is a crypto asset."""
+    exchange = result.get("exchange", "")
+    ticker = result.get("ticker", "")
+    return (
+        exchange in _CRYPTO_EXCHANGES
+        or "-USD" in ticker
+        or "-USDT" in ticker
+        or "-BRL" in ticker
+    )
+
+
 async def search_ticker(query: str) -> dict | None:
     """
     Validates a ticker and returns its name + current price.
     Uses Yahoo Finance directly (no API key), with Binance + CoinGecko fallback for crypto.
     Returns: {"ticker": str, "name": str, "price": float, "currency": str, "exchange": str}
+
+    For crypto assets, the returned ticker is always the clean base symbol (e.g. BTC, not BTC-USD),
+    so it matches the market_data table key used by fetch_stock_price.
     """
     if not query or len(query) < 1:
         return None
@@ -225,6 +242,9 @@ async def search_ticker(query: str) -> dict | None:
     # 1. Yahoo Finance (covers B3, US, and most global markets)
     result = await _search_yahoo_finance(q)
     if result:
+        # Normalize crypto tickers so BTC-USD → BTC before returning to caller
+        if _is_crypto_result(result):
+            result["ticker"] = _normalize_crypto_ticker(result["ticker"])
         return result
 
     # For crypto fallbacks, always use the clean base symbol (strip -USD, -USDT, etc.)

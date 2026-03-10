@@ -186,9 +186,9 @@ export default function InvestmentsPage() {
                     const info: TickerInfo = await res.json();
                     setTickerInfo(info);
                     setTickerStatus('found');
-                    // Always update name if it satisfies one of: empty, matches current ticker, or matches previous ticker name
                     setFormData(prev => ({
                         ...prev,
+                        ticker: info.ticker || prev.ticker,
                         name: info.name,
                     }));
                 } else {
@@ -227,7 +227,7 @@ export default function InvestmentsPage() {
         }).then((info: TickerInfo) => {
             setTickerInfo(info);
             setTickerStatus('found');
-            setFormData(prev => ({ ...prev, name: info.name }));
+            setFormData(prev => ({ ...prev, ticker: info.ticker || prev.ticker, name: info.name }));
         }).catch(() => {
             setTickerStatus('not_found');
         });
