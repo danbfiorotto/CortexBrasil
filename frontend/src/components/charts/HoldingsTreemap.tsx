@@ -115,14 +115,19 @@ export default function HoldingsTreemap({ holdings }: HoldingsTreemapProps) {
     const filtered = holdings.filter((h) => h.current_value > 0);
     const totalValue = filtered.reduce((sum, h) => sum + h.current_value, 0);
 
-    const data = filtered.map((h) => ({
-        name: h.ticker,
-        size: Math.round(h.current_value * 100) / 100,
-        gain_pct: h.gain_pct,
-        type: h.type,
-        current_value: h.current_value,
-        pct_of_portfolio: totalValue > 0 ? (h.current_value / totalValue) * 100 : 0,
-    }));
+    const data = filtered.map((h) => {
+        const pct = totalValue > 0 ? (h.current_value / totalValue) * 100 : 0;
+        // Log scale so small assets remain visible; minimum 1% equivalent floor
+        const logSize = Math.log10(Math.max(h.current_value, totalValue * 0.001) + 1);
+        return {
+            name: h.ticker,
+            size: Math.round(logSize * 10000) / 10000,
+            gain_pct: h.gain_pct,
+            type: h.type,
+            current_value: h.current_value,
+            pct_of_portfolio: pct,
+        };
+    });
 
     if (data.length === 0) {
         return (
