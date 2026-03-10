@@ -167,27 +167,22 @@ export default function SettingsPage() {
                                         </AnimatePresence>
 
                                         {/* Create new category */}
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 relative">
-                                                <input
-                                                    value={newCategoryName}
-                                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
-                                                    placeholder="Nova categoria..."
-                                                    className="w-full bg-graphite-deep/50 border border-graphite-border/50 rounded-xl px-4 py-2.5 text-sm text-crisp-white placeholder:text-slate-low/50 outline-none focus:border-royal-purple/50 transition-colors"
-                                                    disabled={creatingCategory}
-                                                />
-                                            </div>
+                                        <div className="flex items-center gap-3 bg-graphite-deep rounded-xl border border-graphite-border p-2 pl-4">
+                                            <span className="material-symbols-outlined text-royal-purple text-[20px]">add_circle</span>
+                                            <input
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                                                placeholder="Criar nova categoria..."
+                                                className="flex-1 bg-transparent text-crisp-white text-sm font-medium placeholder:text-slate-low outline-none"
+                                                disabled={creatingCategory}
+                                            />
                                             <button
                                                 onClick={handleCreate}
                                                 disabled={creatingCategory || !newCategoryName.trim()}
-                                                className="px-4 py-2.5 rounded-xl bg-royal-purple/10 text-royal-purple text-sm font-bold hover:bg-royal-purple hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                className="px-5 py-2 rounded-lg bg-royal-purple text-white text-xs font-bold uppercase tracking-wider hover:bg-royal-purple/80 transition-all disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
                                             >
-                                                {creatingCategory ? (
-                                                    <span className="material-symbols-outlined text-[18px] animate-spin">hourglass_empty</span>
-                                                ) : (
-                                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                                )}
+                                                {creatingCategory ? 'Criando...' : 'Criar'}
                                             </button>
                                         </div>
 
