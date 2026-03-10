@@ -379,6 +379,14 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
                 break
         if not price:
             price = await _fetch_yfinance(f"{base}-USD")
+        # Fallback for B3-listed crypto ETFs (e.g. HODL11, HASH11) — try Brapi/.SA
+        if not price:
+            brapi_result = await _fetch_brapi(t)
+            if isinstance(brapi_result, dict) and brapi_result.get("price", 0) > 0:
+                price = brapi_result["price"]
+                dividend_yield = brapi_result.get("dividend_yield")
+        if not price:
+            price = await _fetch_yfinance(t, ".SA")
 
     elif asset_type in ("STOCK", "FII"):
         # Run Brapi and yfinance(.SA) in parallel
