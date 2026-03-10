@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.analytics.forecasting import project_balance, get_monthly_cashflow
 from backend.simulators.what_if import simulate_scenario
 from backend.workers.anomaly_detector import detect_anomalies
-from backend.integrations.market_scrapers import get_user_portfolio_value, update_market_data, search_ticker
+from backend.integrations.market_scrapers import get_user_portfolio_value, update_market_data, search_ticker, _normalize_crypto_ticker
 from backend.workers.investment_snapshotter import take_daily_snapshot
 import logging
 import asyncio
@@ -163,6 +163,11 @@ async def add_asset(
         except ValueError:
             purchased_at = None
 
+    # For crypto, strip suffixes like -USD/-USDT so the ticker stored matches market_data keys
+    clean_ticker = req.ticker.upper()
+    if req.type == "CRYPTO":
+        clean_ticker = _normalize_crypto_ticker(clean_ticker)
+
     await db.execute(
         text("""
             INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price, purchased_at)
@@ -170,7 +175,7 @@ async def add_asset(
         """),
         {
             "phone": current_user_phone,
-            "ticker": req.ticker.upper(),
+            "ticker": clean_ticker,
             "name": req.name or req.ticker.upper(),
             "type": req.type,
             "qty": req.quantity,
@@ -182,7 +187,7 @@ async def add_asset(
 
     # Trigger price update for this ticker (pass type for better source selection)
     try:
-        await update_market_data([req.ticker.upper()], {req.ticker.upper(): req.type})
+        await update_market_data([clean_ticker], {clean_ticker: req.type})
     except Exception as e:
         logger.warning(f"Could not fetch price for {req.ticker}: {e}")
 

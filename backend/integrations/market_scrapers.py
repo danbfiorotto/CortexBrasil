@@ -61,19 +61,29 @@ async def _fetch_yfinance(ticker: str, suffix: str = "") -> float | None:
         return None
 
 
+def _normalize_crypto_ticker(ticker: str) -> str:
+    """
+    Strips common suffixes from crypto tickers so they work with Binance/CoinGecko.
+    Examples: BTC-USD → BTC, ETH-USDT → ETH, SOL-BRL → SOL, BITCOIN → BITCOIN
+    """
+    t = ticker.upper().strip()
+    for suffix in ("-USD", "-USDT", "-BRL", "-EUR", "-BTC", "-ETH", "USDT", "USD"):
+        if t.endswith(suffix) and len(t) > len(suffix):
+            t = t[: -len(suffix)]
+            break
+    return t
+
+
 async def _fetch_coingecko(ticker: str) -> float | None:
-    """CoinGecko – public API, no key required. Converts symbol to CG id."""
+    """CoinGecko – resolves symbol to cg_id via Redis cache, then fetches price."""
     try:
         import httpx
-        # Normalize common symbols
-        symbol_map = {
-            "BTC": "bitcoin", "ETH": "ethereum", "BNB": "binancecoin",
-            "SOL": "solana", "ADA": "cardano", "XRP": "ripple",
-            "DOT": "polkadot", "DOGE": "dogecoin", "AVAX": "avalanche-2",
-            "MATIC": "matic-network", "LINK": "chainlink", "LTC": "litecoin",
-            "UNI": "uniswap", "ATOM": "cosmos", "FIL": "filecoin",
-        }
-        cg_id = symbol_map.get(ticker.upper(), ticker.lower())
+        from backend.integrations.symbol_cache import search_coingecko
+
+        # Try to resolve cg_id from the cached coins list
+        matches = await search_coingecko(ticker, limit=1)
+        cg_id = matches[0]["cg_id"] if matches else ticker.lower()
+
         url = f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=brl,usd"
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(url)
@@ -109,7 +119,8 @@ async def _search_binance(ticker: str) -> dict | None:
     """Binance public REST – validates a crypto ticker and returns price in BRL."""
     try:
         import httpx
-        symbol = f"{ticker.upper()}USDT"
+        base = _normalize_crypto_ticker(ticker)
+        symbol = f"{base}USDT"
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(f"https://api.binance.com/api/v3/ticker/price?symbol={symbol}")
         if r.status_code != 200:
@@ -120,8 +131,8 @@ async def _search_binance(ticker: str) -> dict | None:
         usd_brl = await _fetch_yfinance("BRL=X") or 5.0
         price_brl = round(price_usdt * usd_brl, 4)
         return {
-            "ticker": ticker.upper(),
-            "name": ticker.upper(),
+            "ticker": base,
+            "name": base,
             "price": price_brl,
             "currency": "BRL",
             "exchange": "Binance",
@@ -216,17 +227,20 @@ async def search_ticker(query: str) -> dict | None:
     if result:
         return result
 
+    # For crypto fallbacks, always use the clean base symbol (strip -USD, -USDT, etc.)
+    base = _normalize_crypto_ticker(q)
+
     # 2. Binance fallback for crypto (broader coverage than CoinGecko's symbol map)
-    binance = await _search_binance(q)
+    binance = await _search_binance(base)
     if binance:
         return binance
 
     # 3. CoinGecko fallback for crypto
-    cg = await _fetch_coingecko(q)
+    cg = await _fetch_coingecko(base)
     if cg:
         return {
-            "ticker": q,
-            "name": q,
+            "ticker": base,
+            "name": base,
             "price": cg,
             "currency": "BRL",
             "exchange": "Crypto",
@@ -331,10 +345,12 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
     t = ticker.strip().upper()
 
     if asset_type == "CRYPTO":
+        # Strip suffixes like -USD, -USDT so Binance/CoinGecko receive clean base symbol
+        base = _normalize_crypto_ticker(t)
         # Run CoinGecko and Binance in parallel, yfinance as fallback
         results = await asyncio.gather(
-            _fetch_coingecko(t),
-            _fetch_binance(t),
+            _fetch_coingecko(base),
+            _fetch_binance(base),
             return_exceptions=True,
         )
         for r in results:
@@ -342,7 +358,7 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
                 price = r
                 break
         if not price:
-            price = await _fetch_yfinance(f"{t}-USD")
+            price = await _fetch_yfinance(f"{base}-USD")
 
     elif asset_type in ("STOCK", "FII"):
         # Run Brapi and yfinance(.SA) in parallel
@@ -385,8 +401,11 @@ async def fetch_stock_price(ticker: str, asset_type: str = "STOCK") -> dict | No
         logger.warning(f"Could not fetch price for {ticker} from any source")
         return None
 
+    # Use normalized ticker as key so market_data JOIN works correctly for crypto
+    stored_ticker = _normalize_crypto_ticker(t) if asset_type == "CRYPTO" else t
+
     return {
-        "ticker": ticker,
+        "ticker": stored_ticker,
         "price": round(float(price), 4),
         "change_pct": None,
         "dividend_yield": round(dividend_yield, 4) if dividend_yield is not None else None,
