@@ -424,7 +424,24 @@ export default function InvestmentsPage() {
                         className="glass-panel rounded-2xl p-6 space-y-4 overflow-hidden"
                     >
                         <h3 className="text-lg font-semibold">Adicionar Ativo</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+
+                        {/* Row 1: Tipo · Ticker · Nome */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Tipo */}
+                            <div>
+                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Tipo</label>
+                                <select
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors appearance-none cursor-pointer"
+                                >
+                                    <option value="STOCK">Ação</option>
+                                    <option value="FII">FII</option>
+                                    <option value="CRYPTO">Crypto</option>
+                                    <option value="FIXED_INCOME">Renda Fixa</option>
+                                </select>
+                            </div>
+
                             {/* Ticker with live search */}
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Ticker</label>
@@ -524,6 +541,7 @@ export default function InvestmentsPage() {
                                 </AnimatePresence>
                             </div>
 
+                            {/* Nome */}
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Nome</label>
                                 <input
@@ -534,19 +552,10 @@ export default function InvestmentsPage() {
                                     className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                 />
                             </div>
-                            <div>
-                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Tipo</label>
-                                <select
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
-                                >
-                                    <option value="STOCK">📊 Ação</option>
-                                    <option value="FII">🏢 FII</option>
-                                    <option value="CRYPTO">₿ Crypto</option>
-                                    <option value="FIXED_INCOME">🔒 Renda Fixa</option>
-                                </select>
-                            </div>
+                        </div>
+
+                        {/* Row 2: Quantidade · Preço Médio · Data de Compra */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Quantidade</label>
                                 <input
