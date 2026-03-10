@@ -117,11 +117,11 @@ export default function HoldingsTreemap({ holdings }: HoldingsTreemapProps) {
 
     const data = filtered.map((h) => {
         const pct = totalValue > 0 ? (h.current_value / totalValue) * 100 : 0;
-        // Log scale so small assets remain visible; minimum 1% equivalent floor
-        const logSize = Math.log10(Math.max(h.current_value, totalValue * 0.001) + 1);
+        // sqrt scale: 87% still looks much bigger than 0.5%, but small assets stay visible
+        const sqrtSize = Math.sqrt(Math.max(h.current_value, totalValue * 0.005));
         return {
             name: h.ticker,
-            size: Math.round(logSize * 10000) / 10000,
+            size: Math.round(sqrtSize * 100) / 100,
             gain_pct: h.gain_pct,
             type: h.type,
             current_value: h.current_value,
