@@ -175,6 +175,8 @@ async def add_asset(
 
     if existing:
         existing_id, existing_qty, existing_price = existing
+        existing_qty = float(existing_qty)
+        existing_price = float(existing_price)
         new_qty = existing_qty + req.quantity
         new_avg_price = (existing_qty * existing_price + req.quantity * req.avg_price) / new_qty
         await db.execute(
