@@ -154,7 +154,6 @@ async def add_asset(
         {"phone": current_user_phone}
     )
 
-    # Insert asset (always new entry; allows multiple purchases at different prices)
     from datetime import date as date_type
     purchased_at = None
     if req.purchased_at:
@@ -168,21 +167,39 @@ async def add_asset(
     if req.type == "CRYPTO":
         clean_ticker = _normalize_crypto_ticker(clean_ticker)
 
-    await db.execute(
-        text("""
-            INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price, purchased_at)
-            VALUES (gen_random_uuid(), :phone, :ticker, :name, :type, :qty, :price, :purchased_at)
-        """),
-        {
-            "phone": current_user_phone,
-            "ticker": clean_ticker,
-            "name": req.name or req.ticker.upper(),
-            "type": req.type,
-            "qty": req.quantity,
-            "price": req.avg_price,
-            "purchased_at": purchased_at or date_type.today(),
-        }
-    )
+    # Check if user already holds this ticker — if so, merge (weighted avg price + sum qty)
+    existing = (await db.execute(
+        text("SELECT id, quantity, avg_price FROM assets WHERE user_phone = :phone AND ticker = :ticker"),
+        {"phone": current_user_phone, "ticker": clean_ticker}
+    )).fetchone()
+
+    if existing:
+        existing_id, existing_qty, existing_price = existing
+        new_qty = existing_qty + req.quantity
+        new_avg_price = (existing_qty * existing_price + req.quantity * req.avg_price) / new_qty
+        await db.execute(
+            text("UPDATE assets SET quantity = :qty, avg_price = :price WHERE id = :id"),
+            {"qty": new_qty, "price": new_avg_price, "id": existing_id}
+        )
+        message = f"Ativo {clean_ticker} atualizado: quantidade {new_qty:.4f}, PM R$ {new_avg_price:.4f}."
+    else:
+        await db.execute(
+            text("""
+                INSERT INTO assets (id, user_phone, ticker, name, type, quantity, avg_price, purchased_at)
+                VALUES (gen_random_uuid(), :phone, :ticker, :name, :type, :qty, :price, :purchased_at)
+            """),
+            {
+                "phone": current_user_phone,
+                "ticker": clean_ticker,
+                "name": req.name or clean_ticker,
+                "type": req.type,
+                "qty": req.quantity,
+                "price": req.avg_price,
+                "purchased_at": purchased_at or date_type.today(),
+            }
+        )
+        message = f"Ativo {clean_ticker} adicionado."
+
     await db.commit()
 
     # Trigger price update for this ticker (pass type for better source selection)
@@ -193,7 +210,7 @@ async def add_asset(
 
     asyncio.create_task(take_daily_snapshot(current_user_phone))
 
-    return {"status": "ok", "message": f"Ativo {req.ticker.upper()} adicionado."}
+    return {"status": "ok", "message": message}
 
 
 @router.delete("/investments/{asset_id}")
