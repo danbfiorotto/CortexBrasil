@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, Integer, Boolean
+from sqlalchemy import Column, String, Float, DateTime, Integer, Boolean, Text
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
@@ -81,5 +81,6 @@ class UserProfile(Base):
     email = Column(String, nullable=True)
     monthly_income = Column(Float, default=0.0)
     onboarding_completed = Column(Integer, default=0) # 0: No, 1: Yes
+    custom_categories = Column(Text, nullable=True)  # JSON array of user-created category names
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

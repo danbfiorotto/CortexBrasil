@@ -17,6 +17,8 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false);
     const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [creatingCategory, setCreatingCategory] = useState(false);
 
     const fetchCategories = useCallback(async () => {
         setLoadingCategories(true);
@@ -68,6 +70,22 @@ export default function SettingsPage() {
             showFeedback('error', err.response?.data?.detail || 'Erro ao remover categoria.');
         } finally {
             setDeletingCategory(null);
+        }
+    };
+
+    const handleCreate = async () => {
+        const name = newCategoryName.trim();
+        if (!name) return;
+        setCreatingCategory(true);
+        try {
+            await api.post('/api/settings/categories', { name });
+            showFeedback('success', `Categoria "${name}" criada.`);
+            setNewCategoryName('');
+            fetchCategories();
+        } catch (err: any) {
+            showFeedback('error', err.response?.data?.detail || 'Erro ao criar categoria.');
+        } finally {
+            setCreatingCategory(false);
         }
     };
 
@@ -147,6 +165,31 @@ export default function SettingsPage() {
                                                 </motion.div>
                                             )}
                                         </AnimatePresence>
+
+                                        {/* Create new category */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 relative">
+                                                <input
+                                                    value={newCategoryName}
+                                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                                                    placeholder="Nova categoria..."
+                                                    className="w-full bg-graphite-deep/50 border border-graphite-border/50 rounded-xl px-4 py-2.5 text-sm text-crisp-white placeholder:text-slate-low/50 outline-none focus:border-royal-purple/50 transition-colors"
+                                                    disabled={creatingCategory}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={handleCreate}
+                                                disabled={creatingCategory || !newCategoryName.trim()}
+                                                className="px-4 py-2.5 rounded-xl bg-royal-purple/10 text-royal-purple text-sm font-bold hover:bg-royal-purple hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                {creatingCategory ? (
+                                                    <span className="material-symbols-outlined text-[18px] animate-spin">hourglass_empty</span>
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-[18px]">add</span>
+                                                )}
+                                            </button>
+                                        </div>
 
                                         {loadingCategories ? (
                                             <div className="flex items-center justify-center py-8">

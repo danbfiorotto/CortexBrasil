@@ -91,18 +91,86 @@ async def get_user_categories(
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Returns all distinct categories for the current user."""
+    """Returns all distinct categories for the current user (from transactions + custom)."""
+    import json
     from sqlalchemy import text
     await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
 
+    # Categories from transactions
     result = await db.execute(
         select(Transaction.category)
         .where(Transaction.category != None, Transaction.user_phone == current_user_phone)
         .distinct()
-        .order_by(Transaction.category)
     )
-    categories = [row[0] for row in result.fetchall()]
-    return {"categories": categories}
+    tx_categories = {row[0] for row in result.fetchall()}
+
+    # Custom categories from user profile
+    profile_result = await db.execute(
+        select(UserProfile.custom_categories).where(UserProfile.user_phone == current_user_phone)
+    )
+    row = profile_result.scalar_one_or_none()
+    custom = set()
+    if row:
+        try:
+            custom = set(json.loads(row))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    all_categories = sorted(tx_categories | custom)
+    return {"categories": all_categories}
+
+
+@router.post("/categories")
+async def create_category(
+    payload: dict = Body(...),
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Creates a new custom category.
+    Payload: {"name": "Vestuário"}
+    """
+    import json
+    from sqlalchemy import text
+    await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
+
+    name = payload.get("name", "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Category name is required")
+
+    # Check if already exists in transactions
+    existing = await db.execute(
+        select(Transaction.id)
+        .where(Transaction.user_phone == current_user_phone, Transaction.category == name)
+        .limit(1)
+    )
+    if existing.first() is not None:
+        raise HTTPException(status_code=409, detail="Essa categoria já existe nas suas transações")
+
+    # Load profile
+    profile_result = await db.execute(
+        select(UserProfile).where(UserProfile.user_phone == current_user_phone)
+    )
+    profile = profile_result.scalar_one_or_none()
+
+    if not profile:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    custom = []
+    if profile.custom_categories:
+        try:
+            custom = json.loads(profile.custom_categories)
+        except (json.JSONDecodeError, TypeError):
+            custom = []
+
+    if name in custom:
+        raise HTTPException(status_code=409, detail="Essa categoria já existe")
+
+    custom.append(name)
+    profile.custom_categories = json.dumps(custom)
+    await db.commit()
+
+    return {"status": "success", "category": name}
 
 
 @router.put("/categories")
@@ -149,6 +217,23 @@ async def rename_category(
         .values(category=new_name)
     )
 
+    # Update custom_categories list if the old name was there
+    import json
+    profile_result = await db.execute(
+        select(UserProfile).where(UserProfile.user_phone == current_user_phone)
+    )
+    profile = profile_result.scalar_one_or_none()
+    if profile and profile.custom_categories:
+        try:
+            custom = json.loads(profile.custom_categories)
+            if old_name in custom:
+                custom = [new_name if c == old_name else c for c in custom]
+                # Remove duplicates
+                custom = list(dict.fromkeys(custom))
+                profile.custom_categories = json.dumps(custom)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     await db.commit()
 
     return {
@@ -188,6 +273,21 @@ async def delete_category(
         delete(Budget)
         .where(Budget.user_phone == current_user_phone, Budget.category == name)
     )
+
+    # Remove from custom_categories if present
+    import json
+    profile_result = await db.execute(
+        select(UserProfile).where(UserProfile.user_phone == current_user_phone)
+    )
+    profile = profile_result.scalar_one_or_none()
+    if profile and profile.custom_categories:
+        try:
+            custom = json.loads(profile.custom_categories)
+            if name in custom:
+                custom.remove(name)
+                profile.custom_categories = json.dumps(custom)
+        except (json.JSONDecodeError, TypeError):
+            pass
 
     await db.commit()
 
