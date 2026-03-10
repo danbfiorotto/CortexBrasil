@@ -10,6 +10,7 @@ import GainLossWaterfall from '@/components/charts/GainLossWaterfall';
 import HoldingsTreemap from '@/components/charts/HoldingsTreemap';
 import DividendYield from '@/components/charts/DividendYield';
 import PerformanceBenchmark from '@/components/charts/PerformanceBenchmark';
+import ForexTicker from '@/components/ForexTicker';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -383,6 +384,8 @@ export default function InvestmentsPage() {
     const formatPct = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
     return (
+        <div>
+        <ForexTicker />
         <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -951,6 +954,7 @@ export default function InvestmentsPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+        </div>
         </div>
     );
 }
