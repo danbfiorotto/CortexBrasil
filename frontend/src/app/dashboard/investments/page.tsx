@@ -253,6 +253,7 @@ export default function InvestmentsPage() {
                 ...formData,
                 quantity: parseDecimal(formData.quantity),
                 avg_price: parseDecimal(formData.avg_price),
+                currency: tickerInfo?.currency === 'USD' ? 'USD' : 'BRL',
             };
             const res = await fetch(`${API_URL}/api/analytics/investments/add`, {
                 method: 'POST',
@@ -570,17 +571,24 @@ export default function InvestmentsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Preço Médio</label>
-                                <input
-                                    type="text"
-                                    inputMode="decimal"
-                                    placeholder="0,00"
-                                    value={formData.avg_price}
-                                    onKeyDown={handleDecimalKeyDown}
-                                    onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
-                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
-                                    required
-                                />
+                                <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">
+                                    Preço Médio {tickerInfo?.currency && tickerInfo.currency !== 'BRL' ? `(${tickerInfo.currency})` : '(BRL)'}
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-low">
+                                        {tickerInfo?.currency === 'USD' ? '$' : 'R$'}
+                                    </span>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        placeholder="0,00"
+                                        value={formData.avg_price}
+                                        onKeyDown={handleDecimalKeyDown}
+                                        onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
+                                        required
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">Data de Compra</label>

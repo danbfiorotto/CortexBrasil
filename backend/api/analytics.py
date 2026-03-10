@@ -29,6 +29,7 @@ class AssetAddRequest(BaseModel):
     quantity: float = Field(..., gt=0)
     avg_price: float = Field(..., gt=0)
     purchased_at: str = Field(default="")  # ISO date string, e.g. "2024-01-15"
+    currency: str = Field(default="BRL", pattern="^(BRL|USD)$")  # currency of avg_price
 
 
 class AssetSellRequest(BaseModel):
@@ -162,6 +163,14 @@ async def add_asset(
         except ValueError:
             purchased_at = None
 
+    # Convert avg_price from USD to BRL if needed (so all stored prices are in BRL)
+    avg_price = req.avg_price
+    if req.currency == "USD":
+        from backend.integrations.market_scrapers import _fetch_yfinance
+        usd_brl = await _fetch_yfinance("BRL=X") or 5.0
+        avg_price = round(avg_price * usd_brl, 4)
+        logger.info(f"Converted avg_price {req.avg_price} USD → {avg_price} BRL (rate: {usd_brl})")
+
     # For crypto, strip suffixes like -USD/-USDT so the ticker stored matches market_data keys
     clean_ticker = req.ticker.upper()
     if req.type == "CRYPTO":
@@ -178,7 +187,7 @@ async def add_asset(
         existing_qty = float(existing_qty)
         existing_price = float(existing_price)
         new_qty = existing_qty + req.quantity
-        new_avg_price = (existing_qty * existing_price + req.quantity * req.avg_price) / new_qty
+        new_avg_price = (existing_qty * existing_price + req.quantity * avg_price) / new_qty
         await db.execute(
             text("UPDATE assets SET quantity = :qty, avg_price = :price WHERE id = :id"),
             {"qty": new_qty, "price": new_avg_price, "id": existing_id}
@@ -196,7 +205,7 @@ async def add_asset(
                 "name": req.name or clean_ticker,
                 "type": req.type,
                 "qty": req.quantity,
-                "price": req.avg_price,
+                "price": avg_price,
                 "purchased_at": purchased_at or date_type.today(),
             }
         )
