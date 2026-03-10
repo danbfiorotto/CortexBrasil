@@ -141,7 +141,7 @@ export default function HoldingsTreemap({ holdings }: HoldingsTreemapProps) {
     const dynamicHeight = Math.min(480, Math.max(340, data.length * 30));
 
     return (
-        <div style={{ height: dynamicHeight }} className="w-full">
+        <div style={{ height: dynamicHeight }} className="w-full rounded-xl overflow-hidden bg-slate-800/40">
             <ResponsiveContainer width="100%" height="100%">
                 <Treemap
                     data={data}
