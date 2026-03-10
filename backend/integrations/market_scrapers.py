@@ -63,14 +63,20 @@ async def _fetch_yfinance(ticker: str, suffix: str = "") -> float | None:
 
 def _normalize_crypto_ticker(ticker: str) -> str:
     """
-    Strips common suffixes from crypto tickers so they work with Binance/CoinGecko.
-    Examples: BTC-USD → BTC, ETH-USDT → ETH, SOL-BRL → SOL, BITCOIN → BITCOIN
+    Strips currency suffixes from crypto tickers so they work with Binance/CoinGecko.
+    Examples: BTC-USD → BTC, ETH-USDT → ETH, SOL-BRL → SOL, BTC-CAD → BTC
+    Handles any -XXX or -XXXX suffix (currency codes), plus trailing USDT/USD without dash.
     """
     t = ticker.upper().strip()
-    for suffix in ("-USD", "-USDT", "-BRL", "-EUR", "-BTC", "-ETH", "USDT", "USD"):
+    # Strip dash-separated suffix (e.g. -USD, -CAD, -USDT, -EUR, -BRL, -GBP, etc.)
+    if "-" in t:
+        base = t.rsplit("-", 1)[0]
+        if len(base) >= 2:
+            return base
+    # Strip trailing USDT/USD without dash (e.g. BTCUSDT → BTC)
+    for suffix in ("USDT", "USD"):
         if t.endswith(suffix) and len(t) > len(suffix):
-            t = t[: -len(suffix)]
-            break
+            return t[: -len(suffix)]
     return t
 
 
@@ -217,11 +223,11 @@ def _is_crypto_result(result: dict) -> bool:
     """Detects if a Yahoo Finance result is a crypto asset."""
     exchange = result.get("exchange", "")
     ticker = result.get("ticker", "")
+    source = result.get("source", "")
     return (
         exchange in _CRYPTO_EXCHANGES
-        or "-USD" in ticker
-        or "-USDT" in ticker
-        or "-BRL" in ticker
+        or (source == "yahoo-USD" and "-" in ticker)
+        or any(f"-{cur}" in ticker for cur in ("USD", "USDT", "BRL", "EUR", "GBP", "CAD", "JPY", "AUD", "CHF"))
     )
 
 

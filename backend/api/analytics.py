@@ -44,54 +44,76 @@ async def get_exchange_rate(
     current_user_phone: str = Depends(get_current_user),
 ):
     """Returns the exchange rate of any currency to BRL."""
-    from backend.integrations.market_scrapers import _fetch_yfinance
+    from backend.integrations.market_scrapers import _fetch_yahoo_direct
     currency = currency.upper()
     if currency == "BRL":
         return {"currency": "BRL", "rate": 1.0, "pair": "BRL/BRL"}
-    ticker = f"{currency}=X" if currency != "USD" else "BRL=X"
-    # yfinance BRL=X = USD per BRL (inverted), other XXX=X = BRL per XXX
-    raw = await _fetch_yfinance(ticker)
-    if currency == "USD":
-        rate = raw or 5.0  # BRL=X gives BRL per USD directly via our helper
-    else:
-        rate = raw or None
+    # Yahoo Finance ticker: USDBRL=X for USD→BRL, EURBRL=X for EUR→BRL, etc.
+    # Special case: BRL=X also works for USD/BRL
+    yf_ticker = f"{currency}BRL=X"
+    rate = await _fetch_yahoo_direct(yf_ticker)
     if not rate:
         return {"currency": currency, "rate": None, "pair": f"{currency}/BRL"}
     return {"currency": currency, "rate": round(rate, 4), "pair": f"{currency}/BRL"}
+
+
+# Curated forex pairs for the ticker bar
+_FOREX_PAIRS = [
+    ("USD/BRL",  "USDBRL=X",  "Dólar Americano"),
+    ("EUR/BRL",  "EURBRL=X",  "Euro"),
+    ("GBP/BRL",  "GBPBRL=X",  "Libra Esterlina"),
+    ("ARS/BRL",  "ARSBRL=X",  "Peso Argentino"),
+    ("JPY/BRL",  "JPYBRL=X",  "Iene Japonês"),
+    ("CHF/BRL",  "CHFBRL=X",  "Franco Suíço"),
+    ("CAD/BRL",  "CADBRL=X",  "Dólar Canadense"),
+    ("CNY/BRL",  "CNYBRL=X",  "Yuan Chinês"),
+    ("BTC/USD",  "BTC-USD",   "Bitcoin"),
+    ("ETH/USD",  "ETH-USD",   "Ethereum"),
+    ("EUR/USD",  "EURUSD=X",  "EUR/USD"),
+    ("GBP/USD",  "GBPUSD=X",  "GBP/USD"),
+    ("DXY",      "DX-Y.NYB",  "Índice Dólar"),
+    ("IBOV",     "^BVSP",     "Ibovespa"),
+    ("SPX",      "^GSPC",     "S&P 500"),
+]
+
+_FOREX_CACHE_KEY = "forex:rates"
+_FOREX_CACHE_TTL = 300  # 5 minutes
 
 
 @router.get("/forex-rates")
 async def get_forex_rates(
     current_user_phone: str = Depends(get_current_user),
 ):
-    """Returns live rates for a curated set of forex pairs and crypto, all vs BRL and some cross-pairs."""
-    from backend.integrations.market_scrapers import _fetch_yfinance
-    import asyncio
+    """Returns live rates for curated forex pairs, cached in Redis for 5 min."""
+    from backend.integrations.market_scrapers import _fetch_yahoo_direct
+    from backend.core import clients
+    import json
 
-    # (label, yfinance_ticker, description)
-    PAIRS = [
-        ("USD/BRL",  "BRL=X",    "Dólar Americano"),
-        ("EUR/BRL",  "EURBRL=X", "Euro"),
-        ("GBP/BRL",  "GBPBRL=X", "Libra Esterlina"),
-        ("ARS/BRL",  "ARSBRL=X", "Peso Argentino"),
-        ("JPY/BRL",  "JPYBRL=X", "Iene Japonês"),
-        ("CHF/BRL",  "CHFBRL=X", "Franco Suíço"),
-        ("CNY/BRL",  "CNYBRL=X", "Yuan Chinês"),
-        ("BTC/USD",  "BTC-USD",  "Bitcoin"),
-        ("ETH/USD",  "ETH-USD",  "Ethereum"),
-        ("EUR/USD",  "EURUSD=X", "EUR/USD"),
-        ("GBP/USD",  "GBPUSD=X", "GBP/USD"),
-        ("DXY",      "DX-Y.NYB", "Índice Dólar"),
-        ("IBOV",     "^BVSP",    "Ibovespa"),
-        ("SPX",      "^GSPC",    "S&P 500"),
-    ]
+    # Try Redis cache first
+    if clients.redis_client:
+        try:
+            cached = await clients.redis_client.get(_FOREX_CACHE_KEY)
+            if cached:
+                return json.loads(cached)
+        except Exception:
+            pass
 
+    # Fetch all pairs in parallel via async httpx (truly concurrent)
     async def fetch_pair(label: str, yf_ticker: str, description: str):
-        price = await _fetch_yfinance(yf_ticker)
+        price = await _fetch_yahoo_direct(yf_ticker)
         return {"label": label, "description": description, "price": round(price, 4) if price else None}
 
-    results = await asyncio.gather(*[fetch_pair(l, t, d) for l, t, d in PAIRS])
-    return {"rates": [r for r in results if r["price"] is not None]}
+    results = await asyncio.gather(*[fetch_pair(l, t, d) for l, t, d in _FOREX_PAIRS])
+    response = {"rates": [r for r in results if r["price"] is not None]}
+
+    # Cache in Redis
+    if clients.redis_client:
+        try:
+            await clients.redis_client.set(_FOREX_CACHE_KEY, json.dumps(response), ex=_FOREX_CACHE_TTL)
+        except Exception:
+            pass
+
+    return response
 
 
 @router.get("/forecast")
@@ -223,12 +245,8 @@ async def add_asset(
     avg_price = req.avg_price
     currency = req.currency.upper() if req.currency else "BRL"
     if currency != "BRL":
-        from backend.integrations.market_scrapers import _fetch_yfinance
-        # yfinance forex tickers: BRL=X for USD/BRL, EURBRL=X for EUR/BRL, etc.
-        if currency == "USD":
-            rate = await _fetch_yfinance("BRL=X") or 5.0
-        else:
-            rate = await _fetch_yfinance(f"{currency}BRL=X") or None
+        from backend.integrations.market_scrapers import _fetch_yahoo_direct
+        rate = await _fetch_yahoo_direct(f"{currency}BRL=X")
         if rate:
             avg_price = round(avg_price * rate, 4)
             logger.info(f"Converted avg_price {req.avg_price} {currency} → {avg_price} BRL (rate: {rate})")
