@@ -29,7 +29,7 @@ class AssetAddRequest(BaseModel):
     quantity: float = Field(..., gt=0)
     avg_price: float = Field(..., gt=0)
     purchased_at: str = Field(default="")  # ISO date string, e.g. "2024-01-15"
-    currency: str = Field(default="BRL", pattern="^(BRL|USD)$")  # currency of avg_price
+    currency: str = Field(default="BRL", max_length=10)  # currency of avg_price (e.g. BRL, USD, EUR, GBP)
 
 
 class AssetSellRequest(BaseModel):
@@ -40,12 +40,58 @@ class AssetSellRequest(BaseModel):
 
 @router.get("/exchange-rate")
 async def get_exchange_rate(
+    currency: str = "USD",
     current_user_phone: str = Depends(get_current_user),
 ):
-    """Returns the current USD/BRL exchange rate."""
+    """Returns the exchange rate of any currency to BRL."""
     from backend.integrations.market_scrapers import _fetch_yfinance
-    rate = await _fetch_yfinance("BRL=X") or 5.0
-    return {"usd_brl": round(rate, 4)}
+    currency = currency.upper()
+    if currency == "BRL":
+        return {"currency": "BRL", "rate": 1.0, "pair": "BRL/BRL"}
+    ticker = f"{currency}=X" if currency != "USD" else "BRL=X"
+    # yfinance BRL=X = USD per BRL (inverted), other XXX=X = BRL per XXX
+    raw = await _fetch_yfinance(ticker)
+    if currency == "USD":
+        rate = raw or 5.0  # BRL=X gives BRL per USD directly via our helper
+    else:
+        rate = raw or None
+    if not rate:
+        return {"currency": currency, "rate": None, "pair": f"{currency}/BRL"}
+    return {"currency": currency, "rate": round(rate, 4), "pair": f"{currency}/BRL"}
+
+
+@router.get("/forex-rates")
+async def get_forex_rates(
+    current_user_phone: str = Depends(get_current_user),
+):
+    """Returns live rates for a curated set of forex pairs and crypto, all vs BRL and some cross-pairs."""
+    from backend.integrations.market_scrapers import _fetch_yfinance
+    import asyncio
+
+    # (label, yfinance_ticker, description)
+    PAIRS = [
+        ("USD/BRL",  "BRL=X",    "Dólar Americano"),
+        ("EUR/BRL",  "EURBRL=X", "Euro"),
+        ("GBP/BRL",  "GBPBRL=X", "Libra Esterlina"),
+        ("ARS/BRL",  "ARSBRL=X", "Peso Argentino"),
+        ("JPY/BRL",  "JPYBRL=X", "Iene Japonês"),
+        ("CHF/BRL",  "CHFBRL=X", "Franco Suíço"),
+        ("CNY/BRL",  "CNYBRL=X", "Yuan Chinês"),
+        ("BTC/USD",  "BTC-USD",  "Bitcoin"),
+        ("ETH/USD",  "ETH-USD",  "Ethereum"),
+        ("EUR/USD",  "EURUSD=X", "EUR/USD"),
+        ("GBP/USD",  "GBPUSD=X", "GBP/USD"),
+        ("DXY",      "DX-Y.NYB", "Índice Dólar"),
+        ("IBOV",     "^BVSP",    "Ibovespa"),
+        ("SPX",      "^GSPC",    "S&P 500"),
+    ]
+
+    async def fetch_pair(label: str, yf_ticker: str, description: str):
+        price = await _fetch_yfinance(yf_ticker)
+        return {"label": label, "description": description, "price": round(price, 4) if price else None}
+
+    results = await asyncio.gather(*[fetch_pair(l, t, d) for l, t, d in PAIRS])
+    return {"rates": [r for r in results if r["price"] is not None]}
 
 
 @router.get("/forecast")
@@ -173,13 +219,21 @@ async def add_asset(
         except ValueError:
             purchased_at = None
 
-    # Convert avg_price from USD to BRL if needed (so all stored prices are in BRL)
+    # Convert avg_price to BRL if needed (so all stored prices are in BRL)
     avg_price = req.avg_price
-    if req.currency == "USD":
+    currency = req.currency.upper() if req.currency else "BRL"
+    if currency != "BRL":
         from backend.integrations.market_scrapers import _fetch_yfinance
-        usd_brl = await _fetch_yfinance("BRL=X") or 5.0
-        avg_price = round(avg_price * usd_brl, 4)
-        logger.info(f"Converted avg_price {req.avg_price} USD → {avg_price} BRL (rate: {usd_brl})")
+        # yfinance forex tickers: BRL=X for USD/BRL, EURBRL=X for EUR/BRL, etc.
+        if currency == "USD":
+            rate = await _fetch_yfinance("BRL=X") or 5.0
+        else:
+            rate = await _fetch_yfinance(f"{currency}BRL=X") or None
+        if rate:
+            avg_price = round(avg_price * rate, 4)
+            logger.info(f"Converted avg_price {req.avg_price} {currency} → {avg_price} BRL (rate: {rate})")
+        else:
+            logger.warning(f"Could not fetch {currency}/BRL rate, storing avg_price as-is")
 
     # For crypto, strip suffixes like -USD/-USDT so the ticker stored matches market_data keys
     clean_ticker = req.ticker.upper()

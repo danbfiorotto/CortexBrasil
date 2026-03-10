@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
+import ForexTicker from '@/components/ForexTicker';
 
 const NAV_ITEMS = [
     { name: 'Painel', href: '/dashboard' },
@@ -181,6 +182,8 @@ export default function DashboardLayout({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <ForexTicker />
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto custom-scrollbar">

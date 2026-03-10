@@ -79,7 +79,20 @@ export default function InvestmentsPage() {
     // Ticker live search state
     const [tickerStatus, setTickerStatus] = useState<TickerStatus>('idle');
     const [tickerInfo, setTickerInfo] = useState<TickerInfo | null>(null);
-    const [usdBrlRate, setUsdBrlRate] = useState<number | null>(null);
+    const [foreignRate, setForeignRate] = useState<{ currency: string; rate: number } | null>(null);
+
+    const fetchRateForCurrency = async (currency: string) => {
+        if (!currency || currency === 'BRL') { setForeignRate(null); return; }
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/api/analytics/exchange-rate?currency=${currency}`, { headers: { Authorization: `Bearer ${token}` } });
+            if (res.ok) {
+                const d = await res.json();
+                if (d.rate) setForeignRate({ currency: d.currency, rate: d.rate });
+                else setForeignRate(null);
+            }
+        } catch { setForeignRate(null); }
+    };
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -192,12 +205,7 @@ export default function InvestmentsPage() {
                         ticker: info.ticker || prev.ticker,
                         name: info.name,
                     }));
-                    if (info.currency === 'USD') {
-                        fetch(`${API_URL}/api/analytics/exchange-rate`, { headers: { Authorization: `Bearer ${token}` } })
-                            .then(r => r.json()).then(d => setUsdBrlRate(d.usd_brl)).catch(() => setUsdBrlRate(null));
-                    } else {
-                        setUsdBrlRate(null);
-                    }
+                    fetchRateForCurrency(info.currency);
                 } else {
                     setTickerInfo(null);
                     setTickerStatus('not_found');
@@ -235,12 +243,7 @@ export default function InvestmentsPage() {
             setTickerInfo(info);
             setTickerStatus('found');
             setFormData(prev => ({ ...prev, ticker: info.ticker || prev.ticker, name: info.name }));
-            if (info.currency === 'USD') {
-                fetch(`${API_URL}/api/analytics/exchange-rate`, { headers: { Authorization: `Bearer ${token}` } })
-                    .then(r => r.json()).then(d => setUsdBrlRate(d.usd_brl)).catch(() => setUsdBrlRate(null));
-            } else {
-                setUsdBrlRate(null);
-            }
+            fetchRateForCurrency(info.currency);
         }).catch(() => {
             setTickerStatus('not_found');
         });
@@ -266,7 +269,7 @@ export default function InvestmentsPage() {
                 ...formData,
                 quantity: parseDecimal(formData.quantity),
                 avg_price: parseDecimal(formData.avg_price),
-                currency: tickerInfo?.currency === 'USD' ? 'USD' : 'BRL',
+                currency: foreignRate ? foreignRate.currency : 'BRL',
             };
             const res = await fetch(`${API_URL}/api/analytics/investments/add`, {
                 method: 'POST',
@@ -585,11 +588,11 @@ export default function InvestmentsPage() {
                             </div>
                             <div>
                                 <label className="text-xs text-slate-low uppercase tracking-wider block mb-1">
-                                    Preço Médio {tickerInfo?.currency && tickerInfo.currency !== 'BRL' ? `(${tickerInfo.currency})` : '(BRL)'}
+                                    Preço Médio {foreignRate ? `(${foreignRate.currency})` : '(BRL)'}
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-low">
-                                        {tickerInfo?.currency === 'USD' ? '$' : 'R$'}
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-low">
+                                        {foreignRate ? foreignRate.currency : 'R$'}
                                     </span>
                                     <input
                                         type="text"
@@ -598,18 +601,18 @@ export default function InvestmentsPage() {
                                         value={formData.avg_price}
                                         onKeyDown={handleDecimalKeyDown}
                                         onChange={(e) => setFormData({ ...formData, avg_price: e.target.value })}
-                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl pl-9 pr-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
+                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-xl pl-12 pr-4 py-2.5 text-sm focus:border-royal-purple focus:outline-none transition-colors"
                                         required
                                     />
                                 </div>
-                                {tickerInfo?.currency === 'USD' && usdBrlRate && (
-                                    <div className="mt-1.5 px-2 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-2">
+                                {foreignRate && (
+                                    <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-2">
                                         <span className="text-[10px] text-blue-300">
-                                            Câmbio: <span className="font-semibold">1 USD = R$ {usdBrlRate.toFixed(4)}</span>
+                                            Câmbio: <span className="font-semibold">1 {foreignRate.currency} = R$ {foreignRate.rate.toFixed(4)}</span>
                                         </span>
                                         {parseDecimal(formData.avg_price) > 0 && (
                                             <span className="text-[10px] text-blue-300">
-                                                ≈ <span className="font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseDecimal(formData.avg_price) * usdBrlRate)}</span>
+                                                ≈ <span className="font-semibold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseDecimal(formData.avg_price) * foreignRate.rate)}</span>
                                             </span>
                                         )}
                                     </div>
