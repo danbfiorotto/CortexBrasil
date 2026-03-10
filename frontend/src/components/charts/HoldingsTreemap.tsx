@@ -56,19 +56,19 @@ function TreemapContent({
     const fontSize = Math.min(14, Math.max(9, width / 6));
     const pctFontSize = Math.max(8, fontSize - 2);
 
+    const gap = 4; // spacing between cells
+
     return (
         <g>
+            {/* background fill to cover the Recharts default blue */}
+            <rect x={x} y={y} width={width} height={height} style={{ fill: '#1E293B' }} />
             <rect
-                x={x + 1}
-                y={y + 1}
-                width={width - 2}
-                height={height - 2}
-                style={{
-                    fill: heatColor,
-                    stroke: '#0F172A',
-                    strokeWidth: 2,
-                }}
-                rx={4}
+                x={x + gap}
+                y={y + gap}
+                width={width - gap * 2}
+                height={height - gap * 2}
+                style={{ fill: heatColor }}
+                rx={6}
             />
             {showTicker && (
                 <text
