@@ -74,16 +74,32 @@ async def get_categories(
     current_user_phone: str = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    import json
     await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
-    from backend.db.models import Transaction
+    from backend.db.models import Transaction, UserProfile
+
+    # Categories from transactions
     result = await db.execute(
         select(Transaction.category)
         .where(Transaction.category != None, Transaction.user_phone == current_user_phone)
         .distinct()
-        .order_by(Transaction.category)
     )
-    categories = [row[0] for row in result.fetchall()]
-    return {"categories": categories}
+    tx_categories = {row[0] for row in result.fetchall()}
+
+    # Custom categories from user profile
+    profile_result = await db.execute(
+        select(UserProfile.custom_categories).where(UserProfile.user_phone == current_user_phone)
+    )
+    row = profile_result.scalar_one_or_none()
+    custom = set()
+    if row:
+        try:
+            custom = set(json.loads(row))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    all_categories = sorted(tx_categories | custom)
+    return {"categories": all_categories}
 
 
 @router.get("/transactions")
