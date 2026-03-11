@@ -18,6 +18,7 @@ import redis.asyncio as redis
 import os
 import tempfile
 from datetime import datetime
+from uuid import UUID
 
 # Shared Clients
 from backend.core import clients
@@ -315,6 +316,20 @@ async def _send_edit_field_list(phone: str):
     else:
         logger.warning(f"⚠️ Lista de edição não enviada (APP_ENV={settings.APP_ENV})")
 
+async def _send_account_disambiguation(phone: str, accounts: list, message_id: str):
+    """Pergunta ao usuário qual conta usar quando há múltiplas correspondências."""
+    if settings.APP_ENV == "development":
+        rows = [{"id": f"acct_{acc.id}", "title": acc.name} for acc in accounts[:10]]
+        await clients.whatsapp_client.send_interactive_list(
+            to=phone,
+            header="🏦 Qual conta?",
+            body="Encontrei mais de uma conta com esse nome. Qual delas?",
+            button_label="Ver contas",
+            sections=[{"title": "Contas disponíveis", "rows": rows}]
+        )
+    else:
+        logger.warning(f"⚠️ Lista de desambiguação não enviada (APP_ENV={settings.APP_ENV})")
+
 async def _confirm_and_save(phone: str, conv_state: dict, message_id: str):
     """Persiste a transação pendente e atualiza estado."""
     from backend.db.session import AsyncSessionLocal
@@ -337,6 +352,7 @@ async def _confirm_and_save(phone: str, conv_state: dict, message_id: str):
                 description=data.get("description"),
                 tx_type=data.get("type", "EXPENSE"),
                 account_name=data.get("account_name"),
+                account_id=UUID(data["account_id"]) if data.get("account_id") else None,
                 destination_account_name=data.get("destination_account_name"),
                 installments=data.get("installments"),
             )
@@ -474,6 +490,47 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                 await _send_confirmation_card(phone_number, pending_tx)
                 return
 
+        # --- Estado: aguardando seleção de conta ambígua (fallback texto) ---
+        if current_state == "pending_account_selection":
+            pending_tx = conv_state.get("pending_tx", {})
+            candidates = conv_state.get("account_candidates", [])  # list of {id, name}
+            msg_stripped = message_body.strip()
+
+            # Tenta correspondência por número (ex: "1", "2") ou por nome parcial
+            chosen = None
+            if msg_stripped.isdigit():
+                idx = int(msg_stripped) - 1
+                if 0 <= idx < len(candidates):
+                    chosen = candidates[idx]
+            else:
+                msg_lower = msg_stripped.lower()
+                for c in candidates:
+                    if msg_lower in c["name"].lower() or c["name"].lower() in msg_lower:
+                        chosen = c
+                        break
+
+            if chosen:
+                pending_tx["account_name"] = chosen["name"]
+                pending_tx["account_id"] = chosen["id"]
+                new_state = {
+                    "state": "pending_confirmation",
+                    "pending_tx": pending_tx,
+                    "last_tx_id": conv_state.get("last_tx_id"),
+                }
+                await _set_conv_state(phone_number, new_state)
+                await _send_confirmation_card(phone_number, pending_tx)
+            else:
+                # Não entendeu — reexibir opções
+                async with AsyncSessionLocal() as session:
+                    await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                    from backend.core.ledger import LedgerService as _LS
+                    _ledger = _LS(session)
+                    accts = [a for a in await _ledger.search_accounts_by_partial_name(phone_number, "") if a.id in {c["id"] for c in candidates}]
+                if candidates:
+                    options = "\n".join(f"{i+1}. {c['name']}" for i, c in enumerate(candidates))
+                    await _send_whatsapp(phone_number, f"Não entendi. Responda com o número ou nome da conta:\n\n{options}", message_id)
+            return
+
         # --- 2. Recuperar Contexto (saldos + histórico + categorias) ---
         context_str = ""
         available_categories = []
@@ -590,6 +647,31 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                         )
                         return
 
+                    # Verificar ambiguidade de conta
+                    account_name_raw = data.get("account_name", "")
+                    if account_name_raw:
+                        from backend.core.ledger import LedgerService as _LS2
+                        async with AsyncSessionLocal() as _sess:
+                            await _sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                            _ledger2 = _LS2(_sess)
+                            exact = await _ledger2.get_account_by_name(phone_number, account_name_raw)
+                            if not exact:
+                                candidates = await _ledger2.search_accounts_by_partial_name(phone_number, account_name_raw)
+                                if len(candidates) > 1:
+                                    candidate_list = [{"id": str(a.id), "name": a.name} for a in candidates]
+                                    new_state = {
+                                        "state": "pending_account_selection",
+                                        "pending_tx": data,
+                                        "account_candidates": candidate_list,
+                                        "last_tx_id": conv_state.get("last_tx_id"),
+                                    }
+                                    await _set_conv_state(phone_number, new_state)
+                                    await _send_account_disambiguation(phone_number, candidates, message_id)
+                                    return
+                                elif len(candidates) == 1:
+                                    # Só uma correspondência — usar diretamente
+                                    data["account_name"] = candidates[0].name
+
                     # Categoria válida — mostrar card de confirmação com botões
                     new_state = {
                         "state": "pending_confirmation",
@@ -687,6 +769,24 @@ async def handle_interactive(phone_number: str, button_id: str, message_id: str)
                 await _send_edit_field_list(phone_number)
             else:
                 await _send_whatsapp(phone_number, "Nenhum lançamento pendente para editar.", message_id)
+
+        # --- Seleção de conta na lista de desambiguação ---
+        elif button_id.startswith("acct_"):
+            if conv_state.get("state") == "pending_account_selection":
+                account_id_str = button_id[len("acct_"):]
+                candidates = conv_state.get("account_candidates", [])
+                chosen = next((c for c in candidates if c["id"] == account_id_str), None)
+                if chosen:
+                    pending_tx = conv_state.get("pending_tx", {})
+                    pending_tx["account_name"] = chosen["name"]
+                    pending_tx["account_id"] = chosen["id"]
+                    new_state = {
+                        "state": "pending_confirmation",
+                        "pending_tx": pending_tx,
+                        "last_tx_id": conv_state.get("last_tx_id"),
+                    }
+                    await _set_conv_state(phone_number, new_state)
+                    await _send_confirmation_card(phone_number, pending_tx)
 
         # --- Seleção de campo na lista de edição ---
         elif button_id.startswith("edit_"):

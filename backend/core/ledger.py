@@ -95,6 +95,20 @@ class LedgerService:
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def search_accounts_by_partial_name(self, user_phone: str, name: str) -> list:
+        """
+        Search for active accounts whose name contains the given term (case-insensitive).
+        Used for fuzzy matching when exact name lookup fails.
+        """
+        lower_name = name.lower()
+        stmt = select(Account).where(
+            Account.user_phone == user_phone,
+            Account.is_active == True,
+            func.lower(Account.name).contains(lower_name),
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def register_transaction(self,
                                    user_phone: str,
                                    amount: float,
