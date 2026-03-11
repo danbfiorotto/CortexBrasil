@@ -17,6 +17,7 @@ import json
 import redis.asyncio as redis
 import os
 import tempfile
+from datetime import datetime
 
 # Shared Clients
 from backend.core import clients
@@ -211,27 +212,189 @@ async def verify_webhook(request: Request):
     logger.error("Webhook verification failed.")
     raise HTTPException(status_code=403, detail="Verification failed")
 
+CONFIRM_KEYWORDS = {"sim", "ok", "confirma", "confirmado", "certo", "pode", "salva", "salvar", "yes", "s", "👍"}
+CANCEL_KEYWORDS = {"não", "nao", "cancela", "cancelar", "errado", "errei", "volta", "no", "n"}
+
+def _format_confirmation_card(data: dict) -> str:
+    """Formata o card de confirmação de lançamento."""
+    from datetime import datetime
+    tx_type = data.get("type", "EXPENSE")
+    type_label = {"EXPENSE": "Despesa 📉", "INCOME": "Receita 📈", "TRANSFER": "Transferência 🔄"}.get(tx_type, tx_type)
+    amount = data.get("amount", 0)
+    date_raw = data.get("date")
+    try:
+        date_str = datetime.fromisoformat(date_raw).strftime("%d/%m/%Y") if date_raw else datetime.now().strftime("%d/%m/%Y")
+    except Exception:
+        date_str = datetime.now().strftime("%d/%m/%Y")
+
+    account = data.get("account_name") or "Carteira"
+    category = data.get("category") or "—"
+    description = data.get("description") or "—"
+    installments = data.get("installments")
+    installments_line = f"\n🔢 Parcelas: {installments}x" if installments and installments > 1 else ""
+    dest = data.get("destination_account_name")
+    dest_line = f"\n➡️ Destino: {dest}" if dest else ""
+
+    return (
+        f"📋 *Confirmar lançamento?*\n\n"
+        f"📅 Data: {date_str}\n"
+        f"📝 Descrição: {description}\n"
+        f"🏦 Conta: {account}{dest_line}\n"
+        f"🏷️ Categoria: {category}\n"
+        f"💰 Valor: R$ {amount:,.2f}\n"
+        f"📊 Tipo: {type_label}{installments_line}\n\n"
+        f"Responda *sim/ok* para confirmar ou *não/cancela* para cancelar.\n"
+        f"_(ou reaja com 👍 para confirmar)_"
+    )
+
+async def _get_conv_state(phone: str) -> dict:
+    """Busca estado da conversa no Redis."""
+    if not clients.redis_client:
+        return {}
+    raw = await clients.redis_client.get(f"conv:{phone}")
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            return {}
+    return {}
+
+async def _set_conv_state(phone: str, state: dict, ttl: int = 300):
+    """Salva estado da conversa no Redis."""
+    if clients.redis_client:
+        await clients.redis_client.set(f"conv:{phone}", json.dumps(state), ex=ttl)
+
+async def _clear_conv_state(phone: str):
+    """Remove estado da conversa do Redis."""
+    if clients.redis_client:
+        await clients.redis_client.delete(f"conv:{phone}")
+
+async def _send_whatsapp(phone: str, body: str, reply_to: str = None):
+    """Envia mensagem WhatsApp respeitando APP_ENV."""
+    if settings.APP_ENV == "development":
+        await clients.whatsapp_client.send_text_message(to=phone, body=body, reply_to_message_id=reply_to)
+    else:
+        logger.warning(f"⚠️ Resposta não enviada (APP_ENV={settings.APP_ENV}): {body[:80]}")
+
+async def _confirm_and_save(phone: str, conv_state: dict, message_id: str):
+    """Persiste a transação pendente e atualiza estado."""
+    from backend.db.session import AsyncSessionLocal
+    from backend.core.ledger import LedgerService
+
+    data = conv_state.get("pending_tx", {})
+    if not data or not data.get("amount"):
+        await _send_whatsapp(phone, "Não há lançamento pendente para confirmar.", message_id)
+        await _clear_conv_state(phone)
+        return
+
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone})
+            ledger = LedgerService(session)
+            tx = await ledger.register_transaction(
+                user_phone=phone,
+                amount=data.get("amount"),
+                category=data.get("category"),
+                description=data.get("description"),
+                tx_type=data.get("type", "EXPENSE"),
+                account_name=data.get("account_name"),
+                destination_account_name=data.get("destination_account_name"),
+                installments=data.get("installments"),
+            )
+            await session.commit()
+            tx_id = str(tx.id) if tx else None
+            logger.info(f"✅ Transação salva para {phone}: {tx_id}")
+
+        # Atualiza estado: limpa pending, guarda last_tx_id
+        new_state = {"state": None, "last_tx_id": tx_id}
+        await _set_conv_state(phone, new_state, ttl=600)
+
+        amount = data.get("amount", 0)
+        category = data.get("category") or "—"
+        await _send_whatsapp(phone, f"✅ *Lançamento confirmado!*\nR$ {amount:,.2f} em _{category}_ registrado com sucesso.", message_id)
+
+    except Exception as e:
+        logger.error(f"Erro ao salvar transação confirmada: {e}")
+        await _send_whatsapp(phone, "Tive um erro ao salvar o lançamento. Tente novamente.", message_id)
+
 async def process_whatsapp_message(message_body: str, phone_number: str, message_id: str, db: AsyncSession):
     """
     Background task to process the message with LLM and save to DB.
     """
     try:
         logger.info(f"🔄 Processando mensagem em background: {message_body}")
-        
-        from sqlalchemy import text
-        
+
         from backend.core.ledger import LedgerService
-        
-        # 1. Recuperar Contexto (RAG + Saldos)
-        context_str = ""
         from backend.db.session import AsyncSessionLocal
+
+        # --- 1. Verificar estado da conversa ---
+        conv_state = await _get_conv_state(phone_number)
+        current_state = conv_state.get("state")
+
+        # --- Estado: aguardando confirmação ---
+        if current_state == "pending_confirmation":
+            msg_lower = message_body.strip().lower()
+            if msg_lower in CONFIRM_KEYWORDS:
+                await _confirm_and_save(phone_number, conv_state, message_id)
+                return
+            elif msg_lower in CANCEL_KEYWORDS:
+                await _clear_conv_state(phone_number)
+                await _send_whatsapp(phone_number, "❌ Lançamento cancelado.", message_id)
+                return
+            # Se não for confirmação nem cancelamento, cai no fluxo normal abaixo
+
+        # --- Estado: aguardando resposta sobre nova categoria ---
+        if current_state == "pending_category":
+            msg_lower = message_body.strip().lower()
+            if msg_lower in CONFIRM_KEYWORDS:
+                # Criar a categoria sugerida e voltar para confirmação
+                suggested_cat = conv_state.get("suggested_category", "Nova Categoria")
+                async with AsyncSessionLocal() as session:
+                    await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                    from backend.db.models import UserProfile
+                    from sqlalchemy import select as sa_select
+                    result = await session.execute(sa_select(UserProfile).where(UserProfile.user_phone == phone_number))
+                    profile = result.scalar_one_or_none()
+                    if profile:
+                        existing = json.loads(profile.custom_categories) if profile.custom_categories else []
+                        if suggested_cat not in existing:
+                            existing.append(suggested_cat)
+                            profile.custom_categories = json.dumps(existing)
+                            await session.commit()
+
+                # Atualizar categoria no pending_tx e voltar para pending_confirmation
+                pending_tx = conv_state.get("pending_tx", {})
+                pending_tx["category"] = suggested_cat
+                new_state = {
+                    "state": "pending_confirmation",
+                    "pending_tx": pending_tx,
+                    "last_tx_id": conv_state.get("last_tx_id"),
+                }
+                await _set_conv_state(phone_number, new_state)
+                card = _format_confirmation_card(pending_tx)
+                await _send_whatsapp(phone_number, f"✅ Categoria *{suggested_cat}* criada!\n\n{card}", message_id)
+                return
+            elif msg_lower in CANCEL_KEYWORDS:
+                # Voltar para pending_confirmation com categoria genérica "Outros"
+                pending_tx = conv_state.get("pending_tx", {})
+                pending_tx["category"] = "Outros"
+                new_state = {
+                    "state": "pending_confirmation",
+                    "pending_tx": pending_tx,
+                    "last_tx_id": conv_state.get("last_tx_id"),
+                }
+                await _set_conv_state(phone_number, new_state)
+                card = _format_confirmation_card(pending_tx)
+                await _send_whatsapp(phone_number, f"Ok, usando categoria *Outros*.\n\n{card}", message_id)
+                return
+
+        # --- 2. Recuperar Contexto (saldos + histórico + categorias) ---
+        context_str = ""
+        available_categories = []
         async with AsyncSessionLocal() as session:
-            # RLS: Set current user context
             await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
-            
+
             ledger = LedgerService(session)
-            
-            # Get Account Balances
             accounts = await ledger.get_accounts(phone_number)
             if accounts:
                 context_str += "💰 Saldos Atuais:\n"
@@ -239,85 +402,139 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     context_str += f"- {acc.name}: R$ {acc.current_balance:.2f}\n"
                 context_str += "\n"
 
-            # Get Recent Transactions (using raw repo for now or add to ledger)
-            # Ideally LedgerService should handle this too, but keeping minimal changes
             from backend.core.repository import TransactionRepository
             repo = TransactionRepository(session)
             recent_txs = await repo.get_recent_transactions(phone_number, limit=15)
-            
             if recent_txs:
                 context_str += "📜 Histórico Recente:\n"
                 for tx in recent_txs:
                     date_str = tx.date.strftime("%d/%m") if tx.date else "Data desc."
-                    # Use emoji for type if available, fallback to sign
                     sign = "-" if tx.type == "EXPENSE" else "+"
                     context_str += f"- {date_str}: {sign} R$ {tx.amount} ({tx.category}) - {tx.description}\n"
             else:
                 context_str += "Nenhuma transação anterior encontrada."
 
-        # 2. Processa com IA (com Contexto)
-        try:
-            llm_response_str = await clients.llm_client.process_message(message_body, context_data=context_str)
-            logger.info(f"🧠 Raciocínio da IA: {llm_response_str}")
-            
-            reply_text = "Recebido." # Default
+            # Buscar categorias disponíveis (transações + custom)
+            from sqlalchemy import select as sa_select
+            from backend.db.models import UserProfile, Transaction
+            cats_result = await session.execute(
+                sa_select(Transaction.category).where(
+                    Transaction.user_phone == phone_number,
+                    Transaction.category.isnot(None)
+                ).distinct()
+            )
+            tx_cats = {row[0] for row in cats_result.fetchall() if row[0]}
 
-            # Tenta fazer parse do JSON (o LLM pode retornar texto as vezes)
+            profile_result = await session.execute(sa_select(UserProfile).where(UserProfile.user_phone == phone_number))
+            profile = profile_result.scalar_one_or_none()
+            custom_cats = []
+            if profile and profile.custom_categories:
+                try:
+                    custom_cats = json.loads(profile.custom_categories)
+                except Exception:
+                    custom_cats = []
+
+            available_categories = sorted(tx_cats | set(custom_cats))
+
+        # --- 3. Processar com IA ---
+        try:
+            llm_response_str = await clients.llm_client.process_message(
+                message_body,
+                context_data=context_str,
+                available_categories=available_categories if available_categories else None
+            )
+            logger.info(f"🧠 Resposta da IA: {llm_response_str}")
+
+            reply_text = "Recebido."
             try:
                 llm_data = json.loads(llm_response_str)
-                reply_text = llm_data.get("reply_text", "Recebido.")
-                
-                # Persistência de Dados
                 action = llm_data.get("action")
-                if action == "log_transaction" and "data" in llm_data:
-                    data = llm_data["data"]
-                    # Validate data integrity - simple check
-                    if data and data.get("amount"):
-                        # Re-instantiate session for DB operations
-                         async with AsyncSessionLocal() as session:
+                data = llm_data.get("data", {})
+
+                # --- Action: editar último lançamento ---
+                if action == "edit_last":
+                    last_tx_id = conv_state.get("last_tx_id")
+                    if last_tx_id and data:
+                        async with AsyncSessionLocal() as session:
                             await session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
-                            ledger = LedgerService(session)
-                            
-                            await ledger.register_transaction(
+                            from backend.core.repository import TransactionRepository
+                            repo = TransactionRepository(session)
+                            updated = await repo.update_transaction(
+                                tx_id=last_tx_id,
                                 user_phone=phone_number,
-                                amount=data.get("amount"),
                                 category=data.get("category"),
                                 description=data.get("description"),
-                                tx_type=data.get("type", "EXPENSE"),
-                                account_name=data.get("account_name"),
-                                destination_account_name=data.get("destination_account_name"),
-                                installments=data.get("installments")
+                                amount=data.get("amount"),
                             )
                             await session.commit()
-                            logger.info(f"✅ Transação salva no Ledger para {phone_number}")
+                        if updated:
+                            changes = []
+                            if data.get("category"):
+                                changes.append(f"categoria → *{data['category']}*")
+                            if data.get("description"):
+                                changes.append(f"descrição → *{data['description']}*")
+                            if data.get("amount"):
+                                changes.append(f"valor → *R$ {data['amount']:,.2f}*")
+                            reply_text = f"✏️ Lançamento corrigido: {', '.join(changes)}." if changes else "✏️ Lançamento atualizado."
+                        else:
+                            reply_text = "Não encontrei o lançamento para editar."
+                    else:
+                        reply_text = "Não há lançamento recente para editar."
+                    await _send_whatsapp(phone_number, reply_text, message_id)
+                    return
+
+                # --- Action: registrar transação (com confirmação) ---
+                elif action == "log_transaction" and data and data.get("amount"):
+                    category = data.get("category", "")
+
+                    # Verificar se LLM sugeriu nova categoria
+                    if category and category.startswith("__nova__:"):
+                        suggested = category.replace("__nova__:", "").strip()
+                        new_state = {
+                            "state": "pending_category",
+                            "suggested_category": suggested,
+                            "pending_tx": data,
+                            "last_tx_id": conv_state.get("last_tx_id"),
+                        }
+                        await _set_conv_state(phone_number, new_state)
+                        await _send_whatsapp(
+                            phone_number,
+                            f"❓ Não reconheci a categoria. Posso criar *\"{suggested}\"*?\nResponda *sim* para criar ou *não* para usar _Outros_.",
+                            message_id
+                        )
+                        return
+
+                    # Categoria válida — mostrar card de confirmação
+                    new_state = {
+                        "state": "pending_confirmation",
+                        "pending_tx": data,
+                        "last_tx_id": conv_state.get("last_tx_id"),
+                        "pending_message_id": message_id,
+                    }
+                    await _set_conv_state(phone_number, new_state)
+                    card = _format_confirmation_card(data)
+                    await _send_whatsapp(phone_number, card, message_id)
+                    return
+
+                # --- Action: chat ---
+                else:
+                    reply_text = llm_data.get("reply_text", "Recebido.")
 
             except json.JSONDecodeError:
-                # Fallback se o LLM não retornar JSON válido
                 logger.warning("IA não retornou JSON válido. Usando texto bruto.")
                 reply_text = llm_response_str
-                llm_data = {} # Handle unstructured response
             except Exception as e:
-                logger.error(f"Erro de persistência: {e}") 
-                reply_text = "Tive um erro ao salvar os dados."
+                logger.error(f"Erro de persistência: {e}")
+                reply_text = "Tive um erro ao processar sua mensagem."
 
         except Exception as e:
             logger.error(f"Erro no processamento da IA: {e}")
             reply_text = "Estou com uma breve enxaqueca digital. Tente novamente em instantes."
 
-        # Envia resposta
-        logger.info(f"📤 Preparando para enviar resposta de {phone_number}. APP_ENV={settings.APP_ENV}")
-        if settings.APP_ENV == "development": 
-            logger.info(f"🚀 Enviando resposta via WhatsApp para {phone_number}")
-            await clients.whatsapp_client.send_text_message(
-                to=phone_number, 
-                body=reply_text,
-                reply_to_message_id=message_id
-            )
-        else:
-            logger.warning(f"⚠️ Resposta não enviada porque APP_ENV={settings.APP_ENV} (não é 'development')")
+        await _send_whatsapp(phone_number, reply_text, message_id)
 
     except Exception as e:
-         logger.error(f"FATAL Background Error: {e}")
+        logger.error(f"FATAL Background Error: {e}")
 
 async def process_audio_message(media_id: str, phone_number: str, message_id: str):
     """
@@ -365,6 +582,22 @@ async def process_audio_message(media_id: str, phone_number: str, message_id: st
 
 from backend.core.security import verify_signature
 
+async def handle_reaction_confirmation(phone_number: str, reacted_msg_id: str):
+    """Trata confirmação via reação 👍 na mensagem de confirmação."""
+    try:
+        conv_state = await _get_conv_state(phone_number)
+        if conv_state.get("state") == "pending_confirmation":
+            pending_msg_id = conv_state.get("pending_message_id")
+            # Confirma se a reação foi na mensagem de confirmação ou se não temos o ID guardado
+            if not pending_msg_id or pending_msg_id == reacted_msg_id:
+                await _confirm_and_save(phone_number, conv_state, None)
+            else:
+                logger.info(f"Reação em mensagem diferente da confirmação pendente. Ignorando.")
+        else:
+            logger.info(f"Reação recebida mas sem confirmação pendente para {phone_number}.")
+    except Exception as e:
+        logger.error(f"Erro ao processar reação: {e}")
+
 @app.post("/webhook", dependencies=[Depends(verify_signature)])
 async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
     """
@@ -409,16 +642,24 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
                 message_body = message_data["text"]["body"]
                 logger.info(f"📩 MENSAGEM RECEBIDA (Texto): {message_body}")
                 background_tasks.add_task(process_whatsapp_message, message_body, phone_number, message_id, None)
-                
+
             # --- AUDIO/VOICE MESSAGE ---
             elif msg_type == "audio" or msg_type == "voice":
                 logger.info(f"🎙️ MENSAGEM DE ÁUDIO RECEBIDA")
                 media_id = message_data.get("audio", {}).get("id") or message_data.get("voice", {}).get("id")
-                
                 if media_id:
-                     background_tasks.add_task(process_audio_message, media_id, phone_number, message_id)
+                    background_tasks.add_task(process_audio_message, media_id, phone_number, message_id)
                 else:
                     logger.error("Audio ID not found in payload.")
+
+            # --- REACTION MESSAGE ---
+            elif msg_type == "reaction":
+                reaction = message_data.get("reaction", {})
+                emoji = reaction.get("emoji", "")
+                reacted_msg_id = reaction.get("message_id", "")
+                logger.info(f"👍 REAÇÃO RECEBIDA: {emoji} na mensagem {reacted_msg_id}")
+                if emoji == "👍":
+                    background_tasks.add_task(handle_reaction_confirmation, phone_number, reacted_msg_id)
 
             else:
                 logger.info(f"Recebido formato não-suportado: {msg_type}")

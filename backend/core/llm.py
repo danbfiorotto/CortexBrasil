@@ -17,7 +17,7 @@ class LLMClient:
             # "Authorization": f"Bearer {settings.HUGGING_FACE_HUB_TOKEN}" # Not needed for local vllm usually unless gated
         }
         
-    async def process_message(self, user_message: str, context_data: str = None) -> str:
+    async def process_message(self, user_message: str, context_data: str = None, available_categories: list = None) -> str:
         """
         Sends a message to the local LLM and returns the response.
         """
@@ -26,7 +26,7 @@ Seu objetivo é extrair informações financeiras de mensagens informais e reali
 
 Sempre responda em formato JSON estrito, sem markdown, com a seguinte estrutura:
 {
-    "action": "log_transaction" | "chat",
+    "action": "log_transaction" | "edit_last" | "chat",
     "data": {
         "amount": float | null,
         "type": "EXPENSE" | "INCOME" | "TRANSFER",
@@ -49,6 +49,20 @@ Sempre responda em formato JSON estrito, sem markdown, com a seguinte estrutura:
    - `account_name`: Origem (De onde saiu).
    - `destination_account_name`: Destino (Para onde foi).
 
+## REGRAS DE CATEGORIAS
+Use SEMPRE uma das categorias da lista abaixo (se disponível). Escolha a mais semanticamente próxima.
+Só use o formato especial `__nova__: NomeSugerido` se absolutamente nenhuma categoria existente se encaixar.
+{categories_section}
+
+## EDIÇÃO DO ÚLTIMO LANÇAMENTO
+Se o usuário pedir para corrigir/alterar algo do último lançamento registrado (ex: "muda a categoria", "era alimentação", "corrige pra Nubank", "o valor era 80"), retorne:
+{
+    "action": "edit_last",
+    "data": { "category": "NovaCategoria" },
+    "reply_text": "Claro! Vou corrigir o lançamento."
+}
+Inclua em `data` APENAS os campos que devem ser alterados (category, description, amount, account_name).
+
 ## CONTEXTO FINANCEIRO (Memória Recente e Contas)
 Use os dados abaixo para responder perguntas sobre histórico, saldos ou hábitos.
 --------------------------------------------------
@@ -60,19 +74,33 @@ Usuario: "Gastei 50 no mcdonalds no débito do itau"
 Resposta: {
     "action": "log_transaction",
     "data": {"amount": 50.0, "type": "EXPENSE", "category": "Alimentação", "description": "McDonalds", "account_name": "Itaú", "installments": null},
-    "reply_text": "Registrado: R$ 50,00 no Itaú (Alimentação). 🍔"
+    "reply_text": "Aguardando confirmação."
 }
 
 Usuario: "Recebi 5000 da empresa"
 Resposta: {
     "action": "log_transaction",
     "data": {"amount": 5000.0, "type": "INCOME", "category": "Salário", "description": "Salário Empresa", "account_name": "Itaú", "installments": null},
-    "reply_text": "Boa! R$ 5.000,00 de entrada registrados. 💸"
+    "reply_text": "Aguardando confirmação."
+}
+
+Usuario: "muda a categoria pra Alimentação"
+Resposta: {
+    "action": "edit_last",
+    "data": {"category": "Alimentação"},
+    "reply_text": "Corrigido!"
 }
 """
-        
-        # Inject context or empty string
+        # Build categories section
+        if available_categories:
+            cats_list = "\n".join(f"- {c}" for c in available_categories)
+            categories_section = f"Categorias disponíveis:\n{cats_list}"
+        else:
+            categories_section = "Nenhuma categoria cadastrada ainda. Use nomes comuns em português (ex: Alimentação, Transporte, Saúde, Lazer, Moradia, Salário)."
+
+        # Inject context and categories
         formatted_prompt = system_prompt.replace("{context_data}", context_data if context_data else "Nenhuma transação recente encontrada.")
+        formatted_prompt = formatted_prompt.replace("{categories_section}", categories_section)
 
         messages = [{"role": "system", "content": formatted_prompt}]
         messages.append({"role": "user", "content": user_message})
