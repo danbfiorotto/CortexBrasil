@@ -715,6 +715,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                 elif len(candidates) == 1:
                                     # Só uma correspondência — usar diretamente
                                     data["account_name"] = candidates[0].name
+                                    data["account_id"] = str(candidates[0].id)
 
                     # Categoria válida — mostrar card de confirmação com botões
                     new_state = {
