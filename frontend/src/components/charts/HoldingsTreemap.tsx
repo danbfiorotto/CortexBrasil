@@ -61,7 +61,7 @@ function TreemapContent({
     return (
         <g>
             {/* background fill to cover the Recharts default blue */}
-            <rect x={x} y={y} width={width} height={height} style={{ fill: '#1E293B' }} />
+            <rect x={x} y={y} width={width} height={height} style={{ fill: '#FFFFFF' }} />
             <rect
                 x={x + gap}
                 y={y + gap}
@@ -141,7 +141,7 @@ export default function HoldingsTreemap({ holdings }: HoldingsTreemapProps) {
     const dynamicHeight = Math.min(480, Math.max(340, data.length * 30));
 
     return (
-        <div style={{ height: dynamicHeight }} className="w-full rounded-xl overflow-hidden bg-slate-800/40">
+        <div style={{ height: dynamicHeight }} className="w-full rounded-xl overflow-hidden bg-white">
             <ResponsiveContainer width="100%" height="100%">
                 <Treemap
                     data={data}
