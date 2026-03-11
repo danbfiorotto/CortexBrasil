@@ -347,13 +347,21 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                 pending_summary = _format_confirmation_card(pending_tx)
 
                 edit_context = (
-                    f"O usuário está revisando um lançamento PENDENTE (ainda não salvo) e quer corrigir algo.\n"
-                    f"Lançamento atual:\n{pending_summary}\n\n"
-                    f"Retorne action='edit_pending' com APENAS os campos que devem ser alterados em 'data'.\n"
-                    f"Campos editáveis: amount (float), type (EXPENSE/INCOME/TRANSFER), category (string), "
+                    f"O usuário está revisando um lançamento PENDENTE (ainda não salvo) e quer corrigir uma ou mais informações.\n"
+                    f"Lançamento atual pendente:\n{pending_summary}\n\n"
+                    f"IMPORTANTE: Interprete QUALQUER mensagem do usuário como uma correção ao lançamento acima.\n"
+                    f"O usuário pode usar linguagem natural implícita — sem usar palavras como 'mudar' ou 'alterar'.\n\n"
+                    f"Exemplos de como interpretar:\n"
+                    f"- 'é Alimentação' ou 'era Alimentação' ou 'Alimentação' → category: 'Alimentação'\n"
+                    f"- 'foi 80' ou 'eram 80 reais' ou '80' → amount: 80.0\n"
+                    f"- 'foi no Nubank' ou 'Nubank' → account_name: 'Nubank'\n"
+                    f"- 'é uma receita' ou 'foi uma entrada' → type: 'INCOME'\n"
+                    f"- 'foi ontem' ou 'foi dia 10' → date: (ISO 8601 correspondente)\n"
+                    f"- 'supermercado Extra' ou 'era no Extra' → description: 'Supermercado Extra'\n\n"
+                    f"Retorne SEMPRE action='edit_pending' com APENAS os campos alterados em 'data'.\n"
+                    f"Campos: amount (float), type (EXPENSE/INCOME/TRANSFER), category (string), "
                     f"description (string), account_name (string), destination_account_name (string), date (ISO 8601).\n"
-                    f"Exemplo: se o usuário disser 'muda o valor para 80', retorne: "
-                    f'{{\"action\": \"edit_pending\", \"data\": {{\"amount\": 80.0}}, \"reply_text\": \"Valor atualizado!\"}}'
+                    f"Formato: {{\"action\": \"edit_pending\", \"data\": {{...apenas campos alterados...}}, \"reply_text\": \"mensagem curta\"}}"
                 )
 
                 try:

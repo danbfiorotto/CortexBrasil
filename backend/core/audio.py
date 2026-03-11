@@ -12,7 +12,7 @@ except ImportError:
     logger.warning("⚠️ 'faster-whisper' library not found. Audio transcription will be disabled.")
 
 class AudioTranscriber:
-    def __init__(self, model_size="tiny", device="cpu", compute_type="int8"):
+    def __init__(self, model_size="small", device="cpu", compute_type="int8"):
         """
         Initializes the Whisper model.
         """
@@ -35,7 +35,7 @@ class AudioTranscriber:
             return "Erro: Sistema de transcrição de áudio indisponível no momento."
 
         try:
-            segments, info = self.model.transcribe(file_path, beam_size=5)
+            segments, info = self.model.transcribe(file_path, beam_size=5, language="pt")
             logger.info(f"Detected language '{info.language}' with probability {info.language_probability}")
 
             text = " ".join([segment.text for segment in segments])
