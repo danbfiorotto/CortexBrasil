@@ -276,6 +276,45 @@ async def _send_whatsapp(phone: str, body: str, reply_to: str = None):
     else:
         logger.warning(f"⚠️ Resposta não enviada (APP_ENV={settings.APP_ENV}): {body[:80]}")
 
+async def _send_confirmation_card(phone: str, data: dict):
+    """Envia o card de confirmação com botões interativos."""
+    card_text = _format_confirmation_card(data)
+    if settings.APP_ENV == "development":
+        await clients.whatsapp_client.send_interactive_buttons(
+            to=phone,
+            body=card_text,
+            buttons=[
+                {"id": "btn_confirm", "title": "✅ Confirmar"},
+                {"id": "btn_edit",    "title": "✏️ Editar"},
+                {"id": "btn_cancel",  "title": "❌ Cancelar"},
+            ]
+        )
+    else:
+        logger.warning(f"⚠️ Card de confirmação não enviado (APP_ENV={settings.APP_ENV})")
+
+async def _send_edit_field_list(phone: str):
+    """Envia lista de campos editáveis."""
+    if settings.APP_ENV == "development":
+        await clients.whatsapp_client.send_interactive_list(
+            to=phone,
+            header="✏️ O que deseja corrigir?",
+            body="Selecione o campo que quer alterar:",
+            button_label="Ver campos",
+            sections=[{
+                "title": "Campos do lançamento",
+                "rows": [
+                    {"id": "edit_amount",      "title": "💰 Valor"},
+                    {"id": "edit_category",    "title": "🏷️ Categoria"},
+                    {"id": "edit_account",     "title": "🏦 Conta"},
+                    {"id": "edit_description", "title": "📝 Descrição"},
+                    {"id": "edit_date",        "title": "📅 Data"},
+                    {"id": "edit_type",        "title": "📊 Tipo (despesa/receita)"},
+                ]
+            }]
+        )
+    else:
+        logger.warning(f"⚠️ Lista de edição não enviada (APP_ENV={settings.APP_ENV})")
+
 async def _confirm_and_save(phone: str, conv_state: dict, message_id: str):
     """Persiste a transação pendente e atualiza estado."""
     from backend.db.session import AsyncSessionLocal
@@ -331,7 +370,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
         conv_state = await _get_conv_state(phone_number)
         current_state = conv_state.get("state")
 
-        # --- Estado: aguardando confirmação ---
+        # --- Estado: aguardando confirmação (fallback texto — botões são tratados em handle_interactive) ---
         if current_state == "pending_confirmation":
             msg_lower = message_body.strip().lower()
             if msg_lower in CONFIRM_KEYWORDS:
@@ -342,62 +381,53 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                 await _send_whatsapp(phone_number, "❌ Lançamento cancelado.", message_id)
                 return
             else:
-                # Usuário quer editar o lançamento pendente — passa para o LLM com contexto de edição
+                # Usuário digitou algo livre — reexibir card com botões
                 pending_tx = conv_state.get("pending_tx", {})
-                pending_summary = _format_confirmation_card(pending_tx)
+                await _send_confirmation_card(phone_number, pending_tx)
+                return
 
-                edit_context = (
-                    f"O usuário está revisando um lançamento PENDENTE (ainda não salvo) e quer corrigir uma ou mais informações.\n"
-                    f"Lançamento atual pendente:\n{pending_summary}\n\n"
-                    f"IMPORTANTE: Interprete QUALQUER mensagem do usuário como uma correção ao lançamento acima.\n"
-                    f"O usuário pode usar linguagem natural implícita — sem usar palavras como 'mudar' ou 'alterar'.\n\n"
-                    f"Exemplos de como interpretar:\n"
-                    f"- 'é Alimentação' ou 'era Alimentação' ou 'Alimentação' → category: 'Alimentação'\n"
-                    f"- 'foi 80' ou 'eram 80 reais' ou '80' → amount: 80.0\n"
-                    f"- 'foi no Nubank' ou 'Nubank' → account_name: 'Nubank'\n"
-                    f"- 'é uma receita' ou 'foi uma entrada' → type: 'INCOME'\n"
-                    f"- 'foi ontem' ou 'foi dia 10' → date: (ISO 8601 correspondente)\n"
-                    f"- 'supermercado Extra' ou 'era no Extra' → description: 'Supermercado Extra'\n\n"
-                    f"Retorne SEMPRE action='edit_pending' com APENAS os campos alterados em 'data'.\n"
-                    f"Campos: amount (float), type (EXPENSE/INCOME/TRANSFER), category (string), "
-                    f"description (string), account_name (string), destination_account_name (string), date (ISO 8601).\n"
-                    f"Formato: {{\"action\": \"edit_pending\", \"data\": {{...apenas campos alterados...}}, \"reply_text\": \"mensagem curta\"}}"
+        # --- Estado: aguardando valor do campo a editar ---
+        if current_state == "pending_field_edit":
+            field = conv_state.get("editing_field")
+            pending_tx = conv_state.get("pending_tx", {})
+
+            if field:
+                field_labels = {
+                    "amount": "valor", "category": "categoria", "account_name": "conta",
+                    "description": "descrição", "date": "data", "type": "tipo",
+                }
+                field_context = (
+                    f"O usuário está corrigindo o campo '{field_labels.get(field, field)}' de um lançamento.\n"
+                    f"Lançamento atual: {_format_confirmation_card(pending_tx)}\n\n"
+                    f"Extraia APENAS o novo valor para o campo '{field}' da mensagem do usuário.\n"
+                    f"Regras:\n"
+                    f"- amount: número float (ex: '80 reais' → 80.0)\n"
+                    f"- category: string em português (ex: 'alimentação' → 'Alimentação')\n"
+                    f"- account_name: nome da conta (ex: 'nubank', 'itaú', 'carteira')\n"
+                    f"- description: texto livre descritivo\n"
+                    f"- date: converter para ISO 8601 (hoje={datetime.now().strftime('%Y-%m-%d')}; 'ontem', 'dia 10', etc.)\n"
+                    f"- type: 'EXPENSE', 'INCOME' ou 'TRANSFER'\n\n"
+                    f"Retorne SEMPRE: {{\"action\": \"edit_pending\", \"data\": {{\"{field}\": <novo_valor>}}, \"reply_text\": \"mensagem curta\"}}"
                 )
 
                 try:
-                    llm_response_str = await clients.llm_client.process_message(
-                        message_body,
-                        context_data=edit_context,
-                    )
+                    llm_response_str = await clients.llm_client.process_message(message_body, context_data=field_context)
                     llm_data = json.loads(llm_response_str)
-                    edit_action = llm_data.get("action")
                     edit_data = llm_data.get("data") or {}
 
-                    if edit_action == "edit_pending" and edit_data:
-                        # Aplicar edições no pending_tx (sem salvar no banco)
-                        for field in ("amount", "type", "category", "description", "account_name", "destination_account_name", "date"):
-                            if edit_data.get(field) is not None:
-                                pending_tx[field] = edit_data[field]
+                    if edit_data.get(field) is not None:
+                        pending_tx[field] = edit_data[field]
 
-                        updated_state = {
-                            "state": "pending_confirmation",
-                            "pending_tx": pending_tx,
-                            "last_tx_id": conv_state.get("last_tx_id"),
-                            "pending_message_id": message_id,
-                        }
-                        await _set_conv_state(phone_number, updated_state)
-                        card = _format_confirmation_card(pending_tx)
-                        await _send_whatsapp(phone_number, f"✏️ Lançamento atualizado! Confirma?\n\n{card}", message_id)
-                    else:
-                        # LLM não entendeu como edição — reenviar card com instrução
-                        await _send_whatsapp(
-                            phone_number,
-                            f"Não entendi o que deseja corrigir. Por favor informe o que está errado (ex: 'muda o valor para 80', 'categoria é Alimentação').\n\n{pending_summary}",
-                            message_id
-                        )
+                    updated_state = {
+                        "state": "pending_confirmation",
+                        "pending_tx": pending_tx,
+                        "last_tx_id": conv_state.get("last_tx_id"),
+                    }
+                    await _set_conv_state(phone_number, updated_state)
+                    await _send_confirmation_card(phone_number, pending_tx)
                 except Exception as e:
-                    logger.error(f"Erro ao processar edição do pending_tx: {e}")
-                    await _send_whatsapp(phone_number, "Não consegui processar a edição. Tente novamente.", message_id)
+                    logger.error(f"Erro ao processar edição de campo: {e}")
+                    await _send_whatsapp(phone_number, "Não consegui processar. Tente novamente.", message_id)
                 return
 
         # --- Estado: aguardando resposta sobre nova categoria ---
@@ -428,8 +458,8 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     "last_tx_id": conv_state.get("last_tx_id"),
                 }
                 await _set_conv_state(phone_number, new_state)
-                card = _format_confirmation_card(pending_tx)
-                await _send_whatsapp(phone_number, f"✅ Categoria *{suggested_cat}* criada!\n\n{card}", message_id)
+                await _send_whatsapp(phone_number, f"✅ Categoria *{suggested_cat}* criada!", message_id)
+                await _send_confirmation_card(phone_number, pending_tx)
                 return
             elif msg_lower in CANCEL_KEYWORDS:
                 # Voltar para pending_confirmation com categoria genérica "Outros"
@@ -441,8 +471,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     "last_tx_id": conv_state.get("last_tx_id"),
                 }
                 await _set_conv_state(phone_number, new_state)
-                card = _format_confirmation_card(pending_tx)
-                await _send_whatsapp(phone_number, f"Ok, usando categoria *Outros*.\n\n{card}", message_id)
+                await _send_confirmation_card(phone_number, pending_tx)
                 return
 
         # --- 2. Recuperar Contexto (saldos + histórico + categorias) ---
@@ -561,16 +590,14 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                         )
                         return
 
-                    # Categoria válida — mostrar card de confirmação
+                    # Categoria válida — mostrar card de confirmação com botões
                     new_state = {
                         "state": "pending_confirmation",
                         "pending_tx": data,
                         "last_tx_id": conv_state.get("last_tx_id"),
-                        "pending_message_id": message_id,
                     }
                     await _set_conv_state(phone_number, new_state)
-                    card = _format_confirmation_card(data)
-                    await _send_whatsapp(phone_number, card, message_id)
+                    await _send_confirmation_card(phone_number, data)
                     return
 
                 # --- Action: chat ---
@@ -638,6 +665,55 @@ async def process_audio_message(media_id: str, phone_number: str, message_id: st
         await clients.whatsapp_client.send_text_message(phone_number, "Tive um problema para ouvir seu áudio.", message_id)
 
 from backend.core.security import verify_signature
+
+async def handle_interactive(phone_number: str, button_id: str, message_id: str):
+    """Trata cliques em botões e seleções de lista interativa."""
+    try:
+        conv_state = await _get_conv_state(phone_number)
+
+        # --- Botões do card de confirmação ---
+        if button_id == "btn_confirm":
+            if conv_state.get("state") == "pending_confirmation":
+                await _confirm_and_save(phone_number, conv_state, message_id)
+            else:
+                await _send_whatsapp(phone_number, "Nenhum lançamento pendente para confirmar.", message_id)
+
+        elif button_id == "btn_cancel":
+            await _clear_conv_state(phone_number)
+            await _send_whatsapp(phone_number, "❌ Lançamento cancelado.", message_id)
+
+        elif button_id == "btn_edit":
+            if conv_state.get("state") == "pending_confirmation":
+                await _send_edit_field_list(phone_number)
+            else:
+                await _send_whatsapp(phone_number, "Nenhum lançamento pendente para editar.", message_id)
+
+        # --- Seleção de campo na lista de edição ---
+        elif button_id.startswith("edit_"):
+            field_map = {
+                "edit_amount":      "amount",
+                "edit_category":    "category",
+                "edit_account":     "account_name",
+                "edit_description": "description",
+                "edit_date":        "date",
+                "edit_type":        "type",
+            }
+            field = field_map.get(button_id)
+            if field and conv_state.get("state") == "pending_confirmation":
+                field_prompts = {
+                    "amount":       "💰 Qual o novo *valor*? (ex: 80, 150.50)",
+                    "category":     "🏷️ Qual a nova *categoria*? (ex: Alimentação, Transporte)",
+                    "account_name": "🏦 Qual a *conta*? (ex: Nubank, Itaú, Carteira)",
+                    "description":  "📝 Qual a nova *descrição*?",
+                    "date":         "📅 Qual a nova *data*? (ex: hoje, ontem, 10/03)",
+                    "type":         "📊 É uma *despesa*, *receita* ou *transferência*?",
+                }
+                updated_state = {**conv_state, "state": "pending_field_edit", "editing_field": field}
+                await _set_conv_state(phone_number, updated_state)
+                await _send_whatsapp(phone_number, field_prompts.get(field, "Qual o novo valor?"), message_id)
+
+    except Exception as e:
+        logger.error(f"Erro ao processar interação: {e}")
 
 async def handle_reaction_confirmation(phone_number: str, reacted_msg_id: str):
     """Trata confirmação via reação 👍 na mensagem de confirmação."""
@@ -708,6 +784,19 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
                     background_tasks.add_task(process_audio_message, media_id, phone_number, message_id)
                 else:
                     logger.error("Audio ID not found in payload.")
+
+            # --- INTERACTIVE (button click / list selection) ---
+            elif msg_type == "interactive":
+                interactive = message_data.get("interactive", {})
+                itype = interactive.get("type")
+                button_id = None
+                if itype == "button_reply":
+                    button_id = interactive.get("button_reply", {}).get("id")
+                elif itype == "list_reply":
+                    button_id = interactive.get("list_reply", {}).get("id")
+                if button_id:
+                    logger.info(f"🔘 INTERAÇÃO RECEBIDA: {button_id}")
+                    background_tasks.add_task(handle_interactive, phone_number, button_id, message_id)
 
             # --- REACTION MESSAGE ---
             elif msg_type == "reaction":

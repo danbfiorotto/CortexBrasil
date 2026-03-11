@@ -52,6 +52,94 @@ class WhatsAppClient:
                 logger.error(f"Error sending message: {str(e)}")
                 return None
 
+    async def send_interactive_buttons(self, to: str, body: str, buttons: list, header: str = None, footer: str = None):
+        """
+        Sends an interactive message with up to 3 reply buttons.
+        buttons: list of dicts with 'id' (max 256 chars) and 'title' (max 20 chars)
+        Example: [{"id": "confirm", "title": "✅ Confirmar"}]
+        """
+        if not self.api_token or not self.phone_number_id:
+            logger.error("WhatsApp API credentials not configured.")
+            return None
+
+        interactive = {
+            "type": "button",
+            "body": {"text": body},
+            "action": {
+                "buttons": [
+                    {"type": "reply", "reply": {"id": btn["id"], "title": btn["title"]}}
+                    for btn in buttons[:3]
+                ]
+            }
+        }
+        if header:
+            interactive["header"] = {"type": "text", "text": header}
+        if footer:
+            interactive["footer"] = {"text": footer}
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": interactive,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.base_url, headers=self.headers, json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Failed to send interactive buttons: {e.response.text}")
+                return None
+            except Exception as e:
+                logger.error(f"Error sending interactive buttons: {str(e)}")
+                return None
+
+    async def send_interactive_list(self, to: str, body: str, button_label: str, sections: list, header: str = None, footer: str = None):
+        """
+        Sends an interactive list message.
+        sections: list of dicts with 'title' and 'rows' (each row has 'id', 'title', optional 'description')
+        Example: [{"title": "Campos", "rows": [{"id": "field_category", "title": "Categoria"}]}]
+        """
+        if not self.api_token or not self.phone_number_id:
+            logger.error("WhatsApp API credentials not configured.")
+            return None
+
+        interactive = {
+            "type": "list",
+            "body": {"text": body},
+            "action": {
+                "button": button_label,
+                "sections": sections,
+            }
+        }
+        if header:
+            interactive["header"] = {"type": "text", "text": header}
+        if footer:
+            interactive["footer"] = {"text": footer}
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to,
+            "type": "interactive",
+            "interactive": interactive,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(self.base_url, headers=self.headers, json=payload)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Failed to send interactive list: {e.response.text}")
+                return None
+            except Exception as e:
+                logger.error(f"Error sending interactive list: {str(e)}")
+                return None
+
     async def get_media_url(self, media_id: str) -> str:
         """
         Retrieves the temporary download URL for a media object.
