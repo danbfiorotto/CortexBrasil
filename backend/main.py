@@ -699,7 +699,10 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                             await _sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
                             _ledger2 = _LS2(_sess)
                             exact = await _ledger2.get_account_by_name(phone_number, account_name_raw)
-                            if not exact:
+                            if exact:
+                                data["account_name"] = exact.name
+                                data["account_id"] = str(exact.id)
+                            else:
                                 candidates = await _ledger2.search_accounts_by_partial_name(phone_number, account_name_raw)
                                 if len(candidates) > 1:
                                     candidate_list = [{"id": str(a.id), "name": a.name} for a in candidates]
