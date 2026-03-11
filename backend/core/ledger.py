@@ -3,10 +3,18 @@ from sqlalchemy import select, func, text
 from backend.db.models import Transaction, Account
 from uuid import UUID
 import uuid
+import unicodedata
 from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
+
+def _strip_accents(s: str) -> str:
+    """Remove accents from a string (e.g. 'Itaú' -> 'Itau')."""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
 
 class LedgerService:
     def __init__(self, session: AsyncSession):
@@ -80,34 +88,38 @@ class LedgerService:
 
     async def get_account_by_name(self, user_phone: str, name: str, acc_type: str = None):
         """
-        Search for account by exact name (case-insensitive) and optionally by type.
+        Search for account by exact name (case-insensitive, accent-insensitive) and optionally by type.
         Used for duplicate detection — name uniqueness is scoped per type.
         """
-        lower_name = name.lower()
+        normalized_name = _strip_accents(name).lower()
         conditions = [
             Account.user_phone == user_phone,
-            func.lower(Account.name) == lower_name,
             Account.is_active == True,
         ]
         if acc_type:
             conditions.append(Account.type == acc_type.upper())
         stmt = select(Account).where(*conditions)
         result = await self.session.execute(stmt)
-        return result.scalars().first()
+        for account in result.scalars().all():
+            if _strip_accents(account.name).lower() == normalized_name:
+                return account
+        return None
 
     async def search_accounts_by_partial_name(self, user_phone: str, name: str) -> list:
         """
-        Search for active accounts whose name contains the given term (case-insensitive).
+        Search for active accounts whose name contains the given term (case-insensitive, accent-insensitive).
         Used for fuzzy matching when exact name lookup fails.
         """
-        lower_name = name.lower()
+        normalized_name = _strip_accents(name).lower()
         stmt = select(Account).where(
             Account.user_phone == user_phone,
             Account.is_active == True,
-            func.lower(Account.name).contains(lower_name),
         )
         result = await self.session.execute(stmt)
-        return result.scalars().all()
+        return [
+            acc for acc in result.scalars().all()
+            if normalized_name in _strip_accents(acc.name).lower()
+        ]
 
     async def register_transaction(self,
                                    user_phone: str,
