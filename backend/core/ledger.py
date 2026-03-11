@@ -87,6 +87,7 @@ class LedgerService:
         conditions = [
             Account.user_phone == user_phone,
             func.lower(Account.name) == lower_name,
+            Account.is_active == True,
         ]
         if acc_type:
             conditions.append(Account.type == acc_type.upper())
@@ -118,7 +119,9 @@ class LedgerService:
             account = result.scalar_one_or_none()
         elif account_name:
             account = await self.get_account_by_name(user_phone, account_name)
-        
+            if not account:
+                logger.warning(f"⚠️ Conta '{account_name}' não encontrada para {user_phone}. Usando Carteira como fallback.")
+
         # If no account found/specified, try to find a default "Carteira" or create one
         if not account:
             account = await self.get_account_by_name(user_phone, "Carteira")
