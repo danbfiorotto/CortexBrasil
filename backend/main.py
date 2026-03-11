@@ -408,6 +408,50 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
             pending_tx = conv_state.get("pending_tx", {})
 
             if field:
+                # Para categoria, usar o texto literal do usuário (capitalizado) sem passar pelo LLM
+                if field == "category":
+                    new_category = message_body.strip().capitalize()
+                    pending_tx["category"] = new_category
+                    async with AsyncSessionLocal() as cat_session:
+                        await cat_session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                        from backend.db.models import UserProfile as _UP2, Transaction as _TX2
+                        from sqlalchemy import select as _sel2
+                        tx_cats_res2 = await cat_session.execute(
+                            _sel2(_TX2.category).where(_TX2.user_phone == phone_number, _TX2.category.isnot(None)).distinct()
+                        )
+                        existing_cats2 = {r[0] for r in tx_cats_res2.fetchall() if r[0]}
+                        prof_res2 = await cat_session.execute(_sel2(_UP2.custom_categories).where(_UP2.user_phone == phone_number))
+                        prof_cats_raw2 = prof_res2.scalar_one_or_none()
+                        if prof_cats_raw2:
+                            try:
+                                existing_cats2 |= set(json.loads(prof_cats_raw2))
+                            except Exception:
+                                pass
+
+                    if new_category not in existing_cats2:
+                        new_state = {
+                            "state": "pending_category",
+                            "suggested_category": new_category,
+                            "pending_tx": pending_tx,
+                            "last_tx_id": conv_state.get("last_tx_id"),
+                        }
+                        await _set_conv_state(phone_number, new_state)
+                        await _send_whatsapp(
+                            phone_number,
+                            f"❓ A categoria *\"{new_category}\"* não existe ainda. Deseja criá-la?\nResponda *sim* para criar ou *não* para usar _Outros_.",
+                            message_id
+                        )
+                        return
+
+                    updated_state = {
+                        "state": "pending_confirmation",
+                        "pending_tx": pending_tx,
+                        "last_tx_id": conv_state.get("last_tx_id"),
+                    }
+                    await _set_conv_state(phone_number, updated_state)
+                    await _send_confirmation_card(phone_number, pending_tx)
+                    return
+
                 field_labels = {
                     "amount": "valor", "category": "categoria", "account_name": "conta",
                     "description": "descrição", "date": "data", "type": "tipo",
@@ -433,40 +477,6 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
 
                     if edit_data.get(field) is not None:
                         pending_tx[field] = edit_data[field]
-
-                    # Se o campo editado é categoria, verificar se ela existe
-                    if field == "category":
-                        new_category = pending_tx.get("category", "")
-                        async with AsyncSessionLocal() as cat_session:
-                            await cat_session.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
-                            from backend.db.models import UserProfile as _UP, Transaction as _TX
-                            from sqlalchemy import select as _sel
-                            tx_cats_res = await cat_session.execute(
-                                _sel(_TX.category).where(_TX.user_phone == phone_number, _TX.category.isnot(None)).distinct()
-                            )
-                            existing_cats = {r[0] for r in tx_cats_res.fetchall() if r[0]}
-                            prof_res = await cat_session.execute(_sel(_UP.custom_categories).where(_UP.user_phone == phone_number))
-                            prof_cats_raw = prof_res.scalar_one_or_none()
-                            if prof_cats_raw:
-                                try:
-                                    existing_cats |= set(json.loads(prof_cats_raw))
-                                except Exception:
-                                    pass
-
-                        if new_category and new_category not in existing_cats:
-                            new_state = {
-                                "state": "pending_category",
-                                "suggested_category": new_category,
-                                "pending_tx": pending_tx,
-                                "last_tx_id": conv_state.get("last_tx_id"),
-                            }
-                            await _set_conv_state(phone_number, new_state)
-                            await _send_whatsapp(
-                                phone_number,
-                                f"❓ A categoria *\"{new_category}\"* não existe ainda. Deseja criá-la?\nResponda *sim* para criar ou *não* para usar _Outros_.",
-                                message_id
-                            )
-                            return
 
                     updated_state = {
                         "state": "pending_confirmation",
