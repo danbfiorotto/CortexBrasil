@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     
     # Initialize Audio Transcriber
     logger.info("⏳ Loading Whisper Model...")
-    clients.audio_transcriber = AudioTranscriber()
+    clients.audio_transcriber = AudioTranscriber(model_size="large-v3", device="cuda", compute_type="float16")
     logger.info("✅ Whisper Model Loaded.")
 
     # Create tables on startup
