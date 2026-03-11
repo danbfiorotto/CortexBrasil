@@ -341,7 +341,56 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                 await _clear_conv_state(phone_number)
                 await _send_whatsapp(phone_number, "❌ Lançamento cancelado.", message_id)
                 return
-            # Se não for confirmação nem cancelamento, cai no fluxo normal abaixo
+            else:
+                # Usuário quer editar o lançamento pendente — passa para o LLM com contexto de edição
+                pending_tx = conv_state.get("pending_tx", {})
+                pending_summary = _format_confirmation_card(pending_tx)
+
+                edit_context = (
+                    f"O usuário está revisando um lançamento PENDENTE (ainda não salvo) e quer corrigir algo.\n"
+                    f"Lançamento atual:\n{pending_summary}\n\n"
+                    f"Retorne action='edit_pending' com APENAS os campos que devem ser alterados em 'data'.\n"
+                    f"Campos editáveis: amount (float), type (EXPENSE/INCOME/TRANSFER), category (string), "
+                    f"description (string), account_name (string), destination_account_name (string), date (ISO 8601).\n"
+                    f"Exemplo: se o usuário disser 'muda o valor para 80', retorne: "
+                    f'{{\"action\": \"edit_pending\", \"data\": {{\"amount\": 80.0}}, \"reply_text\": \"Valor atualizado!\"}}'
+                )
+
+                try:
+                    llm_response_str = await clients.llm_client.process_message(
+                        message_body,
+                        context_data=edit_context,
+                    )
+                    llm_data = json.loads(llm_response_str)
+                    edit_action = llm_data.get("action")
+                    edit_data = llm_data.get("data") or {}
+
+                    if edit_action == "edit_pending" and edit_data:
+                        # Aplicar edições no pending_tx (sem salvar no banco)
+                        for field in ("amount", "type", "category", "description", "account_name", "destination_account_name", "date"):
+                            if edit_data.get(field) is not None:
+                                pending_tx[field] = edit_data[field]
+
+                        updated_state = {
+                            "state": "pending_confirmation",
+                            "pending_tx": pending_tx,
+                            "last_tx_id": conv_state.get("last_tx_id"),
+                            "pending_message_id": message_id,
+                        }
+                        await _set_conv_state(phone_number, updated_state)
+                        card = _format_confirmation_card(pending_tx)
+                        await _send_whatsapp(phone_number, f"✏️ Lançamento atualizado! Confirma?\n\n{card}", message_id)
+                    else:
+                        # LLM não entendeu como edição — reenviar card com instrução
+                        await _send_whatsapp(
+                            phone_number,
+                            f"Não entendi o que deseja corrigir. Por favor informe o que está errado (ex: 'muda o valor para 80', 'categoria é Alimentação').\n\n{pending_summary}",
+                            message_id
+                        )
+                except Exception as e:
+                    logger.error(f"Erro ao processar edição do pending_tx: {e}")
+                    await _send_whatsapp(phone_number, "Não consegui processar a edição. Tente novamente.", message_id)
+                return
 
         # --- Estado: aguardando resposta sobre nova categoria ---
         if current_state == "pending_category":
