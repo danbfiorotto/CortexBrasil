@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text, insert, select
+from sqlalchemy import text, insert, select, func
 from pydantic import BaseModel, Field
 from typing import Optional
 from backend.core.auth import get_current_user
@@ -306,6 +306,23 @@ async def delete_account(
     account = result.scalar_one_or_none()
     if not account:
         raise HTTPException(status_code=404, detail="Conta não encontrada.")
+
+    # Impede exclusão se for a última conta "útil" (CHECKING, CREDIT, INVESTMENT)
+    USEFUL_TYPES = {"CHECKING", "CREDIT", "INVESTMENT"}
+    if account.type in USEFUL_TYPES:
+        remaining = await db.execute(
+            select(func.count()).where(
+                Account.user_phone == current_user_phone,
+                Account.is_active == True,
+                Account.type.in_(USEFUL_TYPES),
+                Account.id != account.id,
+            )
+        )
+        if remaining.scalar() == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Não é possível excluir. Você precisa ter ao menos uma conta corrente, cartão de crédito ou conta de investimento ativa."
+            )
 
     account.is_active = False
     await db.commit()
