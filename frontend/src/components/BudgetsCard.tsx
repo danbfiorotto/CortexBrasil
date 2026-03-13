@@ -19,6 +19,8 @@ export default function BudgetsCard() {
     const [isOpen, setIsOpen] = useState(false);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState<number>(0);
@@ -39,6 +41,27 @@ export default function BudgetsCard() {
         fetchBudgets();
     }, []);
 
+    const openCreate = () => {
+        setEditingBudget(null);
+        setCategory('');
+        setAmount(0);
+        setIsOpen(true);
+    };
+
+    const openEdit = (budget: Budget) => {
+        setEditingBudget(budget);
+        setCategory(budget.category);
+        setAmount(budget.amount);
+        setIsOpen(true);
+    };
+
+    const handleClose = () => {
+        setIsOpen(false);
+        setEditingBudget(null);
+        setCategory('');
+        setAmount(0);
+    };
+
     const handleSave = async () => {
         try {
             const currentMonth = new Date().toISOString().slice(0, 7);
@@ -50,17 +73,24 @@ export default function BudgetsCard() {
                 month: currentMonth,
             });
 
-            setIsOpen(false);
+            handleClose();
             fetchBudgets();
-            setCategory('');
-            setAmount(0);
         } catch (e) {
             console.error(e);
-            alert("Erro ao salvar orçamento");
+            alert("Erro ao salvar limite de gasto");
         }
     };
 
-    const maxBudget = Math.max(...budgets.map(b => b.amount), 1);
+    const handleDelete = async (id: string) => {
+        try {
+            await api.delete(`/api/budgets/${id}`);
+            setConfirmDeleteId(null);
+            fetchBudgets();
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao excluir limite de gasto");
+        }
+    };
 
     return (
         <section className="bg-graphite-card rounded-xl border border-graphite-border p-6 shadow-sm">
@@ -69,7 +99,7 @@ export default function BudgetsCard() {
                     Limites de Gasto
                 </h3>
                 <button
-                    onClick={() => setIsOpen(true)}
+                    onClick={openCreate}
                     className="text-[10px] font-bold uppercase tracking-widest text-royal-purple hover:text-royal-purple/80 transition-colors"
                 >
                     + Definir
@@ -83,7 +113,7 @@ export default function BudgetsCard() {
                         <div className="h-12 bg-graphite-border/30 rounded-lg" />
                     </div>
                 ) : budgets.length === 0 ? (
-                    <p className="text-slate-low text-xs italic">Nenhum orçamento definido.</p>
+                    <p className="text-slate-low text-xs italic">Nenhum limite definido.</p>
                 ) : (
                     budgets.map((budget) => {
                         const spent = budget.spent || 0;
@@ -96,6 +126,7 @@ export default function BudgetsCard() {
                                 ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.3)]'
                                 : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.3)]';
                         const labelColor = isOver ? 'text-crimson-bright' : isWarning ? 'text-amber-400' : 'text-emerald-vibrant';
+                        const isConfirmingDelete = confirmDeleteId === budget.id;
 
                         return (
                             <div key={budget.id} className="p-3 bg-carbon-800 rounded border border-graphite-border">
@@ -103,9 +134,46 @@ export default function BudgetsCard() {
                                     <span className="text-[11px] font-bold text-slate-300 uppercase">
                                         {budget.category}
                                     </span>
-                                    <span className={`text-[10px] font-bold ${labelColor}`}>
-                                        {pct}%
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[10px] font-bold ${labelColor}`}>
+                                            {pct}%
+                                        </span>
+                                        <button
+                                            onClick={() => openEdit(budget)}
+                                            className="text-slate-low hover:text-crisp-white transition-colors"
+                                            title="Editar"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                        </button>
+                                        {isConfirmingDelete ? (
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => handleDelete(budget.id)}
+                                                    className="text-[9px] font-bold text-crimson-bright hover:text-crimson-bright/80 transition-colors"
+                                                >
+                                                    Confirmar
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDeleteId(null)}
+                                                    className="text-[9px] font-bold text-slate-low hover:text-crisp-white transition-colors"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => setConfirmDeleteId(budget.id)}
+                                                className="text-slate-low hover:text-crimson-bright transition-colors"
+                                                title="Excluir"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="w-full bg-carbon-950 h-1.5 rounded-full mb-1.5">
                                     <div
@@ -127,9 +195,9 @@ export default function BudgetsCard() {
                 )}
             </div>
 
-            {/* Create Budget Dialog */}
+            {/* Create / Edit Dialog */}
             <Transition appear show={isOpen} as={Fragment}>
-                <Dialog as="div" className="relative z-50" onClose={() => setIsOpen(false)}>
+                <Dialog as="div" className="relative z-50" onClose={handleClose}>
                     <Transition.Child
                         as={Fragment}
                         enter="ease-out duration-300"
@@ -155,7 +223,7 @@ export default function BudgetsCard() {
                             >
                                 <Dialog.Panel className="w-full max-w-md bg-graphite-card border border-graphite-border rounded-xl p-6 shadow-2xl">
                                     <Dialog.Title className="text-lg font-bold text-crisp-white mb-6">
-                                        Definir Orçamento
+                                        {editingBudget ? 'Editar Limite de Gasto' : 'Definir Limite de Gasto'}
                                     </Dialog.Title>
 
                                     <div className="space-y-4">
@@ -168,7 +236,8 @@ export default function BudgetsCard() {
                                                 placeholder="Ex: Alimentação"
                                                 value={category}
                                                 onChange={(e) => setCategory(e.target.value)}
-                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-2.5 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors"
+                                                disabled={!!editingBudget}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-2.5 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                         </div>
                                         <div>
@@ -187,7 +256,7 @@ export default function BudgetsCard() {
 
                                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-graphite-border">
                                             <button
-                                                onClick={() => setIsOpen(false)}
+                                                onClick={handleClose}
                                                 className="px-4 py-2 text-sm font-bold text-slate-low hover:text-crisp-white transition-colors rounded-lg border border-graphite-border hover:bg-graphite-border/30"
                                             >
                                                 Cancelar
