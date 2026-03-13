@@ -175,6 +175,29 @@ async def _fetch_yahoo_direct(ticker: str) -> float | None:
         return None
 
 
+async def _fetch_yahoo_direct_with_change(ticker: str) -> tuple[float | None, float | None]:
+    """Returns (price, change_pct) from Yahoo Finance v8 API."""
+    try:
+        import httpx
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        async with httpx.AsyncClient(timeout=10, headers=headers) as client:
+            r = await client.get(url)
+        if r.status_code != 200:
+            return None, None
+        meta = r.json().get("chart", {}).get("result", [{}])[0].get("meta", {})
+        price = meta.get("regularMarketPrice") or meta.get("previousClose")
+        prev_close = meta.get("chartPreviousClose") or meta.get("previousClose")
+        if price and prev_close and prev_close != 0:
+            change_pct = round((float(price) - float(prev_close)) / float(prev_close) * 100, 2)
+        else:
+            change_pct = None
+        return (float(price) if price else None, change_pct)
+    except Exception as e:
+        logger.debug(f"Yahoo direct with change failed for {ticker}: {e}")
+        return None, None
+
+
 # ---------------------------------------------------------------------------
 # Ticker search / validation
 # ---------------------------------------------------------------------------

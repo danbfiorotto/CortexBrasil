@@ -85,7 +85,7 @@ async def get_forex_rates(
     current_user_phone: str = Depends(get_current_user),
 ):
     """Returns live rates for curated forex pairs, cached in Redis for 5 min."""
-    from backend.integrations.market_scrapers import _fetch_yahoo_direct
+    from backend.integrations.market_scrapers import _fetch_yahoo_direct_with_change
     from backend.core import clients
     import json
 
@@ -100,8 +100,8 @@ async def get_forex_rates(
 
     # Fetch all pairs in parallel via async httpx (truly concurrent)
     async def fetch_pair(label: str, yf_ticker: str, description: str):
-        price = await _fetch_yahoo_direct(yf_ticker)
-        return {"label": label, "description": description, "price": round(price, 4) if price else None}
+        price, change_pct = await _fetch_yahoo_direct_with_change(yf_ticker)
+        return {"label": label, "description": description, "price": round(price, 4) if price else None, "change_pct": change_pct}
 
     results = await asyncio.gather(*[fetch_pair(l, t, d) for l, t, d in _FOREX_PAIRS])
     response = {"rates": [r for r in results if r["price"] is not None]}

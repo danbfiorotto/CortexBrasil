@@ -9,6 +9,7 @@ interface RateItem {
     label: string;
     description: string;
     price: number;
+    change_pct?: number | null;
 }
 
 // Format price based on label context
@@ -96,16 +97,28 @@ export default function ForexTicker() {
             onMouseLeave={() => { pausedRef.current = false; }}
         >
             <div ref={trackRef} className="flex items-center h-full gap-0 will-change-transform" style={{ width: 'max-content' }}>
-                {items.map((item, idx) => (
-                    <span
-                        key={idx}
-                        className="flex items-center gap-1.5 px-5 h-full border-r border-graphite-border/40 whitespace-nowrap"
-                        title={item.description}
-                    >
-                        <span className="text-[10px] font-semibold text-slate-low tracking-wider">{item.label}</span>
-                        <span className="text-[11px] font-mono text-crisp-white">{formatPrice(item.label, item.price)}</span>
-                    </span>
-                ))}
+                {items.map((item, idx) => {
+                    const priceColor =
+                        item.change_pct == null ? 'text-crisp-white' :
+                        item.change_pct > 0 ? 'text-emerald-vibrant' :
+                        item.change_pct < 0 ? 'text-crimson-bright' :
+                        'text-crisp-white';
+                    return (
+                        <span
+                            key={idx}
+                            className="flex items-center gap-1.5 px-5 h-full border-r border-graphite-border/40 whitespace-nowrap"
+                            title={item.description}
+                        >
+                            <span className="text-[10px] font-semibold text-slate-low tracking-wider">{item.label}</span>
+                            <span className={`text-[11px] font-mono ${priceColor}`}>{formatPrice(item.label, item.price)}</span>
+                            {item.change_pct != null && (
+                                <span className={`text-[10px] font-mono ${priceColor}`}>
+                                    {item.change_pct > 0 ? '+' : ''}{item.change_pct.toFixed(2)}%
+                                </span>
+                            )}
+                        </span>
+                    );
+                })}
             </div>
         </div>
     );
