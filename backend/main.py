@@ -513,13 +513,15 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                     await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_input}\"* não encontrada. Em qual conta deseja registrar?\n\n{options_edit}", message_id)
                                     return
                                 else:
-                                    # Conta não encontrada — manter conta padrão e avisar usuário
+                                    # Conta não encontrada — usar primeira conta ativa do usuário
                                     _all_accs = await _ledger_edit.get_accounts(phone_number)
                                     _default_acc = next((a for a in _all_accs if a.is_active), None)
-                                    warning_msg = f'⚠️ Conta *"{account_name_input}"* não encontrada. Conta padrão mantida.\n\n'
-                                    if _default_acc and not pending_tx.get("account_id"):
+                                    if _default_acc:
                                         pending_tx["account_name"] = _default_acc.name
                                         pending_tx["account_id"] = str(_default_acc.id)
+                                        warning_msg = f'⚠️ Conta *"{account_name_input}"* não encontrada. Usando *{_default_acc.name}* como conta padrão.\n\n'
+                                    else:
+                                        warning_msg = f'⚠️ Conta *"{account_name_input}"* não encontrada e nenhuma conta ativa disponível.\n\n'
                     else:
                         warning_msg = ""
 
