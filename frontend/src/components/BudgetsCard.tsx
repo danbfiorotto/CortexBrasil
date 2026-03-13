@@ -66,7 +66,7 @@ export default function BudgetsCard() {
         <section className="bg-graphite-card rounded-xl border border-graphite-border p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
-                    Orçamentos Ativos
+                    Limites de Gasto
                 </h3>
                 <button
                     onClick={() => setIsOpen(true)}
@@ -86,27 +86,40 @@ export default function BudgetsCard() {
                     <p className="text-slate-low text-xs italic">Nenhum orçamento definido.</p>
                 ) : (
                     budgets.map((budget) => {
-                        const pct = Math.min(100, Math.round(((budget.spent || 0) / budget.amount) * 100));
-                        const isOverBudget = pct > 80;
+                        const spent = budget.spent || 0;
+                        const pct = Math.min(100, Math.round((spent / budget.amount) * 100));
+                        const isWarning = pct >= 80 && pct < 100;
+                        const isOver = pct >= 100;
+                        const barColor = isOver
+                            ? 'bg-crimson-bright shadow-[0_0_8px_rgba(244,63,94,0.3)]'
+                            : isWarning
+                                ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.3)]'
+                                : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.3)]';
+                        const labelColor = isOver ? 'text-crimson-bright' : isWarning ? 'text-amber-400' : 'text-emerald-vibrant';
 
                         return (
                             <div key={budget.id} className="p-3 bg-carbon-800 rounded border border-graphite-border">
-                                <div className="flex justify-between items-center mb-2">
+                                <div className="flex justify-between items-center mb-1">
                                     <span className="text-[11px] font-bold text-slate-300 uppercase">
                                         {budget.category}
                                     </span>
-                                    <span className={`text-[10px] font-bold ${isOverBudget ? 'text-crimson-bright' : 'text-emerald-vibrant'}`}>
-                                        {formatBRL(budget.amount)}
+                                    <span className={`text-[10px] font-bold ${labelColor}`}>
+                                        {pct}%
                                     </span>
                                 </div>
-                                <div className="w-full bg-carbon-950 h-1 rounded-full">
+                                <div className="w-full bg-carbon-950 h-1.5 rounded-full mb-1.5">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-500 ${isOverBudget
-                                                ? 'bg-crimson-bright shadow-[0_0_8px_rgba(244,63,94,0.3)]'
-                                                : 'bg-emerald-vibrant shadow-[0_0_8px_rgba(16,185,129,0.3)]'
-                                            }`}
-                                        style={{ width: `${Math.max(pct, 5)}%` }}
+                                        className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                        style={{ width: `${Math.max(pct, 2)}%` }}
                                     />
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-slate-low">
+                                        {formatBRL(spent)} gastos
+                                    </span>
+                                    <span className="text-[10px] text-slate-low">
+                                        limite {formatBRL(budget.amount)}
+                                    </span>
                                 </div>
                             </div>
                         );

@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from backend.db.session import get_db
-from backend.db.models import Budget
+from backend.db.models import Budget, Transaction
 from backend.core.auth import get_current_user
 from pydantic import BaseModel, ConfigDict
 import uuid
+from typing import Optional
 
 router = APIRouter(prefix="/api/budgets", tags=["Budgets"])
 
@@ -19,6 +20,7 @@ class BudgetResponse(BaseModel):
     category: str
     amount: float
     month: str
+    spent: float = 0.0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -33,7 +35,34 @@ async def get_budgets(
         Budget.month == month
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    budgets = result.scalars().all()
+
+    # Calculate spent per category for the month
+    month_start = f"{month}-01"
+    month_end = f"{month}-31"
+    spent_stmt = (
+        select(Transaction.category, func.sum(Transaction.amount).label("total"))
+        .where(
+            Transaction.user_phone == current_user,
+            Transaction.type == "EXPENSE",
+            Transaction.date >= month_start,
+            Transaction.date <= month_end,
+        )
+        .group_by(Transaction.category)
+    )
+    spent_result = await db.execute(spent_stmt)
+    spent_by_category = {row.category: row.total for row in spent_result}
+
+    response = []
+    for b in budgets:
+        response.append(BudgetResponse(
+            id=b.id,
+            category=b.category,
+            amount=b.amount,
+            month=b.month,
+            spent=spent_by_category.get(b.category, 0.0),
+        ))
+    return response
 
 @router.post("/", response_model=BudgetResponse)
 async def create_or_update_budget(
