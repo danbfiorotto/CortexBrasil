@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 
 interface DeleteAccountModalProps {
     isOpen: boolean;
@@ -39,7 +38,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
         }
 
         // Final browser confirmation
-        if (!confirm('VOCÊ TEM CERTEZA ABSOLUTA?\n\nEsta ação deletará permanentemente todas as suas transações, orçamentos, metas e perfil. Não há volta.')) {
+        if (!confirm('VOCÊ TEM CERTEZA ABSOLUTA?\n\nEsta ação zerará permanentemente todas as suas transações, orçamentos, metas e conta Carteira. Não há volta.')) {
             return;
         }
 
@@ -51,9 +50,8 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
                 phrase: phrase.toLowerCase().trim()
             });
 
-            // Logout and redirect
-            Cookies.remove('token');
-            router.push('/login');
+            // Redirect to dashboard (profile still exists, just reset)
+            router.push('/dashboard');
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Erro ao deletar conta.');
         } finally {
@@ -165,7 +163,7 @@ export default function DeleteAccountModal({ isOpen, onClose }: DeleteAccountMod
                                             disabled={loading || phrase.toLowerCase() !== 'tenho certeza'}
                                             className="w-full bg-crimson-bright hover:bg-crimson-bright/90 disabled:opacity-30 text-white font-black py-4 rounded-xl shadow-lg shadow-crimson-bright/40 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                                         >
-                                            {loading ? 'DELETANDO...' : 'DELETAR TUDO PERMANENTEMENTE'}
+                                            {loading ? 'ZERANDO...' : 'ZERAR PERFIL PERMANENTEMENTE'}
                                         </button>
                                     </div>
                                 )}
