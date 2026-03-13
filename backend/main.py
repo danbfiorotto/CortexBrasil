@@ -513,7 +513,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                             await _set_conv_state(phone_number, new_state_edit)
                             await _send_account_disambiguation(phone_number, candidates_edit, message_id)
                             return
-                            else:
+                        else:
                                 # Conta não encontrada — usar primeira conta ativa do usuário
                                 _all_accs = await _ledger_edit.get_accounts(phone_number)
                                 _default_acc = next((a for a in _all_accs if a.is_active), None)
