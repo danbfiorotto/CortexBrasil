@@ -182,13 +182,13 @@ export default function DashboardPage() {
 
             {/* Right Sidebar Panel: Receita + Transactions */}
             <div className="w-80 bg-graphite-card border-l border-graphite-border hidden xl:flex flex-col shrink-0 shadow-2xl">
-                <div className="p-4 space-y-4 flex flex-col h-full overflow-y-auto custom-scrollbar">
-
-                    {/* Receita do Mês */}
+                {/* Receita do Mês — fixo no topo, fora do scroll */}
+                <div className="p-4 pb-0 shrink-0">
                     <IncomeSidebarCard />
+                </div>
 
-                    {/* Recent Transactions */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                {/* Recent Transactions — rola independentemente */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
                         <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] px-1">
                             Transações Recentes
                         </p>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                                         </p>
                                     </div>
                                 );
-            })}
+                            })}
                         </div>
                     </div>
                 </div>
