@@ -148,6 +148,16 @@ async def lifespan(app: FastAPI):
             await raw.driver_connection.execute(sql)
             logger.info("✅ is_default column migration applied (014)")
 
+    # Add income_mode column to user_profiles
+    migration_015_path = os.path.join(os.path.dirname(__file__), "db", "migrations", "015_add_income_mode_to_profiles.sql")
+    if os.path.exists(migration_015_path):
+        async with engine.begin() as conn:
+            with open(migration_015_path, "r") as f:
+                sql = f.read()
+            raw = await conn.get_raw_connection()
+            await raw.driver_connection.execute(sql)
+            logger.info("✅ income_mode column migration applied (015)")
+
     # Populate benchmark history in background (idempotent - only inserts missing dates)
     asyncio.create_task(fetch_all_benchmarks())
     logger.info("⏳ Benchmark history fetch started in background")
