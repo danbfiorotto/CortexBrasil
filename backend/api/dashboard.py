@@ -43,6 +43,17 @@ async def get_dashboard_summary(
     )
     total_spent_month = result.scalar() or 0.0
 
+    # Net worth: CHECKING + CASH accounts only (excludes CREDIT cards)
+    net_worth_result = await db.execute(
+        text("""
+            SELECT COALESCE(SUM(current_balance), 0)
+            FROM accounts
+            WHERE user_phone = :phone AND type IN ('CHECKING', 'CASH') AND is_active = true
+        """),
+        {"phone": current_user_phone}
+    )
+    net_worth = float(net_worth_result.scalar() or 0.0)
+
     formatted_txs = []
     for tx in recent_txs:
         date_str = ""
@@ -66,6 +77,7 @@ async def get_dashboard_summary(
         "user": current_user_phone,
         "month_total_spent": float(total_spent_month),
         "recent_transactions": formatted_txs,
+        "net_worth": net_worth,
         "burn_rate_status": "Normal", # Placeholder logic
         "safe_to_spend": 1500.00 - float(total_spent_month) # Placeholder budget
     }

@@ -23,6 +23,7 @@ interface Transaction {
 interface DashboardData {
     user: string;
     recent_transactions: Transaction[];
+    net_worth: number;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -195,10 +196,7 @@ export default function DashboardPage() {
                                 Patrimônio Líquido Total
                             </p>
                             <p className="text-xl font-bold tracking-tight text-crisp-white">
-                                {formatBRL(data.recent_transactions.reduce((acc, tx) => {
-                                    const signed = tx.type === 'INCOME' ? tx.amount : -tx.amount;
-                                    return acc + signed;
-                                }, 0))}
+                                {formatBRL(data.net_worth)}
                             </p>
                             <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
                                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
