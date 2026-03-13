@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select, update, text
 import random
 import logging
 from backend.core.auth import get_current_user
 from backend.db.session import get_db
 from backend.core import clients
 from backend.db.models import Transaction, Budget, Goal, Account, UserProfile
+from backend.core.ledger import LedgerService
 
 router = APIRouter(prefix="/api/settings", tags=["Settings"])
 logger = logging.getLogger(__name__)
@@ -65,25 +66,48 @@ async def delete_account_confirm(
         raise HTTPException(status_code=400, detail="Código de verificação inválido ou expirado")
     
     try:
-        # Wipe all data
-        await db.execute(delete(Transaction).where(Transaction.user_phone == current_user_phone))
-        await db.execute(delete(Budget).where(Budget.user_phone == current_user_phone))
-        await db.execute(delete(Goal).where(Goal.user_phone == current_user_phone))
-        await db.execute(delete(Account).where(Account.user_phone == current_user_phone))
-        await db.execute(delete(UserProfile).where(UserProfile.user_phone == current_user_phone))
-        
+        phone = current_user_phone
+
+        # Wipe all user data (ORM models + raw SQL tables without ORM models)
+        await db.execute(delete(Transaction).where(Transaction.user_phone == phone))
+        await db.execute(delete(Budget).where(Budget.user_phone == phone))
+        await db.execute(delete(Goal).where(Goal.user_phone == phone))
+        await db.execute(delete(Account).where(Account.user_phone == phone))
+        await db.execute(delete(UserProfile).where(UserProfile.user_phone == phone))
+        await db.execute(text("DELETE FROM assets WHERE user_phone = :phone"), {"phone": phone})
+        await db.execute(text("DELETE FROM category_learning WHERE user_phone = :phone"), {"phone": phone})
+        await db.execute(text("DELETE FROM net_worth_history WHERE user_phone = :phone"), {"phone": phone})
+        await db.execute(text("DELETE FROM investment_snapshots WHERE user_phone = :phone"), {"phone": phone})
+
+        # Recreate blank profile (onboarding not completed)
+        new_profile = UserProfile(
+            user_phone=phone,
+            onboarding_completed=0,
+        )
+        db.add(new_profile)
+        await db.flush()
+
+        # Recreate default "Carteira" account
+        ledger = LedgerService(db)
+        await ledger.create_account(
+            user_phone=phone,
+            name="Carteira",
+            acc_type="CASH",
+            initial_balance=0.0,
+        )
+
         await db.commit()
-        
+
         # Cleanup Redis
         await clients.redis_client.delete(redis_key)
-        
-        logger.info(f"Account data wiped for user: {current_user_phone}")
-        return {"message": "Account data successfully deleted"}
-        
+
+        logger.info(f"Account data reset for user: {phone}")
+        return {"message": "Account data successfully reset"}
+
     except Exception as e:
         await db.rollback()
-        logger.error(f"Error deleting account data: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erro ao deletar dados da conta")
+        logger.error(f"Error resetting account data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Erro ao resetar dados da conta")
 
 
 @router.get("/categories")
