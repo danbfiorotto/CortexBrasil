@@ -176,8 +176,31 @@ async def create_account(
     if existing_account:
         if existing_account.is_active:
             raise HTTPException(status_code=409, detail=f"{type_label} '{payload.name}' já existe.")
-        else:
-            raise HTTPException(status_code=409, detail=f"Já existe uma conta inativa com o nome '{payload.name}'. Escolha outro nome.")
+        # Reactivate the inactive account, updating fields with the new values
+        existing_account.is_active = True
+        existing_account.initial_balance = payload.initial_balance
+        if payload.credit_limit is not None:
+            existing_account.credit_limit = payload.credit_limit
+        if payload.due_day is not None:
+            existing_account.due_day = payload.due_day
+        if payload.closing_day is not None:
+            existing_account.closing_day = payload.closing_day
+        await ledger.recalculate_balances(current_user_phone)
+        await db.commit()
+        await db.refresh(existing_account)
+        logger.info(f"Account '{payload.name}' reactivated for {current_user_phone}")
+        return {
+            "id": str(existing_account.id),
+            "name": existing_account.name,
+            "type": existing_account.type,
+            "initial_balance": existing_account.initial_balance,
+            "current_balance": existing_account.current_balance,
+            "credit_limit": existing_account.credit_limit,
+            "due_day": existing_account.due_day,
+            "closing_day": existing_account.closing_day,
+            "reactivated": True,
+            "message": f"{type_label} '{payload.name}' foi reativada. Todos os lançamentos anteriores estão disponíveis novamente.",
+        }
 
     try:
         account = await ledger.create_account(

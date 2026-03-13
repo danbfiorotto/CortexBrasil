@@ -49,6 +49,7 @@ export default function AccountsPage() {
     });
     const [submitting, setSubmitting] = useState(false);
     const [createError, setCreateError] = useState('');
+    const [createSuccess, setCreateSuccess] = useState('');
     const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
     const [adjustForm, setAdjustForm] = useState({ new_balance: '' as string | number, description: '' });
     const [adjustSubmitting, setAdjustSubmitting] = useState(false);
@@ -133,6 +134,7 @@ export default function AccountsPage() {
                 }),
             });
             if (res.ok) {
+                const data = await res.json();
                 setShowForm(false);
                 setCreateError('');
                 setFormData({
@@ -144,10 +146,14 @@ export default function AccountsPage() {
                     days_before_closing: 7
                 });
                 await fetchAccounts();
+                if (data.reactivated) {
+                    setCreateSuccess(data.message);
+                    setTimeout(() => setCreateSuccess(''), 6000);
+                }
             } else {
                 const data = await res.json();
                 if (res.status === 409) {
-                    setCreateError('Já existe uma conta com esse nome e tipo. Escolha um nome diferente.');
+                    setCreateError(data.detail || 'Já existe uma conta com esse nome e tipo. Escolha um nome diferente.');
                 } else {
                     setCreateError(data.detail || 'Erro ao criar conta. Tente novamente.');
                 }
@@ -405,6 +411,13 @@ export default function AccountsPage() {
                     </motion.form>
                 )}
             </AnimatePresence>
+
+            {createSuccess && (
+                <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-sm text-emerald-400">
+                    <span className="material-symbols-outlined text-base mt-0.5">check_circle</span>
+                    <span>{createSuccess}</span>
+                </div>
+            )}
 
             {/* Bank Accounts Section */}
             <div className="space-y-4">
