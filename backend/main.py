@@ -232,7 +232,7 @@ def _format_confirmation_card(data: dict) -> str:
 
     _type_labels_card = {"CHECKING": "Corrente", "CREDIT": "Crédito", "INVESTMENT": "Investimento", "CASH": "Carteira"}
     account = data.get("account_name") or "Carteira"
-    if data.get("account_type"):
+    if data.get("account_show_type") and data.get("account_type"):
         account = f"{account} ({_type_labels_card.get(data['account_type'], data['account_type'])})"
     category = data.get("category") or "—"
     description = data.get("description") or "—"
@@ -479,29 +479,40 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     async with AsyncSessionLocal() as _edit_sess:
                         await _edit_sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
                         _ledger_edit = _LSEdit(_edit_sess)
-                        exact_edit = await _ledger_edit.get_account_by_name(phone_number, account_name_input)
-                        if exact_edit:
-                            pending_tx["account_name"] = exact_edit.name
-                            pending_tx["account_id"] = str(exact_edit.id)
-                            pending_tx["account_type"] = exact_edit.type
-                        else:
-                            candidates_edit = await _ledger_edit.search_accounts_by_partial_name(phone_number, account_name_input)
-                            if len(candidates_edit) == 1:
-                                pending_tx["account_name"] = candidates_edit[0].name
-                                pending_tx["account_id"] = str(candidates_edit[0].id)
-                                pending_tx["account_type"] = candidates_edit[0].type
-                            elif len(candidates_edit) > 1:
-                                candidate_list_edit = [{"id": str(a.id), "name": a.name, "type": a.type} for a in candidates_edit]
-                                new_state_edit = {
-                                    "state": "pending_account_selection",
-                                    "pending_tx": pending_tx,
-                                    "account_candidates": candidate_list_edit,
-                                    "last_tx_id": conv_state.get("last_tx_id"),
-                                }
-                                await _set_conv_state(phone_number, new_state_edit)
-                                options_edit = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(candidates_edit))
-                                await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_input}\"* não encontrada. Em qual conta deseja registrar?\n\n{options_edit}", message_id)
-                                return
+                        candidates_edit = await _ledger_edit.search_accounts_by_partial_name(phone_number, account_name_input)
+                        exact_edits = [a for a in candidates_edit if _strip_accents(a.name).lower() == _strip_accents(account_name_input).lower()]
+                        if len(exact_edits) == 1:
+                            pending_tx["account_name"] = exact_edits[0].name
+                            pending_tx["account_id"] = str(exact_edits[0].id)
+                            pending_tx["account_type"] = exact_edits[0].type
+                            pending_tx.pop("account_show_type", None)
+                        elif len(exact_edits) > 1:
+                            candidate_list_edit = [{"id": str(a.id), "name": a.name, "type": a.type} for a in exact_edits]
+                            new_state_edit = {
+                                "state": "pending_account_selection",
+                                "pending_tx": pending_tx,
+                                "account_candidates": candidate_list_edit,
+                                "last_tx_id": conv_state.get("last_tx_id"),
+                            }
+                            await _set_conv_state(phone_number, new_state_edit)
+                            await _send_account_disambiguation(phone_number, exact_edits, message_id)
+                            return
+                        elif len(candidates_edit) == 1:
+                            pending_tx["account_name"] = candidates_edit[0].name
+                            pending_tx["account_id"] = str(candidates_edit[0].id)
+                            pending_tx["account_type"] = candidates_edit[0].type
+                            pending_tx.pop("account_show_type", None)
+                        elif len(candidates_edit) > 1:
+                            candidate_list_edit = [{"id": str(a.id), "name": a.name, "type": a.type} for a in candidates_edit]
+                            new_state_edit = {
+                                "state": "pending_account_selection",
+                                "pending_tx": pending_tx,
+                                "account_candidates": candidate_list_edit,
+                                "last_tx_id": conv_state.get("last_tx_id"),
+                            }
+                            await _set_conv_state(phone_number, new_state_edit)
+                            await _send_account_disambiguation(phone_number, candidates_edit, message_id)
+                            return
                             else:
                                 # Conta não encontrada — usar primeira conta ativa do usuário
                                 _all_accs = await _ledger_edit.get_accounts(phone_number)
@@ -629,6 +640,8 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                 pending_tx["account_id"] = chosen["id"]
                 if chosen.get("type"):
                     pending_tx["account_type"] = chosen["type"]
+                # Mostrar tipo no card quando veio de desambiguação
+                pending_tx["account_show_type"] = True
                 new_state = {
                     "state": "pending_confirmation",
                     "pending_tx": pending_tx,
@@ -954,6 +967,7 @@ async def handle_interactive(phone_number: str, button_id: str, message_id: str)
                     pending_tx["account_id"] = chosen["id"]
                     if chosen.get("type"):
                         pending_tx["account_type"] = chosen["type"]
+                    pending_tx["account_show_type"] = True
                     new_state = {
                         "state": "pending_confirmation",
                         "pending_tx": pending_tx,
