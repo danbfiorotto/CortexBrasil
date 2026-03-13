@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import PhoneInput from '@/components/PhoneInput';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -139,13 +140,7 @@ export default function RegisterPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-low uppercase tracking-widest mb-2">WhatsApp</label>
-                                    <input
-                                        type="tel"
-                                        placeholder="5511999999999"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors"
-                                    />
+                                    <PhoneInput value={phone} onChange={setPhone} />
                                 </div>
 
                                 <button

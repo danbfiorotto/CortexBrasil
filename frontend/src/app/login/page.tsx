@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import Cookies from 'js-cookie';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import PhoneInput from '@/components/PhoneInput';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -43,7 +44,7 @@ export default function LoginPage() {
         setError('');
         try {
             const formattedPhone = phone.replace(/\D/g, '');
-            const response = await api.post('/auth/request-otp', { phone_number: formattedPhone });
+            const response = await api.post('/auth/request-otp', { phone_number: formattedPhone }); // backend normaliza DDI
             setInstruction(response.data.instruction || 'Código enviado!');
             setStep('otp');
             startCooldown();
@@ -193,17 +194,8 @@ export default function LoginPage() {
                             >
                                 <div>
                                     <label className="block text-xs font-bold text-slate-low uppercase tracking-widest mb-2">WhatsApp</label>
-                                    <div className="relative">
-                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-low">smartphone</span>
-                                        <input
-                                            type="tel"
-                                            placeholder="5511999999999"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg pl-10 pr-4 py-3 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors"
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-slate-low mt-2">Digite seu número completo com DDD (apenas números).</p>
+                                    <PhoneInput value={phone} onChange={setPhone} />
+                                    <p className="text-[10px] text-slate-low mt-2">Selecione o país e digite o número com DDD.</p>
                                 </div>
                                 <button
                                     onClick={handleRequestOtp}
