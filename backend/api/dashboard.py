@@ -355,9 +355,25 @@ async def get_hud_metrics(
         # Burn Rate Speed (R$/day)
         daily_avg = total_spent_mtd / max(1, days_passed)
         projected_spend = daily_avg * days_in_month
-        
+
         burn_rate_pct = (projected_spend / effective_income) * 100 if effective_income > 0 else 0
-        
+
+        logger.info("HUD STEP 4b: Credit Card Invoice Total")
+        # Sum of expenses on CREDIT accounts (current month)
+        credit_invoice_result = await db.execute(
+            text("""
+                SELECT COALESCE(SUM(t.amount), 0)
+                FROM transactions t
+                JOIN accounts a ON t.account_id = a.id
+                WHERE t.user_phone = :phone
+                  AND a.type = 'CREDIT'
+                  AND t.type = 'EXPENSE'
+                  AND t.date >= :start_date
+            """),
+            {"phone": current_user_phone, "start_date": start_of_month}
+        )
+        credit_invoice_total = credit_invoice_result.scalar() or 0.0
+
         logger.info("HUD STEP 5: Returning Data")
         return {
             "safe_to_spend": safe_to_spend,
@@ -366,7 +382,7 @@ async def get_hud_metrics(
                 "status": "Critical" if burn_rate_pct > 100 else "Warning" if burn_rate_pct > 80 else "Good",
                 "daily_avg": daily_avg
             },
-            "invoice_projection": projected_spend,
+            "invoice_projection": credit_invoice_total,
             "income": effective_income,
             "expected_income": income,
             "realized_income": realized_income_mtd,

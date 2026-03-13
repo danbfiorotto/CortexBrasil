@@ -120,7 +120,7 @@ export default function HUD() {
 
             {/* Projected CC Bill */}
             <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border">
-                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Projeção Fatura</p>
+                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Soma das Faturas</p>
                 <p className="text-3xl font-bold tracking-tight text-crisp-white">
                     {formatBRL(data.invoice_projection)}
                 </p>
