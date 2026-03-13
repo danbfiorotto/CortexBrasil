@@ -90,80 +90,42 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="flex flex-1 overflow-hidden">
-            {/* Main scrollable content */}
-            <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
-                <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-                    {/* HUD Metrics */}
-                    <motion.div variants={item}>
-                        <HUD />
-                    </motion.div>
-
-                    {/* Main Grid: 2/3 + 1/3 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left Column */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <motion.div variants={item}>
-                                <CommitmentMountain />
-                            </motion.div>
-
-                            <motion.div variants={item}>
-                                <GoalsCard />
-                            </motion.div>
-                        </div>
-
-                        {/* Right Column: Intelligence */}
-                        <aside className="space-y-6">
-                            <motion.div variants={item}>
-                                <PulseFeed />
-                            </motion.div>
-
-                            <motion.div variants={item}>
-                                <BudgetsCard />
-                            </motion.div>
-                        </aside>
-                    </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+                {/* HUD Metrics */}
+                <motion.div variants={item}>
+                    <HUD />
                 </motion.div>
-            </div>
 
-            {/* Right Sidebar Panel: Transactions + Wealth */}
-            <div className="w-80 bg-graphite-card border-l border-graphite-border hidden xl:flex flex-col shrink-0 shadow-2xl">
-                <div className="p-6 space-y-6 flex flex-col h-full overflow-y-auto custom-scrollbar">
-                    {/* Recent Transactions */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
-                        <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] px-1">
+                {/* Transações Recentes */}
+                <motion.div variants={item}>
+                    <div className="rounded-xl bg-graphite-card border border-graphite-border p-5 space-y-3">
+                        <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em]">
                             Transações Recentes
                         </p>
-                        <div className="space-y-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1">
                             {data.recent_transactions.slice(0, 8).map((tx) => {
                                 const isIncome = tx.type === 'INCOME';
                                 const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
-
                                 return (
                                     <div
                                         key={tx.id}
                                         className="flex items-center justify-between p-3 rounded-lg hover:bg-graphite-border/30 transition-colors cursor-pointer group border border-transparent hover:border-graphite-border"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`size-9 rounded-lg flex items-center justify-center border ${isIncome
-                                                    ? 'bg-emerald-vibrant/5 border-emerald-vibrant/20'
-                                                    : 'bg-charcoal-bg border-graphite-border'
-                                                }`}>
-                                                <span className={`material-symbols-outlined text-[18px] ${isIncome
-                                                        ? 'text-emerald-vibrant'
-                                                        : 'text-slate-low group-hover:text-royal-purple transition-colors'
-                                                    }`}>
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`size-9 shrink-0 rounded-lg flex items-center justify-center border ${isIncome ? 'bg-emerald-vibrant/5 border-emerald-vibrant/20' : 'bg-charcoal-bg border-graphite-border'}`}>
+                                                <span className={`material-symbols-outlined text-[18px] ${isIncome ? 'text-emerald-vibrant' : 'text-slate-low group-hover:text-royal-purple transition-colors'}`}>
                                                     {isIncome ? 'arrow_downward' : iconName}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-crisp-white">{tx.description}</p>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-crisp-white truncate">{tx.description}</p>
                                                 <p className="text-[9px] text-slate-low uppercase tracking-tighter">
                                                     {new Date(tx.date).toLocaleDateString('pt-BR')}
                                                 </p>
                                             </div>
                                         </div>
-                                        <p className={`text-xs font-bold ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
+                                        <p className={`text-xs font-bold shrink-0 ml-2 ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
                                             {isIncome ? '+' : '-'}{formatBRL(Math.abs(tx.amount))}
                                         </p>
                                     </div>
@@ -171,24 +133,49 @@ export default function DashboardPage() {
                             })}
                         </div>
                     </div>
+                </motion.div>
 
-                    {/* Wealth Summary */}
-                    <div className="pt-6 border-t border-graphite-border">
-                        <div className="p-5 rounded-xl bg-gradient-to-br from-royal-purple/10 to-transparent border border-royal-purple/20 space-y-3">
-                            <p className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
-                                Patrimônio Líquido Total
-                            </p>
-                            <p className="text-xl font-bold tracking-tight text-crisp-white">
-                                {formatBRL(data.net_worth)}
-                            </p>
-                            <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
-                                <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                                Visão Geral
-                            </div>
-                        </div>
+                {/* Main Grid: 2/3 + 1/3 */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <motion.div variants={item}>
+                            <CommitmentMountain />
+                        </motion.div>
+
+                        <motion.div variants={item}>
+                            <GoalsCard />
+                        </motion.div>
                     </div>
+
+                    {/* Right Column: Intelligence */}
+                    <aside className="space-y-6">
+                        <motion.div variants={item}>
+                            <PulseFeed />
+                        </motion.div>
+
+                        <motion.div variants={item}>
+                            <BudgetsCard />
+                        </motion.div>
+
+                        {/* Wealth Summary */}
+                        <motion.div variants={item}>
+                            <div className="p-5 rounded-xl bg-gradient-to-br from-royal-purple/10 to-transparent border border-royal-purple/20 space-y-3">
+                                <p className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
+                                    Patrimônio Líquido Total
+                                </p>
+                                <p className="text-xl font-bold tracking-tight text-crisp-white">
+                                    {formatBRL(data.net_worth)}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
+                                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                                    Visão Geral
+                                </div>
+                            </div>
+                        </motion.div>
+                    </aside>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }
