@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text, insert, select, func
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 from typing import Optional
 from backend.core.auth import get_current_user
@@ -161,11 +162,22 @@ async def create_account(
 
     ledger = LedgerService(db)
 
-    # Check for duplicate name within the same account type
-    existing = await ledger.get_account_by_name(current_user_phone, payload.name, payload.type)
-    if existing:
-        type_label = {"CHECKING": "Conta Corrente", "CREDIT": "Cartão de Crédito", "INVESTMENT": "Investimento", "CASH": "Dinheiro"}.get(payload.type, payload.type)
-        raise HTTPException(status_code=409, detail=f"{type_label} '{payload.name}' já existe.")
+    type_label = {"CHECKING": "Conta Corrente", "CREDIT": "Cartão de Crédito", "INVESTMENT": "Investimento", "CASH": "Dinheiro"}.get(payload.type, payload.type)
+
+    # Check for duplicate name within the same account type (including inactive accounts)
+    existing = await db.execute(
+        select(Account).where(
+            Account.user_phone == current_user_phone,
+            Account.name == payload.name,
+            Account.type == payload.type,
+        )
+    )
+    existing_account = existing.scalar_one_or_none()
+    if existing_account:
+        if existing_account.is_active:
+            raise HTTPException(status_code=409, detail=f"{type_label} '{payload.name}' já existe.")
+        else:
+            raise HTTPException(status_code=409, detail=f"Já existe uma conta inativa com o nome '{payload.name}'. Escolha outro nome.")
 
     try:
         account = await ledger.create_account(
@@ -179,6 +191,9 @@ async def create_account(
         )
         await db.commit()
         logger.info(f"Account '{payload.name}' created for {current_user_phone}")
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=f"{type_label} '{payload.name}' já existe.")
     except Exception as e:
         logger.error(f"Error creating account: {str(e)}", exc_info=True)
         await db.rollback()
