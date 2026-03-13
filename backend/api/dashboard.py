@@ -310,17 +310,17 @@ async def get_hud_metrics(
         profile_result = await db.execute(profile_stmt)
         profile = profile_result.scalar_one_or_none()
         
-        income = profile.monthly_income if profile else 0.0
         needs_onboarding = not profile or profile.onboarding_completed == 0
-        
+        income_mode = profile.income_mode if profile else 'manual'
+
         # 2. Get Current Month Data
         now = datetime.now()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         days_in_month = (start_of_month.replace(month=start_of_month.month % 12 + 1) - timedelta(days=1)).day
         days_passed = now.day
-        
+
         repo = TransactionRepository(db)
-        
+
         logger.info("HUD STEP 2: Spent and Realized Income MTD")
         # Total Spent MTD
         spent_result = await db.execute(
@@ -328,14 +328,37 @@ async def get_hud_metrics(
             {"phone": current_user_phone, "start_date": start_of_month}
         )
         total_spent_mtd = spent_result.scalar() or 0.0
-        
+
         # Total Realized Income MTD
         income_result = await db.execute(
             text("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_phone = :phone AND date >= :start_date AND type = 'INCOME'"),
             {"phone": current_user_phone, "start_date": start_of_month}
         )
         realized_income_mtd = income_result.scalar() or 0.0
-        
+
+        # Income calculation based on mode
+        if income_mode == 'auto':
+            # Average of last 3 months of INCOME transactions (excluding current month)
+            three_months_ago = (start_of_month - timedelta(days=90)).replace(day=1)
+            avg_result = await db.execute(
+                text("""
+                    SELECT COALESCE(AVG(monthly_total), 0)
+                    FROM (
+                        SELECT DATE_TRUNC('month', date) AS month, SUM(amount) AS monthly_total
+                        FROM transactions
+                        WHERE user_phone = :phone
+                          AND type = 'INCOME'
+                          AND date >= :start AND date < :end
+                        GROUP BY DATE_TRUNC('month', date)
+                    ) sub
+                """),
+                {"phone": current_user_phone, "start": three_months_ago, "end": start_of_month}
+            )
+            auto_income = avg_result.scalar() or 0.0
+            income = auto_income
+        else:
+            income = profile.monthly_income if profile else 0.0
+
         # Hybrid Income Logic: Max of expected and realized
         effective_income = max(income, realized_income_mtd)
         
@@ -386,7 +409,9 @@ async def get_hud_metrics(
             "income": effective_income,
             "expected_income": income,
             "realized_income": realized_income_mtd,
-            "needs_onboarding": needs_onboarding
+            "needs_onboarding": needs_onboarding,
+            "income_mode": income_mode,
+            "manual_income": profile.monthly_income if profile else 0.0
         }
     except Exception as e:
         logger.error(f"Error in HUD: {e}", exc_info=True)
@@ -400,33 +425,38 @@ async def update_user_profile(
 ):
     """
     Updates or creates the user profile.
-    Expected payload: {"monthly_income": 5000.0}
+    Expected payload: {"monthly_income": 5000.0, "income_mode": "manual"|"auto"}
     """
     from backend.db.models import UserProfile
-    
+
     # RLS
     await db.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": current_user_phone})
-    
-    income = payload.get("monthly_income", 0.0)
-    
+
+    income = payload.get("monthly_income", None)
+    income_mode = payload.get("income_mode", None)
+
     # Check if exists
     stmt = select(UserProfile).where(UserProfile.user_phone == current_user_phone)
     res = await db.execute(stmt)
     profile = res.scalar_one_or_none()
-    
+
     if profile:
-        profile.monthly_income = income
+        if income is not None:
+            profile.monthly_income = income
+        if income_mode is not None:
+            profile.income_mode = income_mode
         profile.onboarding_completed = 1
     else:
         new_profile = UserProfile(
             user_phone=current_user_phone,
-            monthly_income=income,
+            monthly_income=income or 0.0,
+            income_mode=income_mode or 'auto',
             onboarding_completed=1
         )
         db.add(new_profile)
-        
+
     await db.commit()
-    return {"status": "success", "monthly_income": income}
+    return {"status": "success", "monthly_income": income, "income_mode": income_mode}
 
 @router.get("/commitments")
 async def get_commitments(

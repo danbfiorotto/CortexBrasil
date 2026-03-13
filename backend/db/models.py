@@ -81,6 +81,7 @@ class UserProfile(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=True)
     monthly_income = Column(Float, default=0.0)
+    income_mode = Column(String, default='manual')  # 'manual' or 'auto'
     onboarding_completed = Column(Integer, default=0) # 0: No, 1: Yes
     custom_categories = Column(Text, nullable=True)  # JSON array of user-created category names
     created_at = Column(DateTime, default=datetime.utcnow)

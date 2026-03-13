@@ -5,8 +5,62 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import api from '@/lib/api';
 
+type IncomeMode = 'auto' | 'manual';
+
 export default function SettingsPage() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    // Income profile state
+    const [incomeMode, setIncomeMode] = useState<IncomeMode>('auto');
+    const [manualIncome, setManualIncome] = useState('');
+    const [loadingIncome, setLoadingIncome] = useState(false);
+    const [loadingIncomeData, setLoadingIncomeData] = useState(true);
+    const [incomeFeedback, setIncomeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    const fetchIncomeProfile = useCallback(async () => {
+        setLoadingIncomeData(true);
+        try {
+            const res = await api.get('/api/dashboard/hud');
+            setIncomeMode(res.data.income_mode || 'auto');
+            const rawManual = res.data.manual_income || 0;
+            if (rawManual > 0) {
+                setManualIncome(String(Math.round(rawManual * 100)));
+            }
+        } catch {
+            // ignore
+        } finally {
+            setLoadingIncomeData(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchIncomeProfile();
+    }, [fetchIncomeProfile]);
+
+    const formatCurrency = (digits: string) => {
+        const amount = parseFloat(digits.replace(/\D/g, '')) / 100;
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount || 0);
+    };
+
+    const handleSaveIncome = async () => {
+        setLoadingIncome(true);
+        setIncomeFeedback(null);
+        try {
+            const numIncome = incomeMode === 'manual'
+                ? parseFloat(manualIncome.replace(/\D/g, '')) / 100
+                : 0;
+            await api.post('/api/dashboard/profile', {
+                income_mode: incomeMode,
+                monthly_income: numIncome,
+            });
+            setIncomeFeedback({ type: 'success', message: 'Configuração de renda salva.' });
+            setTimeout(() => setIncomeFeedback(null), 3000);
+        } catch {
+            setIncomeFeedback({ type: 'error', message: 'Erro ao salvar. Tente novamente.' });
+        } finally {
+            setLoadingIncome(false);
+        }
+    };
 
     // Category management state
     const [categories, setCategories] = useState<string[]>([]);
@@ -112,6 +166,131 @@ export default function SettingsPage() {
             </header>
 
             <div className="grid gap-8">
+                {/* Income Profile Section */}
+                <section className="space-y-4">
+                    <div className="flex items-center gap-2 text-royal-purple">
+                        <span className="material-symbols-outlined">payments</span>
+                        <h2 className="text-sm font-bold uppercase tracking-widest">Perfil de Renda</h2>
+                    </div>
+
+                    <div className="bg-graphite-card border border-graphite-border rounded-2xl p-6 space-y-5">
+                        {loadingIncomeData ? (
+                            <div className="flex items-center justify-center py-6">
+                                <div className="size-6 border-2 border-royal-purple/30 border-t-royal-purple rounded-full animate-spin" />
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-xs text-slate-low leading-relaxed">
+                                    Defina como o Cortex deve calcular sua renda esperada para os indicadores do painel.
+                                </p>
+
+                                {/* Mode selector */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIncomeMode('auto')}
+                                        className={`flex flex-col items-start gap-2 p-4 rounded-xl border transition-all text-left ${
+                                            incomeMode === 'auto'
+                                                ? 'border-royal-purple bg-royal-purple/10 text-crisp-white'
+                                                : 'border-graphite-border bg-charcoal-bg text-slate-low hover:border-royal-purple/50'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[24px]">auto_awesome</span>
+                                        <div>
+                                            <p className="text-xs font-bold uppercase tracking-wider">Automático</p>
+                                            <p className="text-[10px] mt-0.5 leading-tight opacity-70">Média dos últimos 3 meses de receita registrada</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setIncomeMode('manual')}
+                                        className={`flex flex-col items-start gap-2 p-4 rounded-xl border transition-all text-left ${
+                                            incomeMode === 'manual'
+                                                ? 'border-royal-purple bg-royal-purple/10 text-crisp-white'
+                                                : 'border-graphite-border bg-charcoal-bg text-slate-low hover:border-royal-purple/50'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[24px]">edit</span>
+                                        <div>
+                                            <p className="text-xs font-bold uppercase tracking-wider">Manual</p>
+                                            <p className="text-[10px] mt-0.5 leading-tight opacity-70">Defino um valor fixo mensal</p>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <AnimatePresence>
+                                    {incomeMode === 'auto' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="bg-emerald-vibrant/5 border border-emerald-vibrant/20 rounded-xl px-4 py-3"
+                                        >
+                                            <p className="text-xs text-emerald-vibrant">
+                                                Ideal para renda variável, freelancer ou múltiplas fontes. O Cortex usa automaticamente a média das suas receitas dos últimos 3 meses.
+                                            </p>
+                                        </motion.div>
+                                    )}
+
+                                    {incomeMode === 'manual' && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="space-y-1"
+                                        >
+                                            <label className="text-[10px] font-bold text-slate-low uppercase tracking-widest pl-1">
+                                                Renda Mensal Estimada
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formatCurrency(manualIncome)}
+                                                onChange={(e) => setManualIncome(e.target.value)}
+                                                placeholder="R$ 0,00"
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-xl px-4 py-3 text-lg font-bold text-crisp-white focus:border-royal-purple outline-none transition-colors placeholder:text-slate-low/30"
+                                            />
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Feedback */}
+                                <AnimatePresence>
+                                    {incomeFeedback && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -6 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -6 }}
+                                            className={`px-4 py-3 rounded-xl text-sm font-medium ${
+                                                incomeFeedback.type === 'success'
+                                                    ? 'bg-emerald-vibrant/10 text-emerald-vibrant border border-emerald-vibrant/20'
+                                                    : 'bg-crimson-bright/10 text-crimson-bright border border-crimson-bright/20'
+                                            }`}
+                                        >
+                                            {incomeFeedback.message}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                <button
+                                    onClick={handleSaveIncome}
+                                    disabled={loadingIncome || (incomeMode === 'manual' && !manualIncome)}
+                                    className="px-5 py-2.5 rounded-lg bg-royal-purple text-white text-xs font-bold uppercase tracking-wider hover:bg-royal-purple/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {loadingIncome ? (
+                                        <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-[16px]">save</span>
+                                            Salvar
+                                        </>
+                                    )}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </section>
+
                 {/* Categories Section */}
                 <section className="space-y-4">
                     <div className="flex items-center gap-2 text-royal-purple">
