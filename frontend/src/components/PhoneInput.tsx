@@ -1,29 +1,43 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const COUNTRIES = [
-    { code: 'BR', flag: '🇧🇷', ddi: '55', name: 'Brasil' },
-    { code: 'US', flag: '🇺🇸', ddi: '1',  name: 'EUA' },
-    { code: 'PT', flag: '🇵🇹', ddi: '351', name: 'Portugal' },
-    { code: 'AR', flag: '🇦🇷', ddi: '54',  name: 'Argentina' },
-    { code: 'UY', flag: '🇺🇾', ddi: '598', name: 'Uruguai' },
-    { code: 'PY', flag: '🇵🇾', ddi: '595', name: 'Paraguai' },
-    { code: 'BO', flag: '🇧🇴', ddi: '591', name: 'Bolívia' },
-    { code: 'CL', flag: '🇨🇱', ddi: '56',  name: 'Chile' },
-    { code: 'CO', flag: '🇨🇴', ddi: '57',  name: 'Colômbia' },
-    { code: 'PE', flag: '🇵🇪', ddi: '51',  name: 'Peru' },
-    { code: 'MX', flag: '🇲🇽', ddi: '52',  name: 'México' },
-    { code: 'ES', flag: '🇪🇸', ddi: '34',  name: 'Espanha' },
-    { code: 'DE', flag: '🇩🇪', ddi: '49',  name: 'Alemanha' },
-    { code: 'GB', flag: '🇬🇧', ddi: '44',  name: 'Reino Unido' },
-    { code: 'FR', flag: '🇫🇷', ddi: '33',  name: 'França' },
-    { code: 'IT', flag: '🇮🇹', ddi: '39',  name: 'Itália' },
-    { code: 'JP', flag: '🇯🇵', ddi: '81',  name: 'Japão' },
-    { code: 'CN', flag: '🇨🇳', ddi: '86',  name: 'China' },
-    { code: 'IN', flag: '🇮🇳', ddi: '91',  name: 'Índia' },
-    { code: 'AU', flag: '🇦🇺', ddi: '61',  name: 'Austrália' },
+    { code: 'br', ddi: '55',  name: 'Brasil' },
+    { code: 'us', ddi: '1',   name: 'EUA' },
+    { code: 'pt', ddi: '351', name: 'Portugal' },
+    { code: 'ar', ddi: '54',  name: 'Argentina' },
+    { code: 'uy', ddi: '598', name: 'Uruguai' },
+    { code: 'py', ddi: '595', name: 'Paraguai' },
+    { code: 'bo', ddi: '591', name: 'Bolívia' },
+    { code: 'cl', ddi: '56',  name: 'Chile' },
+    { code: 'co', ddi: '57',  name: 'Colômbia' },
+    { code: 'pe', ddi: '51',  name: 'Peru' },
+    { code: 'mx', ddi: '52',  name: 'México' },
+    { code: 'es', ddi: '34',  name: 'Espanha' },
+    { code: 'de', ddi: '49',  name: 'Alemanha' },
+    { code: 'gb', ddi: '44',  name: 'Reino Unido' },
+    { code: 'fr', ddi: '33',  name: 'França' },
+    { code: 'it', ddi: '39',  name: 'Itália' },
+    { code: 'jp', ddi: '81',  name: 'Japão' },
+    { code: 'cn', ddi: '86',  name: 'China' },
+    { code: 'in', ddi: '91',  name: 'Índia' },
+    { code: 'au', ddi: '61',  name: 'Austrália' },
 ];
+
+function FlagImg({ code, size = 20 }: { code: string; size?: number }) {
+    return (
+        <img
+            src={`https://flagcdn.com/w40/${code}.png`}
+            alt={code}
+            width={size}
+            height={size * 0.75}
+            className="rounded-sm object-cover shrink-0"
+            style={{ width: size, height: size * 0.75 }}
+        />
+    );
+}
 
 interface PhoneInputProps {
     value: string;
@@ -36,9 +50,10 @@ export default function PhoneInput({ value, onChange, className = '' }: PhoneInp
     const [localNumber, setLocalNumber] = useState('');
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
+    const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+    const buttonRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Sync localNumber from external value (e.g. on mount)
     useEffect(() => {
         if (!value) return;
         const digits = value.replace(/\D/g, '');
@@ -49,11 +64,30 @@ export default function PhoneInput({ value, onChange, className = '' }: PhoneInp
         } else {
             setLocalNumber(digits);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Position dropdown using fixed coordinates from button
+    useEffect(() => {
+        if (open && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setDropdownStyle({
+                position: 'fixed',
+                top: rect.bottom + 4,
+                left: rect.left,
+                width: 256,
+                zIndex: 9999,
+            });
+        }
+    }, [open]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            if (
+                dropdownRef.current && !dropdownRef.current.contains(target) &&
+                buttonRef.current && !buttonRef.current.contains(target)
+            ) {
                 setOpen(false);
                 setSearch('');
             }
@@ -80,15 +114,53 @@ export default function PhoneInput({ value, onChange, className = '' }: PhoneInp
         c.ddi.includes(search)
     );
 
+    const dropdown = open ? (
+        <div
+            ref={dropdownRef}
+            style={dropdownStyle}
+            className="bg-graphite-card border border-graphite-border rounded-lg shadow-2xl overflow-hidden"
+        >
+            <div className="p-2 border-b border-graphite-border">
+                <input
+                    type="text"
+                    placeholder="Buscar país..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    autoFocus
+                    className="w-full bg-charcoal-bg border border-graphite-border rounded-md px-3 py-1.5 text-xs text-crisp-white placeholder:text-slate-low/50 outline-none focus:ring-1 focus:ring-royal-purple"
+                />
+            </div>
+            <ul className="max-h-52 overflow-y-auto">
+                {filtered.map(country => (
+                    <li key={country.code}>
+                        <button
+                            type="button"
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => handleSelectCountry(country)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-graphite-600 transition-colors text-left ${
+                                selectedCountry.code === country.code ? 'bg-royal-purple/10 text-royal-purple' : 'text-crisp-white'
+                            }`}
+                        >
+                            <FlagImg code={country.code} size={20} />
+                            <span className="flex-1 truncate">{country.name}</span>
+                            <span className="text-slate-low font-mono text-xs">+{country.ddi}</span>
+                        </button>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    ) : null;
+
     return (
-        <div className={`relative flex ${className}`} ref={dropdownRef}>
+        <div className={`relative flex ${className}`}>
             {/* Country Selector */}
             <button
+                ref={buttonRef}
                 type="button"
                 onClick={() => setOpen(o => !o)}
                 className="flex items-center gap-1.5 px-3 py-3 bg-charcoal-bg border border-graphite-border border-r-0 rounded-l-lg text-sm text-crisp-white hover:bg-graphite-600 transition-colors shrink-0"
             >
-                <span className="text-lg leading-none">{selectedCountry.flag}</span>
+                <FlagImg code={selectedCountry.code} size={20} />
                 <span className="text-slate-low text-xs font-mono">+{selectedCountry.ddi}</span>
                 <span className="material-symbols-outlined text-slate-low text-sm">expand_more</span>
             </button>
@@ -102,38 +174,8 @@ export default function PhoneInput({ value, onChange, className = '' }: PhoneInp
                 className="flex-1 min-w-0 bg-charcoal-bg border border-graphite-border rounded-r-lg px-4 py-3 text-sm text-crisp-white placeholder:text-slate-low/50 focus:ring-1 focus:ring-royal-purple focus:border-royal-purple outline-none transition-colors"
             />
 
-            {/* Dropdown */}
-            {open && (
-                <div className="absolute left-0 top-full mt-1 z-50 w-64 bg-graphite-card border border-graphite-border rounded-lg shadow-2xl overflow-hidden">
-                    <div className="p-2 border-b border-graphite-border">
-                        <input
-                            type="text"
-                            placeholder="Buscar país..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            autoFocus
-                            className="w-full bg-charcoal-bg border border-graphite-border rounded-md px-3 py-1.5 text-xs text-crisp-white placeholder:text-slate-low/50 outline-none focus:ring-1 focus:ring-royal-purple"
-                        />
-                    </div>
-                    <ul className="max-h-52 overflow-y-auto">
-                        {filtered.map(country => (
-                            <li key={country.code}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleSelectCountry(country)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-graphite-600 transition-colors text-left ${
-                                        selectedCountry.code === country.code ? 'bg-royal-purple/10 text-royal-purple' : 'text-crisp-white'
-                                    }`}
-                                >
-                                    <span className="text-lg leading-none">{country.flag}</span>
-                                    <span className="flex-1 truncate">{country.name}</span>
-                                    <span className="text-slate-low font-mono text-xs">+{country.ddi}</span>
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+            {/* Dropdown rendered via portal to escape overflow:hidden parents */}
+            {typeof window !== 'undefined' && createPortal(dropdown, document.body)}
         </div>
     );
 }
