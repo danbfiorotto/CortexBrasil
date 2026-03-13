@@ -368,6 +368,10 @@ async def _confirm_and_save(phone: str, conv_state: dict, message_id: str):
         category = data.get("category") or "—"
         await _send_whatsapp(phone, f"✅ *Lançamento confirmado!*\nR$ {amount:,.2f} em _{category}_ registrado com sucesso.", message_id)
 
+    except ValueError as e:
+        logger.error(f"Conta inválida ao salvar transação confirmada: {e}")
+        await _clear_conv_state(phone)
+        await _send_whatsapp(phone, f"⚠️ {e}", message_id)
     except Exception as e:
         logger.error(f"Erro ao salvar transação confirmada: {e}")
         await _send_whatsapp(phone, "Tive um erro ao salvar o lançamento. Tente novamente.", message_id)
@@ -693,11 +697,17 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
 
                     # Verificar ambiguidade de conta
                     account_name_raw = data.get("account_name", "")
-                    if account_name_raw:
-                        from backend.core.ledger import LedgerService as _LS2
-                        async with AsyncSessionLocal() as _sess:
-                            await _sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
-                            _ledger2 = _LS2(_sess)
+                    from backend.core.ledger import LedgerService as _LS2
+                    async with AsyncSessionLocal() as _sess:
+                        await _sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                        _ledger2 = _LS2(_sess)
+                        user_accounts = await _ledger2.get_accounts(phone_number)
+
+                        if not user_accounts:
+                            await _send_whatsapp(phone_number, "⚠️ Você não possui contas cadastradas. Acesse o painel web para criar uma conta antes de registrar transações.", message_id)
+                            return
+
+                        if account_name_raw:
                             exact = await _ledger2.get_account_by_name(phone_number, account_name_raw)
                             if exact:
                                 data["account_name"] = exact.name
@@ -719,6 +729,36 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                     # Só uma correspondência — usar diretamente
                                     data["account_name"] = candidates[0].name
                                     data["account_id"] = str(candidates[0].id)
+                                else:
+                                    # Conta mencionada não existe — pedir ao usuário para escolher
+                                    candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
+                                    new_state = {
+                                        "state": "pending_account_selection",
+                                        "pending_tx": data,
+                                        "account_candidates": candidate_list,
+                                        "last_tx_id": conv_state.get("last_tx_id"),
+                                    }
+                                    await _set_conv_state(phone_number, new_state)
+                                    options = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(user_accounts))
+                                    await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_raw}\"* não encontrada. Em qual conta deseja registrar?\n\n{options}", message_id)
+                                    return
+                        else:
+                            # LLM não identificou conta — pedir ao usuário para escolher
+                            if len(user_accounts) == 1:
+                                data["account_name"] = user_accounts[0].name
+                                data["account_id"] = str(user_accounts[0].id)
+                            else:
+                                candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
+                                new_state = {
+                                    "state": "pending_account_selection",
+                                    "pending_tx": data,
+                                    "account_candidates": candidate_list,
+                                    "last_tx_id": conv_state.get("last_tx_id"),
+                                }
+                                await _set_conv_state(phone_number, new_state)
+                                options = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(user_accounts))
+                                await _send_whatsapp(phone_number, f"Em qual conta deseja registrar?\n\n{options}", message_id)
+                                return
 
                     # Categoria válida — mostrar card de confirmação com botões
                     new_state = {

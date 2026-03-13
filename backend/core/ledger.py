@@ -148,11 +148,12 @@ class LedgerService:
             if not account:
                 logger.warning(f"⚠️ Conta '{account_name}' não encontrada para {user_phone}. Usando Carteira como fallback.")
 
-        # If no account found/specified, try to find a default "Carteira" or create one
+        # If no account found/specified, try to find a default "Carteira"
         if not account:
             account = await self.get_account_by_name(user_phone, "Carteira")
             if not account:
-                 account = await self.create_account(user_phone, "Carteira", "CASH")
+                # No fallback account exists — caller must handle this (raise or select account)
+                raise ValueError(f"Conta não encontrada para o usuário {user_phone}. Por favor, informe uma conta válida.")
 
         resolved_account_id = account.id
 
