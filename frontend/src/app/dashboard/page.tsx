@@ -129,23 +129,6 @@ export default function DashboardPage() {
             {/* Right Sidebar Panel: Transactions + Wealth */}
             <div className="w-80 bg-graphite-card border-l border-graphite-border hidden xl:flex flex-col shrink-0 shadow-2xl">
                 <div className="p-6 space-y-6 flex flex-col h-full overflow-y-auto custom-scrollbar">
-                    {/* Semantic Search */}
-                    <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] px-1">
-                            Busca Semântica
-                        </p>
-                        <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-low text-[18px]">
-                                search
-                            </span>
-                            <input
-                                className="w-full bg-charcoal-bg border-graphite-border border rounded-lg pl-10 pr-4 py-2.5 text-xs focus:ring-1 focus:ring-royal-purple placeholder:text-slate-low/50 text-crisp-white outline-none transition-colors"
-                                placeholder="Ex: 'Gastos com Uber em Jan'"
-                                type="text"
-                            />
-                        </div>
-                    </div>
-
                     {/* Recent Transactions */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
                         <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] px-1">
