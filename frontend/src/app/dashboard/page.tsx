@@ -2,6 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { motion } from 'framer-motion';
+
+import HUD from '@/components/HUD';
+import CommitmentMountain from '@/components/CommitmentMountain';
+import GoalsCard from '@/components/GoalsCard';
+import BudgetsCard from '@/components/BudgetsCard';
+import PulseFeed from '@/components/PulseFeed';
+
+const formatBRL = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
 function IncomeSidebarCard() {
     const [hud, setHud] = useState<{ income: number; realized_income: number; expected_income: number; income_mode?: string } | null>(null);
@@ -9,9 +19,6 @@ function IncomeSidebarCard() {
     useEffect(() => {
         api.get('/api/dashboard/hud').then(r => setHud(r.data)).catch(() => {});
     }, []);
-
-    const formatBRL = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     if (!hud) return (
         <div className="h-24 rounded-xl bg-charcoal-bg border border-graphite-border animate-pulse shrink-0" />
@@ -40,13 +47,6 @@ function IncomeSidebarCard() {
         </div>
     );
 }
-import { motion } from 'framer-motion';
-
-import HUD from '@/components/HUD';
-import CommitmentMountain from '@/components/CommitmentMountain';
-import GoalsCard from '@/components/GoalsCard';
-import BudgetsCard from '@/components/BudgetsCard';
-import PulseFeed from '@/components/PulseFeed';
 
 interface Transaction {
     id: string;
@@ -76,9 +76,6 @@ const CATEGORY_ICONS: Record<string, string> = {
     'Investimento': 'trending_up',
     'Renda': 'arrow_downward',
 };
-
-const formatBRL = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
 const container = {
     hidden: { opacity: 0 },
