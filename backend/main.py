@@ -230,7 +230,10 @@ def _format_confirmation_card(data: dict) -> str:
     except Exception:
         date_str = datetime.now().strftime("%d/%m/%Y")
 
+    _type_labels_card = {"CHECKING": "Corrente", "CREDIT": "Crédito", "INVESTMENT": "Investimento", "CASH": "Carteira"}
     account = data.get("account_name") or "Carteira"
+    if data.get("account_type"):
+        account = f"{account} ({_type_labels_card.get(data['account_type'], data['account_type'])})"
     category = data.get("category") or "—"
     description = data.get("description") or "—"
     installments = data.get("installments")
@@ -461,7 +464,17 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
 
                 # Para account_name, usar texto do usuário direto (sem LLM) e validar contra contas reais
                 if field == "account_name":
+                    # Limpar prefixos descritivos do tipo de conta
                     account_name_input = message_body.strip()
+                    _acc_prefixes = [
+                        "cartão de crédito", "cartao de credito", "cartão de débito", "cartao de debito",
+                        "conta corrente", "conta poupança", "conta poupanca", "cc ", "cartão ", "cartao ",
+                    ]
+                    _input_lower = account_name_input.lower()
+                    for _prefix in _acc_prefixes:
+                        if _input_lower.startswith(_prefix):
+                            account_name_input = account_name_input[len(_prefix):].strip()
+                            break
                     from backend.core.ledger import LedgerService as _LSEdit
                     async with AsyncSessionLocal() as _edit_sess:
                         await _edit_sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
@@ -470,13 +483,15 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                         if exact_edit:
                             pending_tx["account_name"] = exact_edit.name
                             pending_tx["account_id"] = str(exact_edit.id)
+                            pending_tx["account_type"] = exact_edit.type
                         else:
                             candidates_edit = await _ledger_edit.search_accounts_by_partial_name(phone_number, account_name_input)
                             if len(candidates_edit) == 1:
                                 pending_tx["account_name"] = candidates_edit[0].name
                                 pending_tx["account_id"] = str(candidates_edit[0].id)
+                                pending_tx["account_type"] = candidates_edit[0].type
                             elif len(candidates_edit) > 1:
-                                candidate_list_edit = [{"id": str(a.id), "name": a.name} for a in candidates_edit]
+                                candidate_list_edit = [{"id": str(a.id), "name": a.name, "type": a.type} for a in candidates_edit]
                                 new_state_edit = {
                                     "state": "pending_account_selection",
                                     "pending_tx": pending_tx,
@@ -494,6 +509,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                 if _default_acc:
                                     pending_tx["account_name"] = _default_acc.name
                                     pending_tx["account_id"] = str(_default_acc.id)
+                                    pending_tx["account_type"] = _default_acc.type
                                     await _send_whatsapp(phone_number, f'⚠️ Conta *"{account_name_input}"* não encontrada. Usando *{_default_acc.name}* como conta padrão.', message_id)
                                 else:
                                     await _send_whatsapp(phone_number, f'⚠️ Conta *"{account_name_input}"* não encontrada e nenhuma conta ativa disponível.', message_id)
@@ -611,6 +627,8 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
             if chosen:
                 pending_tx["account_name"] = chosen["name"]
                 pending_tx["account_id"] = chosen["id"]
+                if chosen.get("type"):
+                    pending_tx["account_type"] = chosen["type"]
                 new_state = {
                     "state": "pending_confirmation",
                     "pending_tx": pending_tx,
@@ -766,8 +784,9 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                             if len(exact_matches) == 1:
                                 data["account_name"] = exact_matches[0].name
                                 data["account_id"] = str(exact_matches[0].id)
+                                data["account_type"] = exact_matches[0].type
                             elif len(exact_matches) > 1:
-                                candidate_list = [{"id": str(a.id), "name": a.name} for a in exact_matches]
+                                candidate_list = [{"id": str(a.id), "name": a.name, "type": a.type} for a in exact_matches]
                                 new_state = {
                                     "state": "pending_account_selection",
                                     "pending_tx": data,
@@ -778,7 +797,7 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                 await _send_account_disambiguation(phone_number, exact_matches, message_id)
                                 return
                             elif len(candidates) > 1:
-                                candidate_list = [{"id": str(a.id), "name": a.name} for a in candidates]
+                                candidate_list = [{"id": str(a.id), "name": a.name, "type": a.type} for a in candidates]
                                 new_state = {
                                     "state": "pending_account_selection",
                                     "pending_tx": data,
@@ -792,9 +811,10 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                                 # Só uma correspondência — usar diretamente
                                 data["account_name"] = candidates[0].name
                                 data["account_id"] = str(candidates[0].id)
+                                data["account_type"] = candidates[0].type
                             else:
                                 # Conta mencionada não existe — pedir ao usuário para escolher
-                                candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
+                                candidate_list = [{"id": str(a.id), "name": a.name, "type": a.type} for a in user_accounts]
                                 new_state = {
                                     "state": "pending_account_selection",
                                     "pending_tx": data,
@@ -810,8 +830,9 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                             if len(user_accounts) == 1:
                                 data["account_name"] = user_accounts[0].name
                                 data["account_id"] = str(user_accounts[0].id)
+                                data["account_type"] = user_accounts[0].type
                             else:
-                                candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
+                                candidate_list = [{"id": str(a.id), "name": a.name, "type": a.type} for a in user_accounts]
                                 new_state = {
                                     "state": "pending_account_selection",
                                     "pending_tx": data,
@@ -931,6 +952,8 @@ async def handle_interactive(phone_number: str, button_id: str, message_id: str)
                     pending_tx = conv_state.get("pending_tx", {})
                     pending_tx["account_name"] = chosen["name"]
                     pending_tx["account_id"] = chosen["id"]
+                    if chosen.get("type"):
+                        pending_tx["account_type"] = chosen["type"]
                     new_state = {
                         "state": "pending_confirmation",
                         "pending_tx": pending_tx,
