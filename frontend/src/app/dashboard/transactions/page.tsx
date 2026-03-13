@@ -1051,35 +1051,26 @@ export default function TransactionsPage() {
                                             {showAddCategoryDropdown && (
                                                 <div className="fixed inset-0 z-[65]" onClick={() => setShowAddCategoryDropdown(false)} />
                                             )}
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAddCategoryDropdown(!showAddCategoryDropdown)}
-                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-left focus:ring-1 focus:ring-royal-purple outline-none transition-all flex items-center justify-between"
-                                            >
-                                                <span className={addForm.category ? 'text-crisp-white' : 'text-slate-low'}>
-                                                    {addForm.category || 'Selecione ou digite uma categoria'}
-                                                </span>
-                                                <span className="material-symbols-outlined text-slate-low text-base">expand_more</span>
-                                            </button>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={addForm.category}
+                                                    onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
+                                                    onFocus={() => setShowAddCategoryDropdown(true)}
+                                                    placeholder="Selecione ou digite uma categoria"
+                                                    className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 pr-10 text-sm text-crisp-white placeholder-slate-low focus:ring-1 focus:ring-royal-purple outline-none transition-all"
+                                                />
+                                                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-low text-base pointer-events-none">expand_more</span>
+                                            </div>
                                             {showAddCategoryDropdown && (
                                                 <div className="absolute top-full mt-1 left-0 right-0 bg-graphite-card border border-graphite-border rounded-lg shadow-2xl py-1 z-[70] max-h-48 overflow-y-auto">
-                                                    <div className="px-3 py-2 border-b border-graphite-border">
-                                                        <input
-                                                            autoFocus
-                                                            type="text"
-                                                            placeholder="Buscar ou digitar categoria..."
-                                                            value={addForm.category}
-                                                            onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                                                            className="w-full bg-charcoal-bg border border-graphite-border rounded px-3 py-1.5 text-xs text-crisp-white outline-none focus:ring-1 focus:ring-royal-purple"
-                                                        />
-                                                    </div>
                                                     {categories
                                                         .filter(cat => !addForm.category || cat.toLowerCase().includes(addForm.category.toLowerCase()))
                                                         .map(cat => (
                                                             <button
                                                                 key={cat}
                                                                 type="button"
-                                                                onClick={() => { setAddForm(prev => ({ ...prev, category: cat })); setShowAddCategoryDropdown(false); }}
+                                                                onMouseDown={(e) => { e.preventDefault(); setAddForm(prev => ({ ...prev, category: cat })); setShowAddCategoryDropdown(false); }}
                                                                 className="w-full text-left px-4 py-2 text-xs text-slate-low hover:text-crisp-white hover:bg-royal-purple/20 transition-colors"
                                                             >
                                                                 {cat}
