@@ -55,6 +55,7 @@ async def get_dashboard_summary(
         formatted_txs.append({
             "id": tx.id,
             "amount": tx.amount,
+            "type": tx.type,
             "category": tx.category or "Outros",
             "description": tx.description,
             "date": date_str,

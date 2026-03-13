@@ -13,6 +13,7 @@ import PulseFeed from '@/components/PulseFeed';
 interface Transaction {
     id: string;
     amount: number;
+    type: string;
     category: string;
     description: string;
     date: string;
@@ -151,7 +152,7 @@ export default function DashboardPage() {
                         </p>
                         <div className="space-y-1">
                             {data.recent_transactions.slice(0, 8).map((tx) => {
-                                const isIncome = tx.amount > 0;
+                                const isIncome = tx.type === 'INCOME';
                                 const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
 
                                 return (
@@ -194,7 +195,10 @@ export default function DashboardPage() {
                                 Patrimônio Líquido Total
                             </p>
                             <p className="text-xl font-bold tracking-tight text-crisp-white">
-                                {formatBRL(data.recent_transactions.reduce((acc, tx) => acc + tx.amount, 0))}
+                                {formatBRL(data.recent_transactions.reduce((acc, tx) => {
+                                    const signed = tx.type === 'INCOME' ? tx.amount : -tx.amount;
+                                    return acc + signed;
+                                }, 0))}
                             </p>
                             <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
                                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
