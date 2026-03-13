@@ -54,8 +54,8 @@ export default function HUD() {
 
     if (loading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 animate-pulse">
-                {[1, 2, 3, 4].map(i => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+                {[1, 2, 3].map(i => (
                     <div key={i} className="h-28 bg-graphite-card rounded-xl border border-graphite-border" />
                 ))}
             </div>
@@ -70,10 +70,8 @@ export default function HUD() {
 
     const burnPercent = Math.min(100, Math.round(data.burn_rate.value));
 
-    const incomePercent = data ? Math.min(100, data.income > 0 ? Math.round((data.realized_income / data.income) * 100) : 0) : 0;
-
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <OnboardingModal
                 isOpen={showOnboarding}
                 onComplete={handleOnboardingComplete}
@@ -149,33 +147,6 @@ export default function HUD() {
                 </div>
             </div>
 
-            {/* Receita do Mês */}
-            <div className="flex flex-col gap-2 rounded-xl p-6 bg-graphite-card border border-graphite-border relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span className="material-symbols-outlined text-royal-purple scale-150">payments</span>
-                </div>
-                <p className="text-slate-low text-[10px] font-bold uppercase tracking-[0.15em]">Receita do Mês</p>
-                <p className="text-3xl font-bold tracking-tight text-crisp-white">
-                    {formatBRL(data.income)}
-                </p>
-                <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 bg-graphite-border rounded-full overflow-hidden">
-                        <div
-                            className="h-full bg-emerald-vibrant/60 rounded-full transition-all duration-500"
-                            style={{ width: `${incomePercent}%` }}
-                        />
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-low uppercase">{incomePercent}%</span>
-                </div>
-                <div className="flex justify-between items-center mt-auto pt-2">
-                    <p className="text-[9px] text-slate-low uppercase tracking-wider">
-                        Realizado: <span className="text-emerald-vibrant/80 font-bold">{formatBRL(data.realized_income)}</span>
-                    </p>
-                    <p className="text-[9px] text-slate-low uppercase tracking-wider">
-                        {data.income_mode === 'auto' ? 'Auto' : 'Meta'}: <span className="text-royal-purple/80 font-bold">{formatBRL(data.expected_income)}</span>
-                    </p>
-                </div>
-            </div>
         </div>
     );
 }
