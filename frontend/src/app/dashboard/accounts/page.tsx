@@ -47,6 +47,7 @@ export default function AccountsPage() {
         days_before_closing: 7
     });
     const [submitting, setSubmitting] = useState(false);
+    const [createError, setCreateError] = useState('');
     const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
     const [adjustForm, setAdjustForm] = useState({ new_balance: '' as string | number, description: '' });
     const [adjustSubmitting, setAdjustSubmitting] = useState(false);
@@ -93,6 +94,7 @@ export default function AccountsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+        setCreateError('');
         const token = Cookies.get('token');
         try {
             const res = await fetch(`${API_URL}/api/accounts/`, {
@@ -112,6 +114,7 @@ export default function AccountsPage() {
             });
             if (res.ok) {
                 setShowForm(false);
+                setCreateError('');
                 setFormData({
                     name: '',
                     type: 'CHECKING',
@@ -121,9 +124,17 @@ export default function AccountsPage() {
                     days_before_closing: 7
                 });
                 await fetchAccounts();
+            } else {
+                const data = await res.json();
+                if (res.status === 409) {
+                    setCreateError('Já existe uma conta com esse nome e tipo. Escolha um nome diferente.');
+                } else {
+                    setCreateError(data.detail || 'Erro ao criar conta. Tente novamente.');
+                }
             }
         } catch (error) {
             console.error('Failed to create account:', error);
+            setCreateError('Erro de conexão. Verifique sua internet e tente novamente.');
         } finally {
             setSubmitting(false);
         }
@@ -356,6 +367,9 @@ export default function AccountsPage() {
                                 </>
                             )}
                         </div>
+                        {createError && (
+                            <p className="text-xs text-crimson-bright font-medium px-1">{createError}</p>
+                        )}
                         <div className="flex justify-end gap-3">
                             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-slate-low hover:text-crisp-white transition-colors">
                                 Cancelar
