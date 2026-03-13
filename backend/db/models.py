@@ -20,6 +20,7 @@ class Account(Base):
     closing_day = Column(Integer, nullable=True) # Day of the month (1-31)
     
     is_active = Column(Boolean, default=True, nullable=False)
+    is_default = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

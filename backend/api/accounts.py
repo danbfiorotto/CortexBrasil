@@ -47,6 +47,44 @@ class AccountResponse(BaseModel):
     closing_day: int = None
 
 
+@router.patch("/{account_id}/set-default", status_code=200)
+async def set_default_account(
+    account_id: str,
+    current_user_phone: str = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Sets an account as the user's default for WhatsApp bot transactions."""
+    await db.execute(
+        text("SELECT set_config('app.current_user_phone', :phone, false)"),
+        {"phone": current_user_phone}
+    )
+
+    result = await db.execute(
+        select(Account).where(
+            Account.id == uuid.UUID(account_id),
+            Account.user_phone == current_user_phone,
+            Account.is_active == True,
+        )
+    )
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=404, detail="Conta não encontrada.")
+
+    # Unset any existing default
+    await db.execute(
+        text("UPDATE accounts SET is_default = FALSE WHERE user_phone = :phone AND is_default = TRUE"),
+        {"phone": current_user_phone}
+    )
+
+    # Set new default (or toggle off if same account)
+    account.is_default = True
+    await db.commit()
+    await db.refresh(account)
+    logger.info(f"Default account set to {account_id} for {current_user_phone}")
+
+    return {"id": str(account.id), "name": account.name, "is_default": account.is_default}
+
+
 @router.get("/")
 async def list_accounts(
     current_user_phone: str = Depends(get_current_user),
@@ -74,6 +112,7 @@ async def list_accounts(
                 "credit_limit": acc.credit_limit,
                 "due_day": acc.due_day,
                 "closing_day": acc.closing_day,
+                "is_default": acc.is_default,
             }
             for acc in accounts
         ],

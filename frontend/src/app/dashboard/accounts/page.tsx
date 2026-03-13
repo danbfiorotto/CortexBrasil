@@ -22,6 +22,7 @@ interface Account {
     credit_limit?: number;
     due_day?: number;
     closing_day?: number;
+    is_default?: boolean;
 }
 
 export default function AccountsPage() {
@@ -68,6 +69,25 @@ export default function AccountsPage() {
     // Delete state
     const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+    // Default account
+    const [settingDefault, setSettingDefault] = useState<string | null>(null);
+
+    const handleSetDefault = async (acc: Account) => {
+        setSettingDefault(acc.id);
+        const token = Cookies.get('token');
+        try {
+            await fetch(`${API_URL}/api/accounts/${acc.id}/set-default`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            await fetchAccounts();
+        } catch (error) {
+            console.error('Failed to set default account:', error);
+        } finally {
+            setSettingDefault(null);
+        }
+    };
 
     const fetchAccounts = useCallback(async () => {
         const token = Cookies.get('token');
@@ -409,11 +429,24 @@ export default function AccountsPage() {
                                             {typeInfo.icon}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-crisp-white">{acc.name}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="text-sm font-bold text-crisp-white">{acc.name}</p>
+                                                {acc.is_default && (
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">Padrão</span>
+                                                )}
+                                            </div>
                                             <p className="text-[10px] text-slate-low uppercase tracking-wider font-black">{typeInfo.label}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => handleSetDefault(acc)}
+                                            disabled={settingDefault === acc.id}
+                                            className={`p-1.5 rounded-lg transition-colors ${acc.is_default ? 'text-amber-400' : 'text-slate-low hover:text-amber-400 hover:bg-amber-400/10'}`}
+                                            title={acc.is_default ? 'Conta padrão' : 'Definir como padrão'}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">{acc.is_default ? 'star' : 'star'}</span>
+                                        </button>
                                         <button
                                             onClick={() => openEdit(acc)}
                                             className="p-1.5 rounded-lg hover:bg-royal-purple/20 text-slate-low hover:text-royal-purple transition-colors"

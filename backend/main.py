@@ -672,7 +672,8 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
             if accounts:
                 context_str += "💰 Saldos Atuais:\n"
                 for acc in accounts:
-                    context_str += f"- {acc.name}: R$ {acc.current_balance:.2f}\n"
+                    default_marker = " [CONTA PADRÃO]" if acc.is_default else ""
+                    context_str += f"- {acc.name}: R$ {acc.current_balance:.2f}{default_marker}\n"
                 context_str += "\n"
 
             from backend.core.repository import TransactionRepository

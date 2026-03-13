@@ -32,7 +32,7 @@ Sempre responda em formato JSON estrito, sem markdown, com a seguinte estrutura:
         "type": "EXPENSE" | "INCOME" | "TRANSFER",
         "category": string | null,
         "description": string | null,
-        "account_name": string | null ("Nubank", "Itaú", "Carteira", "Cofre"),
+        "account_name": string | null (use EXATAMENTE o nome da conta do usuário listada no contexto, ou null se não mencionado),
         "destination_account_name": string | null (Apenas para TRANSFER),
         "date": string (ISO 8601) | null,
         "installments": integer | null
@@ -42,9 +42,10 @@ Sempre responda em formato JSON estrito, sem markdown, com a seguinte estrutura:
 
 ## REGRAS DE CONTABILIDADE
 1. **GASTOS (EXPENSE):** "Gastei 50 no almoço", "Comprei um livro".
-   - `account_name`: De onde saiu o dinheiro? Se não falado, assuma "Carteira".
+   - `account_name`: De onde saiu o dinheiro? Se não mencionado, use a conta marcada como [CONTA PADRÃO] no contexto. Se não houver padrão, use null.
 2. **ENTRADAS (INCOME):** "Recebi 5000 de salário", "Caiu um pix de 50".
    - `category`: "Salário", "Renda Extra", "Reembolso".
+   - `account_name`: Se não mencionado, use a conta marcada como [CONTA PADRÃO] no contexto. Se não houver padrão, use null.
 3. **TRANSFERÊNCIAS (TRANSFER):** "Paguei o cartão Nubank com o Itaú", "Mandei 500 pra poupança".
    - `account_name`: Origem (De onde saiu).
    - `destination_account_name`: Destino (Para onde foi).
@@ -73,14 +74,14 @@ Exemplos:
 Usuario: "Gastei 50 no mcdonalds no débito do itau"
 Resposta: {
     "action": "log_transaction",
-    "data": {"amount": 50.0, "type": "EXPENSE", "category": "Alimentação", "description": "McDonalds", "account_name": "Itaú", "installments": null},
+    "data": {"amount": 50.0, "type": "EXPENSE", "category": "Alimentação", "description": "McDonalds", "account_name": "Itau", "installments": null},
     "reply_text": "Aguardando confirmação."
 }
 
 Usuario: "Recebi 5000 da empresa"
 Resposta: {
     "action": "log_transaction",
-    "data": {"amount": 5000.0, "type": "INCOME", "category": "Salário", "description": "Salário Empresa", "account_name": "Itaú", "installments": null},
+    "data": {"amount": 5000.0, "type": "INCOME", "category": "Salário", "description": "Salário Empresa", "account_name": null, "installments": null},
     "reply_text": "Aguardando confirmação."
 }
 
