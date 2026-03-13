@@ -71,6 +71,7 @@ export default function TransactionsPage() {
     const [searchMode, setSearchMode] = useState<'normal' | 'ai'>('normal');
     const [normalQuery, setNormalQuery] = useState('');
     const [showSearchHelp, setShowSearchHelp] = useState(false);
+    const [showAddCategoryDropdown, setShowAddCategoryDropdown] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addType, setAddType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
     const [addForm, setAddForm] = useState({
@@ -1046,18 +1047,48 @@ export default function TransactionsPage() {
                                 {addType !== 'INCOME' && (
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-low uppercase tracking-widest pl-1">Categoria</label>
-                                        <input
-                                            list="add-categories-list"
-                                            value={addForm.category}
-                                            onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
-                                            placeholder="Selecione ou digite uma categoria"
-                                            className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-crisp-white focus:ring-1 focus:ring-royal-purple outline-none transition-all"
-                                        />
-                                        <datalist id="add-categories-list">
-                                            {categories.map(cat => (
-                                                <option key={cat} value={cat} />
-                                            ))}
-                                        </datalist>
+                                        <div className="relative">
+                                            {showAddCategoryDropdown && (
+                                                <div className="fixed inset-0 z-[65]" onClick={() => setShowAddCategoryDropdown(false)} />
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddCategoryDropdown(!showAddCategoryDropdown)}
+                                                className="w-full bg-charcoal-bg border border-graphite-border rounded-lg px-4 py-3 text-sm text-left focus:ring-1 focus:ring-royal-purple outline-none transition-all flex items-center justify-between"
+                                            >
+                                                <span className={addForm.category ? 'text-crisp-white' : 'text-slate-low'}>
+                                                    {addForm.category || 'Selecione ou digite uma categoria'}
+                                                </span>
+                                                <span className="material-symbols-outlined text-slate-low text-base">expand_more</span>
+                                            </button>
+                                            {showAddCategoryDropdown && (
+                                                <div className="absolute top-full mt-1 left-0 right-0 bg-graphite-card border border-graphite-border rounded-lg shadow-2xl py-1 z-[70] max-h-48 overflow-y-auto">
+                                                    <div className="px-3 py-2 border-b border-graphite-border">
+                                                        <input
+                                                            autoFocus
+                                                            type="text"
+                                                            placeholder="Buscar ou digitar categoria..."
+                                                            value={addForm.category}
+                                                            onChange={(e) => setAddForm(prev => ({ ...prev, category: e.target.value }))}
+                                                            className="w-full bg-charcoal-bg border border-graphite-border rounded px-3 py-1.5 text-xs text-crisp-white outline-none focus:ring-1 focus:ring-royal-purple"
+                                                        />
+                                                    </div>
+                                                    {categories
+                                                        .filter(cat => !addForm.category || cat.toLowerCase().includes(addForm.category.toLowerCase()))
+                                                        .map(cat => (
+                                                            <button
+                                                                key={cat}
+                                                                type="button"
+                                                                onClick={() => { setAddForm(prev => ({ ...prev, category: cat })); setShowAddCategoryDropdown(false); }}
+                                                                className="w-full text-left px-4 py-2 text-xs text-slate-low hover:text-crisp-white hover:bg-royal-purple/20 transition-colors"
+                                                            >
+                                                                {cat}
+                                                            </button>
+                                                        ))
+                                                    }
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
 
