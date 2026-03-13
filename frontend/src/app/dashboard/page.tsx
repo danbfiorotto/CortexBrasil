@@ -5,48 +5,13 @@ import api from '@/lib/api';
 import { motion } from 'framer-motion';
 
 import HUD from '@/components/HUD';
-import CommitmentMountain from '@/components/CommitmentMountain';
 import GoalsCard from '@/components/GoalsCard';
-import BudgetsCard from '@/components/BudgetsCard';
+import CommitmentMountain from '@/components/CommitmentMountain';
 import PulseFeed from '@/components/PulseFeed';
+import BudgetsCard from '@/components/BudgetsCard';
 
 const formatBRL = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-function IncomeSidebarCard() {
-    const [hud, setHud] = useState<{ income: number; realized_income: number; expected_income: number; income_mode?: string } | null>(null);
-
-    useEffect(() => {
-        api.get('/api/dashboard/hud').then(r => setHud(r.data)).catch(() => {});
-    }, []);
-
-    if (!hud) return (
-        <div className="h-24 rounded-xl bg-charcoal-bg border border-graphite-border animate-pulse shrink-0" />
-    );
-
-    const pct = Math.min(100, hud.income > 0 ? Math.round((hud.realized_income / hud.income) * 100) : 0);
-
-    return (
-        <div className="rounded-xl bg-charcoal-bg border border-graphite-border p-4 space-y-2 shrink-0">
-            <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em]">Receita do Mês</p>
-            <p className="text-2xl font-bold tracking-tight text-crisp-white">{formatBRL(hud.income)}</p>
-            <div className="flex items-center gap-2">
-                <div className="h-1.5 flex-1 bg-graphite-border rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-vibrant/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                </div>
-                <span className="text-[10px] font-bold text-slate-low uppercase">{pct}%</span>
-            </div>
-            <div className="flex justify-between">
-                <p className="text-[9px] text-slate-low uppercase">
-                    Realizado: <span className="text-emerald-vibrant/80 font-bold">{formatBRL(hud.realized_income)}</span>
-                </p>
-                <p className="text-[9px] text-slate-low uppercase">
-                    {hud.income_mode === 'auto' ? 'Auto' : 'Meta'}: <span className="text-royal-purple/80 font-bold">{formatBRL(hud.expected_income)}</span>
-                </p>
-            </div>
-        </div>
-    );
-}
 
 interface Transaction {
     id: string;
@@ -125,101 +90,95 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="flex flex-1 overflow-hidden">
-            {/* Main scrollable content */}
-            <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-6 space-y-6">
-                <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-                    {/* HUD Metrics */}
-                    <motion.div variants={item}>
-                        <HUD />
-                    </motion.div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+            <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
 
-                    {/* Main Grid: 2/3 + 1/3 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Left Column */}
-                        <div className="lg:col-span-2 space-y-6">
-                            <motion.div variants={item}>
-                                <CommitmentMountain />
-                            </motion.div>
-
-                            <motion.div variants={item}>
-                                <GoalsCard />
-                            </motion.div>
-                        </div>
-
-                        {/* Right Column: Intelligence */}
-                        <aside className="space-y-6">
-                            <motion.div variants={item}>
-                                <PulseFeed />
-                            </motion.div>
-
-                            <motion.div variants={item}>
-                                <BudgetsCard />
-                            </motion.div>
-
-                            {/* Wealth Summary */}
-                            <motion.div variants={item}>
-                                <div className="p-5 rounded-xl bg-gradient-to-br from-royal-purple/10 to-transparent border border-royal-purple/20 space-y-3">
-                                    <p className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
-                                        Patrimônio Líquido Total
-                                    </p>
-                                    <p className="text-xl font-bold tracking-tight text-crisp-white">
-                                        {formatBRL(data.net_worth)}
-                                    </p>
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
-                                        <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                                        Visão Geral
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </aside>
-                    </div>
+                {/* 4 Cards no topo */}
+                <motion.div variants={item}>
+                    <HUD />
                 </motion.div>
-            </div>
 
-            {/* Right Sidebar Panel: Receita + Transactions */}
-            <div className="w-80 bg-graphite-card border-l border-graphite-border hidden xl:flex flex-col shrink-0 shadow-2xl">
-                {/* Receita do Mês — fixo no topo, fora do scroll */}
-                <div className="p-4 pb-0 shrink-0">
-                    <IncomeSidebarCard />
-                </div>
+                {/* 3 Colunas */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                {/* Recent Transactions — rola independentemente */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-                        <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em] px-1">
-                            Transações Recentes
-                        </p>
-                        <div className="space-y-1">
-                            {data.recent_transactions.slice(0, 8).map((tx) => {
-                                const isIncome = tx.type === 'INCOME';
-                                const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
-                                return (
-                                    <div
-                                        key={tx.id}
-                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-graphite-border/30 transition-colors cursor-pointer group border border-transparent hover:border-graphite-border"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className={`size-9 shrink-0 rounded-lg flex items-center justify-center border ${isIncome ? 'bg-emerald-vibrant/5 border-emerald-vibrant/20' : 'bg-charcoal-bg border-graphite-border'}`}>
-                                                <span className={`material-symbols-outlined text-[18px] ${isIncome ? 'text-emerald-vibrant' : 'text-slate-low group-hover:text-royal-purple transition-colors'}`}>
-                                                    {isIncome ? 'arrow_downward' : iconName}
-                                                </span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-bold text-crisp-white truncate">{tx.description}</p>
-                                                <p className="text-[9px] text-slate-low uppercase tracking-tighter">
-                                                    {new Date(tx.date).toLocaleDateString('pt-BR')}
+                    {/* Coluna 1 — Metas financeiras (maior) */}
+                    <div className="lg:col-span-5 space-y-6">
+                        <motion.div variants={item}>
+                            <CommitmentMountain />
+                        </motion.div>
+                        <motion.div variants={item}>
+                            <GoalsCard />
+                        </motion.div>
+                    </div>
+
+                    {/* Coluna 2 — IA Insights + Limite de gasto */}
+                    <div className="lg:col-span-4 space-y-6">
+                        <motion.div variants={item}>
+                            <PulseFeed />
+                        </motion.div>
+                        <motion.div variants={item}>
+                            <BudgetsCard />
+                        </motion.div>
+                    </div>
+
+                    {/* Coluna 3 — Transações recentes + Patrimônio líquido */}
+                    <div className="lg:col-span-3 space-y-4">
+                        <motion.div variants={item}>
+                            <div className="rounded-xl bg-graphite-card border border-graphite-border p-4 space-y-3">
+                                <p className="text-[10px] font-bold text-slate-low uppercase tracking-[0.2em]">
+                                    Transações Recentes
+                                </p>
+                                <div className="space-y-1">
+                                    {data.recent_transactions.slice(0, 8).map((tx) => {
+                                        const isIncome = tx.type === 'INCOME';
+                                        const iconName = CATEGORY_ICONS[tx.category] || 'receipt_long';
+                                        return (
+                                            <div
+                                                key={tx.id}
+                                                className="flex items-center justify-between p-2.5 rounded-lg hover:bg-graphite-border/30 transition-colors cursor-pointer group border border-transparent hover:border-graphite-border"
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <div className={`size-8 shrink-0 rounded-lg flex items-center justify-center border ${isIncome ? 'bg-emerald-vibrant/5 border-emerald-vibrant/20' : 'bg-charcoal-bg border-graphite-border'}`}>
+                                                        <span className={`material-symbols-outlined text-[16px] ${isIncome ? 'text-emerald-vibrant' : 'text-slate-low group-hover:text-royal-purple transition-colors'}`}>
+                                                            {isIncome ? 'arrow_downward' : iconName}
+                                                        </span>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-crisp-white truncate">{tx.description}</p>
+                                                        <p className="text-[9px] text-slate-low uppercase tracking-tighter">
+                                                            {new Date(tx.date).toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <p className={`text-xs font-bold shrink-0 ml-2 ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
+                                                    {isIncome ? '+' : '-'}{formatBRL(Math.abs(tx.amount))}
                                                 </p>
                                             </div>
-                                        </div>
-                                        <p className={`text-xs font-bold shrink-0 ml-2 ${isIncome ? 'text-emerald-vibrant' : 'text-crimson-bright'}`}>
-                                            {isIncome ? '+' : '-'}{formatBRL(Math.abs(tx.amount))}
-                                        </p>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Patrimônio Líquido Total */}
+                        <motion.div variants={item}>
+                            <div className="p-5 rounded-xl bg-gradient-to-br from-royal-purple/10 to-transparent border border-royal-purple/20 space-y-3">
+                                <p className="text-[10px] font-bold text-slate-low uppercase tracking-widest">
+                                    Patrimônio Líquido Total
+                                </p>
+                                <p className="text-xl font-bold tracking-tight text-crisp-white">
+                                    {formatBRL(data.net_worth)}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-vibrant tracking-widest uppercase">
+                                    <span className="material-symbols-outlined text-[14px]">trending_up</span>
+                                    Visão Geral
+                                </div>
+                            </div>
+                        </motion.div>
                     </div>
+
                 </div>
-            </div>
+            </motion.div>
+        </div>
     );
 }
