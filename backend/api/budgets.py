@@ -7,6 +7,7 @@ from backend.core.auth import get_current_user
 from pydantic import BaseModel, ConfigDict
 import uuid
 from typing import Optional
+from datetime import datetime
 
 router = APIRouter(prefix="/api/budgets", tags=["Budgets"])
 
@@ -38,15 +39,20 @@ async def get_budgets(
     budgets = result.scalars().all()
 
     # Calculate spent per category for the month
-    month_start = f"{month}-01"
-    month_end = f"{month}-31"
+    month_start = datetime.strptime(f"{month}-01", "%Y-%m-%d")
+    # Last day: go to first day of next month
+    year, m = int(month.split("-")[0]), int(month.split("-")[1])
+    if m == 12:
+        month_end = datetime(year + 1, 1, 1)
+    else:
+        month_end = datetime(year, m + 1, 1)
     spent_stmt = (
         select(Transaction.category, func.sum(Transaction.amount).label("total"))
         .where(
             Transaction.user_phone == current_user,
             Transaction.type == "EXPENSE",
             Transaction.date >= month_start,
-            Transaction.date <= month_end,
+            Transaction.date < month_end,
         )
         .group_by(Transaction.category)
     )
