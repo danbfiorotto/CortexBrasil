@@ -43,7 +43,7 @@ async def get_dashboard_summary(
     )
     total_spent_month = result.scalar() or 0.0
 
-    # Net worth: CHECKING + CASH accounts only (excludes CREDIT cards)
+    # Net worth: CHECKING + CASH accounts + latest investment snapshot
     net_worth_result = await db.execute(
         text("""
             SELECT COALESCE(SUM(current_balance), 0)
@@ -52,7 +52,21 @@ async def get_dashboard_summary(
         """),
         {"phone": current_user_phone}
     )
-    net_worth = float(net_worth_result.scalar() or 0.0)
+    liquid_balance = float(net_worth_result.scalar() or 0.0)
+
+    investment_result = await db.execute(
+        text("""
+            SELECT COALESCE(total_value, 0)
+            FROM investment_snapshots
+            WHERE user_phone = :phone
+            ORDER BY snapshot_date DESC
+            LIMIT 1
+        """),
+        {"phone": current_user_phone}
+    )
+    investment_value = float(investment_result.scalar() or 0.0)
+
+    net_worth = liquid_balance + investment_value
 
     formatted_txs = []
     for tx in recent_txs:
