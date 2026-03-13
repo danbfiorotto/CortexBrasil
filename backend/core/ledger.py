@@ -106,15 +106,23 @@ class LedgerService:
         return None
 
     async def get_default_account(self, user_phone: str):
-        """Returns the user's default account (is_default=True), or None if not set."""
-        result = await self.session.execute(
+        """Returns the user's default account. If only one active account exists, returns it automatically."""
+        all_active = await self.session.execute(
             select(Account).where(
                 Account.user_phone == user_phone,
                 Account.is_active == True,
-                Account.is_default == True,
             )
         )
-        return result.scalar_one_or_none()
+        active_accounts = all_active.scalars().all()
+
+        if len(active_accounts) == 1:
+            return active_accounts[0]
+
+        for acc in active_accounts:
+            if acc.is_default:
+                return acc
+
+        return None
 
     async def search_accounts_by_partial_name(self, user_phone: str, name: str) -> list:
         """
