@@ -1045,6 +1045,10 @@ async def handle_webhook(request: Request, background_tasks: BackgroundTasks):
                
             message_data = messages[0]
             phone_number = message_data["from"] # Quem enviou
+            # Normaliza: remove DDI 55 (Brasil) para manter consistência com o cadastro do dashboard
+            # ex: "5515981414350" -> "15981414350"
+            if phone_number.startswith("55") and len(phone_number) == 13:
+                phone_number = phone_number[2:]
             msg_type = message_data["type"]
             message_id = message_data["id"]
             
