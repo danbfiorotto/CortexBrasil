@@ -18,7 +18,9 @@ import redis.asyncio as redis
 import os
 import tempfile
 from datetime import datetime
+import unicodedata
 from uuid import UUID
+from backend.core.ledger import _strip_accents
 
 # Shared Clients
 from backend.core import clients
@@ -318,8 +320,9 @@ async def _send_edit_field_list(phone: str):
 
 async def _send_account_disambiguation(phone: str, accounts: list, message_id: str):
     """Pergunta ao usuário qual conta usar quando há múltiplas correspondências."""
+    type_labels = {"CHECKING": "Corrente", "CREDIT": "Crédito", "INVESTMENT": "Investimento", "CASH": "Carteira"}
     if settings.APP_ENV == "development":
-        rows = [{"id": f"acct_{acc.id}", "title": acc.name} for acc in accounts[:10]]
+        rows = [{"id": f"acct_{acc.id}", "title": f"{acc.name} ({type_labels.get(acc.type, acc.type)})"} for acc in accounts[:10]]
         await clients.whatsapp_client.send_interactive_list(
             to=phone,
             header="🏦 Qual conta?",
@@ -756,40 +759,52 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                             return
 
                         if account_name_raw:
-                            exact = await _ledger2.get_account_by_name(phone_number, account_name_raw)
-                            if exact:
-                                data["account_name"] = exact.name
-                                data["account_id"] = str(exact.id)
+                            # Buscar todas as contas que correspondem ao nome (pode haver corrente + crédito com mesmo nome)
+                            candidates = await _ledger2.search_accounts_by_partial_name(phone_number, account_name_raw)
+                            exact_matches = [a for a in candidates if _strip_accents(a.name).lower() == _strip_accents(account_name_raw).lower()]
+                            # Se há exatamente 1 match exato, usar direto; se há múltiplos exatos (ex: Itaú corrente + Itaú crédito), desambiguar
+                            if len(exact_matches) == 1:
+                                data["account_name"] = exact_matches[0].name
+                                data["account_id"] = str(exact_matches[0].id)
+                            elif len(exact_matches) > 1:
+                                candidate_list = [{"id": str(a.id), "name": a.name} for a in exact_matches]
+                                new_state = {
+                                    "state": "pending_account_selection",
+                                    "pending_tx": data,
+                                    "account_candidates": candidate_list,
+                                    "last_tx_id": conv_state.get("last_tx_id"),
+                                }
+                                await _set_conv_state(phone_number, new_state)
+                                await _send_account_disambiguation(phone_number, exact_matches, message_id)
+                                return
+                            elif len(candidates) > 1:
+                                candidate_list = [{"id": str(a.id), "name": a.name} for a in candidates]
+                                new_state = {
+                                    "state": "pending_account_selection",
+                                    "pending_tx": data,
+                                    "account_candidates": candidate_list,
+                                    "last_tx_id": conv_state.get("last_tx_id"),
+                                }
+                                await _set_conv_state(phone_number, new_state)
+                                await _send_account_disambiguation(phone_number, candidates, message_id)
+                                return
+                            elif len(candidates) == 1:
+                                # Só uma correspondência — usar diretamente
+                                data["account_name"] = candidates[0].name
+                                data["account_id"] = str(candidates[0].id)
                             else:
-                                candidates = await _ledger2.search_accounts_by_partial_name(phone_number, account_name_raw)
-                                if len(candidates) > 1:
-                                    candidate_list = [{"id": str(a.id), "name": a.name} for a in candidates]
-                                    new_state = {
-                                        "state": "pending_account_selection",
-                                        "pending_tx": data,
-                                        "account_candidates": candidate_list,
-                                        "last_tx_id": conv_state.get("last_tx_id"),
-                                    }
-                                    await _set_conv_state(phone_number, new_state)
-                                    await _send_account_disambiguation(phone_number, candidates, message_id)
-                                    return
-                                elif len(candidates) == 1:
-                                    # Só uma correspondência — usar diretamente
-                                    data["account_name"] = candidates[0].name
-                                    data["account_id"] = str(candidates[0].id)
-                                else:
-                                    # Conta mencionada não existe — pedir ao usuário para escolher
-                                    candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
-                                    new_state = {
-                                        "state": "pending_account_selection",
-                                        "pending_tx": data,
-                                        "account_candidates": candidate_list,
-                                        "last_tx_id": conv_state.get("last_tx_id"),
-                                    }
-                                    await _set_conv_state(phone_number, new_state)
-                                    options = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(user_accounts))
-                                    await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_raw}\"* não encontrada. Em qual conta deseja registrar?\n\n{options}", message_id)
-                                    return
+                                # Conta mencionada não existe — pedir ao usuário para escolher
+                                candidate_list = [{"id": str(a.id), "name": a.name} for a in user_accounts]
+                                new_state = {
+                                    "state": "pending_account_selection",
+                                    "pending_tx": data,
+                                    "account_candidates": candidate_list,
+                                    "last_tx_id": conv_state.get("last_tx_id"),
+                                }
+                                await _set_conv_state(phone_number, new_state)
+                                options = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(user_accounts))
+                                await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_raw}\"* não encontrada. Em qual conta deseja registrar?\n\n{options}", message_id)
+                                return
                         else:
                             # LLM não identificou conta — pedir ao usuário para escolher
                             if len(user_accounts) == 1:
