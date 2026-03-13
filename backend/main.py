@@ -482,12 +482,55 @@ async def process_whatsapp_message(message_body: str, phone_number: str, message
                     if edit_data.get(field) is not None:
                         pending_tx[field] = edit_data[field]
 
+                    # Se o campo editado é account_name, validar se a conta existe
+                    if field == "account_name" and pending_tx.get("account_name"):
+                        account_name_input = pending_tx["account_name"]
+                        from backend.core.ledger import LedgerService as _LSEdit
+                        async with AsyncSessionLocal() as _edit_sess:
+                            await _edit_sess.execute(text("SELECT set_config('app.current_user_phone', :phone, false)"), {"phone": phone_number})
+                            _ledger_edit = _LSEdit(_edit_sess)
+                            exact_edit = await _ledger_edit.get_account_by_name(phone_number, account_name_input)
+                            if exact_edit:
+                                pending_tx["account_name"] = exact_edit.name
+                                pending_tx["account_id"] = str(exact_edit.id)
+                                warning_msg = ""
+                            else:
+                                candidates_edit = await _ledger_edit.search_accounts_by_partial_name(phone_number, account_name_input)
+                                if len(candidates_edit) == 1:
+                                    pending_tx["account_name"] = candidates_edit[0].name
+                                    pending_tx["account_id"] = str(candidates_edit[0].id)
+                                    warning_msg = ""
+                                elif len(candidates_edit) > 1:
+                                    candidate_list_edit = [{"id": str(a.id), "name": a.name} for a in candidates_edit]
+                                    new_state_edit = {
+                                        "state": "pending_account_selection",
+                                        "pending_tx": pending_tx,
+                                        "account_candidates": candidate_list_edit,
+                                        "last_tx_id": conv_state.get("last_tx_id"),
+                                    }
+                                    await _set_conv_state(phone_number, new_state_edit)
+                                    options_edit = "\n".join(f"{i+1}. {a.name}" for i, a in enumerate(candidates_edit))
+                                    await _send_whatsapp(phone_number, f"⚠️ Conta *\"{account_name_input}\"* não encontrada. Em qual conta deseja registrar?\n\n{options_edit}", message_id)
+                                    return
+                                else:
+                                    # Conta não encontrada — manter conta padrão e avisar usuário
+                                    _all_accs = await _ledger_edit.get_accounts(phone_number)
+                                    _default_acc = next((a for a in _all_accs if a.is_active), None)
+                                    warning_msg = f'⚠️ Conta *"{account_name_input}"* não encontrada. Conta padrão mantida.\n\n'
+                                    if _default_acc and not pending_tx.get("account_id"):
+                                        pending_tx["account_name"] = _default_acc.name
+                                        pending_tx["account_id"] = str(_default_acc.id)
+                    else:
+                        warning_msg = ""
+
                     updated_state = {
                         "state": "pending_confirmation",
                         "pending_tx": pending_tx,
                         "last_tx_id": conv_state.get("last_tx_id"),
                     }
                     await _set_conv_state(phone_number, updated_state)
+                    if field == "account_name" and warning_msg:
+                        await _send_whatsapp(phone_number, warning_msg, message_id)
                     await _send_confirmation_card(phone_number, pending_tx)
                 except Exception as e:
                     logger.error(f"Erro ao processar edição de campo: {e}")
